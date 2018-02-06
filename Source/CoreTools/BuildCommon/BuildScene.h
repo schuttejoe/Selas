@@ -10,5 +10,4 @@
 namespace Shooty {
 
     bool BuildScene(ImportedScene* imported, BuiltScene* built);
-    void ShutdownBuiltScene(BuiltScene* built);
 }

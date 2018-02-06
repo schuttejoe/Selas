@@ -155,7 +155,12 @@ function SetupConsoleApplication (solutionName, platformName, extraDefines, extr
       files { "Source/**.c", "Source/**.cpp", "Source/**.h" }
 
       LinkLibraries(EssentialLibraries)
-      LinkLibraries(extraLibraries)
+      if extraLibraries["Core"] ~= nil then
+        LinkLibraries(extraLibraries["Core"])
+      end
+      if extraLibraries["Tool"] ~= nil then
+        LinkLibraries(extraLibraries["Tool"])
+      end
 
     configuration { platformName }
       for i, includedir in ipairs(extraIncludeDirs) do
@@ -176,5 +181,10 @@ function SetupConsoleApplication (solutionName, platformName, extraDefines, extr
 
     -- LIB PROJECTS
     AddCoreLibraries(platformName, solutionName, EssentialLibraries)
-    AddToolLibraries(platformName, solutionName, extraLibraries)
+    if extraLibraries["Core"] ~= nil then
+      AddCoreLibraries(platformName, solutionName, extraLibraries["Core"])
+    end
+    if extraLibraries["Tool"] ~= nil then
+      AddToolLibraries(platformName, solutionName, extraLibraries["Tool"])
+    end
 end

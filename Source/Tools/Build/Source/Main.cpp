@@ -36,7 +36,6 @@ int main(int argc, char *argv[]) {
     ShutdownImportedScene(&importedScene);
 
     BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\scene.bin");
-    ShutdownBuiltScene(&builtScene);
 
     return 0;
 }

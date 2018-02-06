@@ -12,7 +12,7 @@ namespace Shooty {
 
     //== Import ====================================================================
     struct ImportedMesh {
-        CArray<float3> positions;
+        CArray<float4> positions;
         CArray<float3> normals;
         CArray<float2> uv0;
 
@@ -25,21 +25,18 @@ namespace Shooty {
 
     //== Build =====================================================================
 
-    struct AdditionalVertexData {
-        float3 normal;
-        float2 uv0;
-    };
-
     struct BuiltMeshData {
         uint32 indexCount;
         uint32 vertexCount;
-
-        float4*               positions;
-        AdditionalVertexData* vertexData;
-        uint32*               indices;
+        uint32 indexOffset;
+        uint32 vertexOffset;
     };
 
     struct BuiltScene {
-        CArray<BuiltMeshData*> meshes;
+        CArray<BuiltMeshData> meshes;
+        CArray<uint32>        indices;
+        CArray<float4>        positions;
+        CArray<float3>        normals;
+        CArray<float2>        uv0;
     };
 }

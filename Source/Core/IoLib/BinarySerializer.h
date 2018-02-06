@@ -45,4 +45,11 @@ namespace Shooty {
   bool SerializerEnd     (BinaryReader* serializer);
   void SerializerRead    (BinaryReader* serializer, void* data, uint32 size);
   void SerializerAttach  (BinaryReader* serializer, void** data, uint32 size);
+
+  //==============================================================================
+  template <typename T>
+  inline void FixupPointerX64(void* base, T*& pointer) {
+      uint64 offset = reinterpret_cast<uint64>(pointer);
+      pointer = reinterpret_cast<T*>(reinterpret_cast<uint8*>(base) + offset);
+  }
 };

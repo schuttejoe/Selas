@@ -10,38 +10,44 @@ namespace Shooty {
     #define ReturnFailure_(code) if (!code) { return false; }
 
     //==============================================================================
-    bool SerializeMesh(BinaryWriter* serializer, const BuiltMeshData& mesh) {
-        uint32 indexCount = mesh.indexCount;
-        uint32 vertexCount = mesh.vertexCount;
-        SerializerWrite(serializer, &indexCount, sizeof(uint32));
-        SerializerWrite(serializer, &vertexCount, sizeof(uint32));
+    static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData) {
 
-        SerializerWritePointerOffsetX64(serializer);
-        SerializerWritePointerData(serializer, mesh.positions, vertexCount * sizeof(float4));
 
-        SerializerWritePointerOffsetX64(serializer);
-        SerializerWritePointerData(serializer, mesh.indices, indexCount * sizeof(uint16));
+        CArray<BuiltMeshData> meshes;
+        CArray<uint32>        indices;
+        CArray<float4>        positions;
+        CArray<float3>        normals;
+        CArray<float2>        uv0;
 
-        SerializerWritePointerOffsetX64(serializer);
-        SerializerWritePointerData(serializer, mesh.vertexData, vertexCount * sizeof(float3));
+        uint32 meshCount = sceneData.meshes.Length();
+        uint32 indexCount = sceneData.indices.Length();
+        uint32 vertexCount = sceneData.positions.Length();
+        uint32 pad = 0;
+        SerializerWrite(writer, &meshCount, sizeof(meshCount));
+        SerializerWrite(writer, &indexCount, sizeof(indexCount));
+        SerializerWrite(writer, &vertexCount, sizeof(vertexCount));
+        SerializerWrite(writer, &pad, sizeof(pad));
 
-        return true;
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.meshes.GetData(), sceneData.meshes.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.indices.GetData(), sceneData.indices.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.positions.GetData(), sceneData.positions.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.normals.GetData(), sceneData.normals.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.uv0.GetData(), sceneData.uv0.DataSize());
     }
 
     //==============================================================================
     bool BakeScene(const BuiltScene& sceneData, cpointer filepath) {
-        BinaryWriter serializer;
-        ReturnFailure_(SerializerStart(&serializer, filepath));
+        BinaryWriter writer;
+        ReturnFailure_(SerializerStart(&writer, filepath));
 
-        uint32 meshCount = sceneData.meshes.Length();
+        SerializeMeshes(&writer, sceneData);
 
-        SerializerWrite(&serializer, &meshCount, sizeof(uint32));
-
-        for (uint scan = 0; scan < meshCount; ++scan) {
-            ReturnFailure_(SerializeMesh(&serializer, *sceneData.meshes[scan]));
-        }
-
-        ReturnFailure_(SerializerEnd(&serializer));
+        ReturnFailure_(SerializerEnd(&writer));
 
         return true;
     }

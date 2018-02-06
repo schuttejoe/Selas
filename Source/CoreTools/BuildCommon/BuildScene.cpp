@@ -8,78 +8,43 @@
 #include <SystemLib/MemoryAllocation.h>
 #include <MathLib/FloatFuncs.h>
 #include <UtilityLib/Color.h>
-#include <float.h>
 
 namespace Shooty {
 
     #define ReturnFailure_(x) if(!x) { return false; }
 
     //==============================================================================
-    bool BuildVertices(ImportedMesh& imported, BuiltMeshData& built) {
-        uint vertexCount = imported.positions.Length();
-        float4* positions = NewArray_(float4, vertexCount);
-        AdditionalVertexData* additionalVertexData = NewArray_(AdditionalVertexData, vertexCount);
+    void BuildMeshes(ImportedScene* imported, BuiltScene* built) {
+        uint32 totalIndexCount = 0;
+        uint32 totalVertexCount = 0;
 
-        built.vertexCount = CheckedCast<uint32>(vertexCount);
-        built.positions = positions;
-        built.vertexData = additionalVertexData;
+        for (uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
 
-        for (uint scan = 0; scan < vertexCount; ++scan) {
-            float3 pos = imported.positions[scan];
-            built.positions[scan] = float4(pos, 1.0f);
-            built.vertexData[scan].normal = imported.normals[scan];
-            built.vertexData[scan].uv0 = imported.uv0[scan];
+            ImportedMesh* mesh = imported->meshes[scan];
+
+            BuiltMeshData meshdata;
+            meshdata.indexCount = mesh->indices.Length();
+            meshdata.vertexCount = mesh->positions.Length();
+            meshdata.indexOffset = totalIndexCount;
+            meshdata.vertexOffset = totalVertexCount;
+
+            totalIndexCount += meshdata.indexCount;
+            totalVertexCount += meshdata.vertexCount;
+
+            built->meshes.Add(meshdata);
+            built->indices.Append(mesh->indices);
+            built->positions.Append(mesh->positions);
+            built->normals.Append(mesh->normals);
+            built->uv0.Append(mesh->uv0);
         }
-
-        return true;
-    }
-
-    //==============================================================================
-    bool BuildIndices(ImportedMesh& imported, BuiltMeshData& built) {
-        uint indexCount = imported.indices.Length();
-        built.indices = NewArray_(uint32, indexCount);
-        built.indexCount = CheckedCast<uint32>(indexCount);
-
-        for (uint scan = 0; scan < indexCount; ++scan) {
-            built.indices[scan] = CheckedCast<uint32>(imported.indices[scan]);
-        }
-
-        return true;
-    }
-
-    //==============================================================================
-    bool BuildMesh(ImportedMesh& imported, BuiltMeshData& built) {
-        BuildVertices(imported, built);
-        BuildIndices(imported, built);
-
-        return true;
     }
 
     //==============================================================================
     bool BuildScene(ImportedScene* imported, BuiltScene* built) {
-        built->meshes.Resize(imported->meshes.Length());
-        for (uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
-            built->meshes[scan] = New_(BuiltMeshData);
-            ReturnFailure_(BuildMesh(*imported->meshes[scan], *built->meshes[scan]));
-        }
+
+
+        BuildMeshes(imported, built);
 
         return true;
-    }
-
-    //==============================================================================
-    static void ShutdownMesh(BuiltMeshData* meshData) {
-        SafeDeleteArray_(meshData->positions);
-        SafeDeleteArray_(meshData->vertexData);
-        SafeDeleteArray_(meshData->indices);
-
-        Delete_(meshData);
-    }
-
-    //==============================================================================
-    void ShutdownBuiltScene(BuiltScene* built) {
-        for (uint scan = 0, meshCount = built->meshes.Length(); scan < meshCount; ++scan) {
-            ShutdownMesh(built->meshes[scan]);
-        }
-        built->meshes.Close();
     }
 }

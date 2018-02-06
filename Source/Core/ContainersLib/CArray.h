@@ -22,6 +22,7 @@ namespace Shooty {
         void Reserve(uint32 capacity);
         void Resize(uint32 length);
 
+        const Type_* GetData(void) const { return m_data; }
         Type_* GetData(void) { return m_data; }
 
         inline Type_&       operator[] (uint index) { return m_data[index]; }
@@ -29,9 +30,11 @@ namespace Shooty {
 
         inline uint32 Length(void) const { return m_length; }
         inline uint32 Capacity(void) const { return m_capacity; }
+        inline uint32 DataSize(void) const { return m_length * sizeof(Type_); }
 
         uint32 Add(void);
         uint32 Add(const Type_& element);
+        void   Append(const CArray<Type_>& addend);
 
         bool Remove(const Type_& item);
         void RemoveFast(uint index);
@@ -118,6 +121,17 @@ namespace Shooty {
         Assert_(m_length < m_capacity);
         m_data[m_length] = element;
         return m_length++;
+    }
+
+    template<typename Type_>
+    void CArray<Type_>::Append(const CArray<Type_>& addend) {
+        uint32 newLength = m_length + addend.Length();
+
+        if (m_capacity < newLength)
+            ReallocateArray(m_length, newLength);
+
+        Memory::Copy(static_cast<Type_*>(m_data) + m_length, addend.GetData(), addend.DataSize());
+        m_length = newLength;
     }
 
     template<typename Type_>
