@@ -67,7 +67,7 @@ namespace Shooty {
     void CArray<Type_>::Close(void)
     {
         if(m_data) {
-            DeleteArray_(m_data);
+            Free_(m_data);
         }
 
         m_data = nullptr;
@@ -170,7 +170,7 @@ namespace Shooty {
     template<typename Type_>
     void CArray<Type_>::ReallocateArray(uint32 newLength, uint32 newCapacity)
     {
-        Type_* newList = NewArray_(Type_, newCapacity);
+        Type_* newList = AllocArray_(Type_, newCapacity);
 
         if(m_data) {
             uint32 lengthToCopy = (m_length < newLength) ? m_length : newLength;
@@ -178,7 +178,7 @@ namespace Shooty {
                 Memory::Copy(newList, m_data, lengthToCopy * sizeof(Type_));
             }
 
-            DeleteArray_(m_data);
+            Free_(m_data);
         }
 
         m_data = newList;

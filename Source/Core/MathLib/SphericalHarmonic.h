@@ -1,9 +1,9 @@
 #pragma once
 
 //==============================================================================
-// (c)2012 Joe Schutte
+// Joe Schutte
 //==============================================================================
-#include "FloatStructs.h"
+#include <MathLib/FloatStructs.h>
 
 namespace Shooty {
 

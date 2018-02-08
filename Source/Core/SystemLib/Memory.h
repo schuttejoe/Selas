@@ -1,10 +1,10 @@
 #pragma once
 
 //==============================================================================
-// (c)2012 Joe Schutte
+// Joe Schutte
 //==============================================================================
 
-#include "BasicTypes.h"
+#include <SystemLib/BasicTypes.h>
 
 namespace Shooty {
 

@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Quaternion.h"
-#include "Trigonometric.h"
+#include <MathLib/Quaternion.h>
+#include <MathLib/Trigonometric.h>
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/JsAssert.h>
 

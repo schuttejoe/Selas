@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include "File.h"
+#include <IoLib/File.h>
 
-#include <SystemLib\JsAssert.h>
-#include <SystemLib\MemoryAllocation.h>
+#include <SystemLib/JsAssert.h>
+#include <SystemLib/MemoryAllocation.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -24,13 +24,13 @@ namespace Shooty {
             *fileSize = ftell(file);
             fseek(file, 0, SEEK_SET);
 
-            *fileData = NewArray_(uint8, *fileSize);
+            *fileData = AllocArray_(uint8, *fileSize);
 
-            size_t bytes_read = fread(*fileData, 1, *fileSize, file);
+            size_t bytesRead = fread(*fileData, 1, *fileSize, file);
             fclose(file);
 
-            Assert_(bytes_read == *fileSize);
-            (void)bytes_read;
+            Assert_(bytesRead == *fileSize);
+            Unused_(bytesRead);
 
             return true;
         }
@@ -52,5 +52,5 @@ namespace Shooty {
             return true;
         }
 
-    };
+    }
 }

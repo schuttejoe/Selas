@@ -18,15 +18,16 @@ typedef unsigned char*  pointer;
 typedef const char*     cpointer;
 
 #define ForceInline_ __forceinline
+#define Unused_(x) (void)x;
 
 namespace Shooty {
 
-#if Is64Bit_
-    typedef uint64             uint;
-    typedef int64              sint;
-#else
-    typedef uint32             uint;
-    typedef int32              sint;
-#endif
+    #if Is64Bit_
+        typedef uint64             uint;
+        typedef int64              sint;
+    #else
+        typedef uint32             uint;
+        typedef int32              sint;
+    #endif
 
 }

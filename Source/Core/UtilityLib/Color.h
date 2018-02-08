@@ -58,12 +58,12 @@ namespace Shooty {
         uint32 g = color.g();
         uint32 b = color.b();
 
-        static const float invert = 1.f / 255.f;
+        static const float invertColor = 1.0f / 255.0f;
 
         float3 color3f = {
-            static_cast<float>(r) * invert,
-            static_cast<float>(g) * invert,
-            static_cast<float>(b) * invert
+            static_cast<float>(r) * invertColor,
+            static_cast<float>(g) * invertColor,
+            static_cast<float>(b) * invertColor
         };
         return color3f;
     }

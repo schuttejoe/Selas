@@ -1,20 +1,20 @@
 #pragma once
 
 //==============================================================================
-// (c)2012 Joe Schutte
+// Joe Schutte
 //==============================================================================
 
-#include "Thread.h"
-#include <SystemLib\OsThreading.h>
-#include <SystemLib\BasicTypes.h>
-#include <SystemLib\JsAssert.h>
+#include <ThreadingLib/Thread.h>
+#include <SystemLib/OsThreading.h>
+#include <SystemLib/BasicTypes.h>
+#include <SystemLib/JsAssert.h>
 
 namespace Shooty {
 
     //==============================================================================
     // Forward declaration
     //==============================================================================
-    typedef void(*JobFunction)(void* user_data);
+    typedef void(*JobFunction)(void* userData);
 
     //==============================================================================
     // CJobMgr
@@ -32,7 +32,7 @@ namespace Shooty {
 
     struct Job {
         JobFunction  function;
-        void*        user_data;
+        void*        userData;
         JobGroup*    group;
     };
 
@@ -41,8 +41,8 @@ namespace Shooty {
         CJobMgr(void);
         ~CJobMgr(void);
 
-        void init(void);
-        void shutdown(void);
+        void Initialize(void);
+        void Shutdown(void);
 
         void CreateJob(JobFunction job, void* user_data, JobGroup* group = nullptr);
         void WaitForGroup(JobGroup* group);

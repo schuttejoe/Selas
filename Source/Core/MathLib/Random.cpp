@@ -68,5 +68,5 @@ namespace Shooty {
             float4 quat = Math::Quaternion::Create(angle, axis);
             return Normalize(Math::Quaternion::Rotate(quat, local));
         }
-    };
-};
+    }
+}

@@ -24,7 +24,6 @@ namespace Shooty {
     };
 
     //== Build =====================================================================
-
     struct BuiltMeshData {
         uint32 indexCount;
         uint32 vertexCount;

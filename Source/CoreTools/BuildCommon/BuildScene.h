@@ -4,10 +4,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon\SceneBuildPipeline.h>
 #include <SystemLib\BasicTypes.h>
 
 namespace Shooty {
 
+    struct ImportedScene;
+    struct BuiltScene;
     bool BuildScene(ImportedScene* imported, BuiltScene* built);
 }

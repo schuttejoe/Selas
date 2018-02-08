@@ -25,5 +25,4 @@ namespace Shooty {
         float Powf(float x, float y);
 
     }
-
 }

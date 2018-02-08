@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "BakeScene.h"
-#include <IoLib\BinarySerializer.h>
+#include <BuildCommon/BakeScene.h>
+#include <IoLib/BinarySerializer.h>
 
 namespace Shooty {
 

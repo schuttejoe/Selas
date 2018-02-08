@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Thread.h"
-#include <SystemLib\BasicTypes.h>
+#include <ThreadingLib/Thread.h>
+#include <SystemLib/BasicTypes.h>
 #include <Windows.h>
 
 namespace Shooty {

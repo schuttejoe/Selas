@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "BasicTypes.h"
+#include <SystemLib/BasicTypes.h>
 
 namespace Shooty {
     static_assert(sizeof(int8) == 1, "Unexpected primitive size");

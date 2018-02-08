@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Memory.h"
+#include <SystemLib/Memory.h>
 #include <string.h>
 
 namespace Shooty {

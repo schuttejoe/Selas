@@ -126,9 +126,13 @@ function LinkLibraries (libs)
 end
 
 --=================================================================================================
-function CommonSetup (solutionName, extraDefines)
+function CommonSetup (solutionName, extraDefines, isTool)
   -- common include directories
   includedirs { ".", "Source", CoreDir, MiddlewareDir }
+  
+  if isTool then
+    includedirs { CoreToolsDir }
+  end
 
   -- common flags
   flags { "ShadowedVariables", "FatalWarnings", "NoIncrementalLink", "StaticRuntime", "No64BitChecks" }
@@ -140,11 +144,11 @@ function CommonSetup (solutionName, extraDefines)
 end
 
 --=================================================================================================
-function SetupConsoleApplication (solutionName, platformName, extraDefines, extraLibraries, extraIncludeDirs, extraMiddlewareLibDirs, extraMiddlewareLibraries, postBuildCopies)
+function SetupConsoleApplication (solutionName, platformName, extraDefines, isTool, extraLibraries, extraIncludeDirs, extraMiddlewareLibDirs, extraMiddlewareLibraries, postBuildCopies)
   solution(solutionName)
     platforms { platformName }
     configurations { "Debug", "Profile", "Release" }
-    CommonSetup(solutionName, extraDefines)
+    CommonSetup(solutionName, extraDefines, isTool)
 
     project "Application"
       kind "ConsoleApp"

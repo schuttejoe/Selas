@@ -1,17 +1,18 @@
 //==============================================================================
-// (c)2012 Joe Schutte
+// Joe Schutte
 //==============================================================================
 
-#include "OSThreading.h"
-#include <SystemLib\JsAssert.h>
-#include <SystemLib\MemoryAllocation.h>
-#include <SystemLib\Memory.h>
+#include <SystemLib/OSThreading.h>
+#include <SystemLib/JsAssert.h>
+#include <SystemLib/MemoryAllocation.h>
+#include <SystemLib/Memory.h>
 #include <windows.h>
 
 namespace Shooty {
 
     //==============================================================================
     // Events
+    //==============================================================================
 
     //==============================================================================
     void* CreateEvent(bool manualReset, bool initialState)
@@ -53,6 +54,7 @@ namespace Shooty {
 
     //==============================================================================
     // Semaphore
+    //==============================================================================
 
     //==============================================================================
     void* CreateSemaphore(uint32 initialCount, uint32 maxCount)
@@ -83,7 +85,7 @@ namespace Shooty {
     //==============================================================================
     void* CreateSpinLock(void)
     {
-        uint8* spin = NewArray_(uint8, CacheLineSize_);
+        uint8* spin = AllocArray_(uint8, CacheLineSize_);
         Memory::Zero(spin, CacheLineSize_);
         return spin;
     }
@@ -96,7 +98,7 @@ namespace Shooty {
     //==============================================================================
     void CloseSpinlock(void* spinlock)
     {
-        DeleteArray_(spinlock);
+        Free_(spinlock);
     }
 
     //==============================================================================

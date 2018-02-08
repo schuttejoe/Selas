@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Trigonometric.h"
+#include <MathLib/Trigonometric.h>
 #include <math.h>
 
 namespace Shooty {

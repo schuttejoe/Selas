@@ -4,7 +4,7 @@
 // Joe Schutte 
 //==============================================================================
 
-#include "Atomic.h"
+#include <SystemLib/Atomic.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

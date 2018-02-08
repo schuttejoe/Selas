@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "FloatStructs.h"
-#include "Trigonometric.h"
+#include <MathLib/FloatStructs.h>
+#include <MathLib/Trigonometric.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Shooty {
@@ -183,28 +183,28 @@ namespace Shooty {
     }
 
     namespace Matrix4x4 {
-        extern float4x4 Identity(void);
-        extern float4x4 Zero(void);
-        extern float4x4 Translate(float x, float y, float z);
-        extern float4x4 ScaleTranslate(float s, float tx, float ty, float tz);
-        extern float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz);
+        float4x4 Identity(void);
+        float4x4 Zero(void);
+        float4x4 Translate(float x, float y, float z);
+        float4x4 ScaleTranslate(float s, float tx, float ty, float tz);
+        float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz);
     };
 
     namespace Matrix3x3 {
-        extern float3x3 Identity(void);
+        float3x3 Identity(void);
     };
 
     // 4x4 matrix functions
-    extern float4x4 MatrixTranspose(float4x4 const& mat);
-    extern float4x4 MatrixInverse(float4x4 const& mat);
-    extern float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs);
-    extern float3   MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat);
-    extern float4   MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat);
+    float4x4 MatrixTranspose(float4x4 const& mat);
+    float4x4 MatrixInverse(float4x4 const& mat);
+    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs);
+    float3   MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat);
+    float4   MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat);
 
-    extern float4x4 ScreenProjection(uint width, uint height);
-    extern float4x4 ScreenProjection(float x, float y, uint width, uint height);
-    extern float4x4 PerspectiveFovLhProjection(float fov, float aspect, float near, float far);
-    extern float4x4 OffsetCenterProjectionLh(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
-    extern float4x4 LookAtLh(float3 eye, float3 up, float3 target);
-    extern float4x4 ViewLh(float3 position, float3 forward, float3 up, float3 right);
+    float4x4 ScreenProjection(uint width, uint height);
+    float4x4 ScreenProjection(float x, float y, uint width, uint height);
+    float4x4 PerspectiveFovLhProjection(float fov, float aspect, float near, float far);
+    float4x4 OffsetCenterProjectionLh(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
+    float4x4 LookAtLh(float3 eye, float3 up, float3 target);
+    float4x4 ViewLh(float3 position, float3 forward, float3 up, float3 right);
 }

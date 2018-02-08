@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "FloatStructs.h"
+#include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Shooty {

@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "GeometryIntersection.h"
-#include "FloatFuncs.h"
+#include <MathLib/GeometryIntersection.h>
+#include <MathLib/FloatFuncs.h>
 
 #include <MathLib/Trigonometric.h>
 #include <SystemLib/JsAssert.h>

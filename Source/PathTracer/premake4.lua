@@ -12,4 +12,4 @@ local ExtraMiddlewareLinkDirs = { "Embree-2.7.1/x64/lib" }
 local ExtraMiddlewareLibraries = { "embree" }
 local ExtraDllCopies = { "Embree-2.7.1\\x64\\lib\\embree.dll $(TargetDir)embree.dll", "Embree-2.7.1\\x64\\lib\\tbb.dll $(TargetDir)tbb.dll" }
 
-SetupConsoleApplication(SolutionName, Platform, ExtraDefines, ExtraLibraries, ExtraMiddlewareIncludeDirs, ExtraMiddlewareLinkDirs, ExtraMiddlewareLibraries, ExtraDllCopies)
+SetupConsoleApplication(SolutionName, Platform, ExtraDefines, false, ExtraLibraries, ExtraMiddlewareIncludeDirs, ExtraMiddlewareLinkDirs, ExtraMiddlewareLibraries, ExtraDllCopies)

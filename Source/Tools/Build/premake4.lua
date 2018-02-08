@@ -13,4 +13,4 @@ local ExtraMiddlewareLinkDirs = { }
 local ExtraMiddlewareLibraries = { "assimp" }
 local ExtraDllCopies = { "$(TargetDir)assimp.dll" }
 
-SetupConsoleApplication(SolutionName, Platform, ExtraDefines, ExtraLibraries, ExtraMiddlewareIncludeDirs, ExtraMiddlewareLinkDirs, ExtraMiddlewareLibraries, ExtraDllCopies)
+SetupConsoleApplication(SolutionName, Platform, ExtraDefines, true, ExtraLibraries, ExtraMiddlewareIncludeDirs, ExtraMiddlewareLinkDirs, ExtraMiddlewareLibraries, ExtraDllCopies)

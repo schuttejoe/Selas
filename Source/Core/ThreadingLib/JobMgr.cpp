@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "JobMgr.h"
+#include <ThreadingLib/JobMgr.h>
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/Atomic.h>
 #include <SystemLib/Memory.h>
@@ -28,7 +28,7 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CJobMgr::init(void) {
+    void CJobMgr::Initialize(void) {
         jobSpinlock = CreateSpinLock();
         jobSemaphore = CreateSemaphore(0, MaxJobs);
 
@@ -37,7 +37,7 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CJobMgr::shutdown(void) {
+    void CJobMgr::Shutdown(void) {
         WaitAll();
 
         terminateThreads = true;
@@ -57,7 +57,7 @@ namespace Shooty {
     void CJobMgr::CreateJob(JobFunction job, void* userData, JobGroup* group) {
         Job newJob;
         newJob.function = job;
-        newJob.user_data = userData;
+        newJob.userData = userData;
         newJob.group = group;
 
         EnterSpinLock(jobSpinlock);
@@ -121,7 +121,7 @@ namespace Shooty {
         LeaveSpinLock(jobMgr->jobSpinlock);
 
         // Execute the job
-        job.function(job.user_data);
+        job.function(job.userData);
 
         if (job.group) {
             Atomic::Decrement32(&job.group->groupCount);

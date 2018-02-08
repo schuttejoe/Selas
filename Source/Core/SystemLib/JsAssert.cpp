@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "JsAssert.h"
+#include <SystemLib/JsAssert.h>
 
 #if AllowAsserts_
 
@@ -10,14 +10,13 @@
 
 namespace Shooty {
 
-void AssertHandler(const char* message, const char* filename, int line)
-{
-  (void)filename;
-  (void)line;
+    void AssertHandler(const char* message, const char* filename, int line) {
+        (void)filename;
+        (void)line;
 
-  assert(message);//, filename, line);
+        assert(message);//, filename, line);
+    }
+
 }
-
-} //namespace Shooty
 
 #endif

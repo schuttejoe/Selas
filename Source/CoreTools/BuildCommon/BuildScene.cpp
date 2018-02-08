@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "BuildScene.h"
+#include <BuildCommon/BuildScene.h>
 #include <SystemLib/CheckedCast.h>
 #include <SystemLib/MinMax.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -41,8 +41,6 @@ namespace Shooty {
 
     //==============================================================================
     bool BuildScene(ImportedScene* imported, BuiltScene* built) {
-
-
         BuildMeshes(imported, built);
 
         return true;

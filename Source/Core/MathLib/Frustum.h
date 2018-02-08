@@ -13,5 +13,4 @@ namespace Shooty {
 
         void CalculateFrustumPlanes(const float4x4& projection, float4* planes);
     }
-
 }

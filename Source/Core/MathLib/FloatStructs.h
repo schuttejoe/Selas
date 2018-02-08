@@ -14,6 +14,10 @@ namespace Shooty {
 
         ForceInline_ float2() {}
         ForceInline_ float2(float x_, float y_) : x(x_), y(y_) { }
+
+        static const float2 Zero_;
+        static const float2 XAxis_;
+        static const float2 YAxis_;
     };
 
     struct float3
@@ -35,6 +39,11 @@ namespace Shooty {
         ForceInline_ float4() {}
         ForceInline_ float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) { }
         ForceInline_ float4(float3 xyz, float w_) : x(xyz.x), y(xyz.y), z(xyz.z), w(w_) { }
+
+        static const float4 Zero_;
+        static const float4 XAxis_;
+        static const float4 YAxis_;
+        static const float4 ZAxis_;
     };
 
     struct float3x3

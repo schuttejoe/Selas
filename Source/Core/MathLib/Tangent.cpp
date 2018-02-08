@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Tangent.h"
-#include "FloatFuncs.h"
-#include "FloatStructs.h"
+#include <MathLib/Tangent.h>
+#include <MathLib/FloatFuncs.h>
+#include <MathLib/FloatStructs.h>
 
 #include <math.h>
 
@@ -12,7 +12,7 @@ namespace Shooty {
     namespace Math {
         //==============================================================================
         void ComputeTangentFrame(const float3& p0, const float3& p1, const float3& p2, const float2& uv0, const float2& uv1, const float2& uv2,
-                                   float3& tangent, float3& bitangent) {
+                                 float3& tangent, float3& bitangent) {
             float3 s0 = p1 - p0;
             float3 s1 = p2 - p1;
             float2 uvs0 = uv1 - uv0;
@@ -31,7 +31,7 @@ namespace Shooty {
 
         //==============================================================================
         float4 ComputeFinalTangent(const float3& normal, const float3& intangent, const float3& inbitangent) {
-            // Gram-Schmidt orthogonalization
+            // -- Gram-Schmidt orthogonalization
             float3 tangent = intangent - Dot(normal, intangent) * normal;
             tangent = Normalize(tangent);
 

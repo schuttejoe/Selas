@@ -2,8 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "ImportScene.h"
-
+#include <BuildCommon/ImportScene.h>
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/MemoryAllocation.h>
 
@@ -17,56 +16,7 @@ namespace Shooty {
     #define ReturnFailure_(x) if(!x) { return false; }
 
     //==============================================================================
-    bool CountMeshes(const aiScene* aiscene, const struct aiNode* node, uint& count);
-    bool ExtractMeshes(const aiScene* aiscene, const struct aiNode* node, ImportedScene* mesh);
-    bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& mesh_index);
-
-    //==============================================================================
-    bool ImportScene(const char* filename, ImportedScene* scene) {
-        Assimp::Importer importer;
-        const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
-                                                   | aiProcess_CalcTangentSpace
-                                                   | aiProcess_GenUVCoords
-                                                   | aiProcess_ConvertToLeftHanded
-                                                   | aiProcess_Triangulate
-                                                   | aiProcess_JoinIdenticalVertices
-                                                   | aiProcess_PreTransformVertices
-                                                   | aiProcess_TransformUVCoords
-                                                   | aiProcess_ImproveCacheLocality
-                                                   | aiProcess_OptimizeMeshes
-                                                   | aiProcess_OptimizeGraph);
-        if (!aiscene) {
-            const char* errstr = importer.GetErrorString();
-            (void)errstr; // JSTODO - Error reporting
-            return false;
-        }
-
-        uint meshcount = 0;
-        ReturnFailure_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
-
-        scene->meshes.Resize((uint32)meshcount);
-        for (uint scan = 0; scan < meshcount; ++scan) {
-            scene->meshes[scan] = New_(ImportedMesh);
-        }
-
-        uint mesh_index = 0;
-        ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
-
-        // aiscene is cleaned up by the importer's destructor
-        return true;
-    }
-
-    //==============================================================================
-    void ShutdownImportedScene(ImportedScene* scene) {
-        for (uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
-            Delete_(scene->meshes[scan]);
-        }
-
-        scene->meshes.Close();
-    }
-
-    //==============================================================================
-    bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count) {
+    static bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count) {
         count += node->mNumMeshes;
 
         for (uint scan = 0; scan < node->mNumChildren; ++scan) {
@@ -98,7 +48,7 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& meshIndex) {
+    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& meshIndex) {
         for (uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
             const struct aiMesh* aimesh = aiscene->mMeshes[node->mMeshes[meshscan]];
 
@@ -155,5 +105,49 @@ namespace Shooty {
         }
 
         return true;
+    }
+
+    //==============================================================================
+    bool ImportScene(const char* filename, ImportedScene* scene) {
+        Assimp::Importer importer;
+        const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
+                                                   | aiProcess_CalcTangentSpace
+                                                   | aiProcess_GenUVCoords
+                                                   | aiProcess_ConvertToLeftHanded
+                                                   | aiProcess_Triangulate
+                                                   | aiProcess_JoinIdenticalVertices
+                                                   | aiProcess_PreTransformVertices
+                                                   | aiProcess_TransformUVCoords
+                                                   | aiProcess_ImproveCacheLocality
+                                                   | aiProcess_OptimizeMeshes
+                                                   | aiProcess_OptimizeGraph);
+        if (!aiscene) {
+            const char* errstr = importer.GetErrorString();
+            (void)errstr; // JSTODO - Error reporting
+            return false;
+        }
+
+        uint meshcount = 0;
+        ReturnFailure_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
+
+        scene->meshes.Resize((uint32)meshcount);
+        for (uint scan = 0; scan < meshcount; ++scan) {
+            scene->meshes[scan] = New_(ImportedMesh);
+        }
+
+        uint mesh_index = 0;
+        ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
+
+        // aiscene is cleaned up by the importer's destructor
+        return true;
+    }
+
+    //==============================================================================
+    void ShutdownImportedScene(ImportedScene* scene) {
+        for (uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
+            Delete_(scene->meshes[scan]);
+        }
+
+        scene->meshes.Close();
     }
 }

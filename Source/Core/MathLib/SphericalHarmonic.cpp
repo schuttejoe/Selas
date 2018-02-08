@@ -1,8 +1,8 @@
 //==============================================================================
-// (c)2012 Joe Schutte
+// Joe Schutte
 //==============================================================================
 
-#include "SphericalHarmonic.h"
+#include <MathLib/SphericalHarmonic.h>
 #include <SystemLib/Memory.h>
 
 namespace Shooty {

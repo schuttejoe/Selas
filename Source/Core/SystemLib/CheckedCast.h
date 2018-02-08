@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "JsAssert.h"
+#include <SystemLib/JsAssert.h>
 
 namespace Shooty {
 
