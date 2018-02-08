@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <BuildCommon/BuildScene.h>
+#include <BuildCommon/SceneBuildPipeline.h>
 #include <SystemLib/CheckedCast.h>
 #include <SystemLib/MinMax.h>
 #include <SystemLib/MemoryAllocation.h>
