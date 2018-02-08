@@ -55,8 +55,18 @@ namespace Shooty {
         return result;
     }
 
+    __forceinline float2 operator*(float2 lhs, float2 rhs) {
+        float2 result = { lhs.x * rhs.x, lhs.y * rhs.y };
+        return result;
+    }
+
     __forceinline float3 operator*(float3 lhs, float3 rhs) {
         float3 result = {lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z};
+        return result;
+    }
+
+    __forceinline float4 operator*(float4 lhs, float4 rhs) {
+        float4 result = { lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w };
         return result;
     }
 

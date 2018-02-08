@@ -23,7 +23,7 @@ using namespace Shooty;
 //=================================================================================================
 int main(int argc, char *argv[]) {
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\content\\Meshes\\teapot.obj", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\content\\Meshes\\dragon.obj", &importedScene)) {
         Error_("Error importing teapot.obj");
         return -1;
     }

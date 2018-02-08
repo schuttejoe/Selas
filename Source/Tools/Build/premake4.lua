@@ -9,7 +9,7 @@ local ExtraLibraries = {}
 ExtraLibraries["Tool"] = { "BuildCommon" }
 
 local ExtraMiddlewareIncludeDirs = { "assimp-3.0.1270\\include" }
-local ExtraMiddlewareLinkDirs = { "assimp-3.0.1270\\lib\\assimp_debug-dll_x64", "assimp-3.0.1270\\lib\\assimp_release-dll_x64"}
+local ExtraMiddlewareLinkDirs = { "assimp-3.0.1270\\lib\\assimp_release-dll_x64", "assimp-3.0.1270\\lib\\assimp_release-dll_x64"}
 local ExtraMiddlewareLibraries = { "assimp" }
 local ExtraDllCopies = { "$(TargetDir)assimp.dll" }
 
