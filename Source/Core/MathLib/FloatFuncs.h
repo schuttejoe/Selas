@@ -118,6 +118,24 @@ namespace Shooty {
         lhs.w += rhs.w;
     }
 
+    __forceinline float2 operator-(float2 lhs)
+    {
+        float2 result = { -lhs.x, -lhs.y };
+        return result;
+    }
+
+    __forceinline float3 operator-(float3 lhs)
+    {
+        float3 result = { -lhs.x, -lhs.y, -lhs.z};
+        return result;
+    }
+
+    __forceinline float4 operator-(float4 lhs)
+    {
+        float4 result = { -lhs.x, -lhs.y, -lhs.z, -lhs.w };
+        return result;
+    }
+
     __forceinline float3 Cross(float3 lhs, float3 rhs) {
         float3 result = {
           lhs.y * rhs.z - lhs.z * rhs.y,
@@ -165,6 +183,21 @@ namespace Shooty {
 
     __forceinline float LengthInverse(float4 vec4) {
         return 1.f / Length(vec4);
+    }
+
+    __forceinline float2 Lerp(float2 a, float2 b, float t)
+    {
+        return (1 - t) * a + t * b;
+    }
+
+    __forceinline float3 Lerp(float3 a, float3 b, float t)
+    {
+        return (1 - t) * a + t * b;
+    }
+
+    __forceinline float4 Lerp(float4 a, float4 b, float t)
+    {
+        return (1 - t) * a + t * b;
     }
 
     __forceinline float Saturate(float x) {

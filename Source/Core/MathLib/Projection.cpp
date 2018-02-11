@@ -104,14 +104,10 @@ namespace Shooty {
         }
 
         //==============================================================================
-        float3 CartesianToSpherical(const float3& xyz)
+        void NormalizedCartesianToSpherical(const float3& v, float& theta, float& phi)
         {
-            float3 rthetaphi;
-            rthetaphi.x = Math::Sqrtf(xyz.x * xyz.x + xyz.y * xyz.y + xyz.z * xyz.z);
-            rthetaphi.y = Math::Acosf(xyz.y / rthetaphi.x);
-            rthetaphi.z = Math::Atan2f(xyz.z, xyz.x);
-
-            return rthetaphi;
+            theta = Math::Acosf(v.y);
+            phi = Math::Atan2f(v.z, v.x);
         }
 
         //==============================================================================
@@ -126,6 +122,22 @@ namespace Shooty {
             xyz.x = rthetaphi.x * sintheta * cosphi;
             xyz.y = rthetaphi.x * costheta;
             xyz.z = rthetaphi.x * sintheta * sinphi;
+
+            return xyz;
+        }
+
+        //==============================================================================
+        float3 SphericalToCartesian(float theta, float phi) 
+        {
+            float sintheta = Math::Sinf(theta);
+            float costheta = Math::Cosf(theta);
+            float sinphi = Math::Sinf(phi);
+            float cosphi = Math::Cosf(phi);
+
+            float3 xyz;
+            xyz.x = sintheta * cosphi;
+            xyz.y = costheta;
+            xyz.z = sintheta * sinphi;
 
             return xyz;
         }

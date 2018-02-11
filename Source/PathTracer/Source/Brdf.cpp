@@ -3,7 +3,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "Ggx.h"
+#include "Brdf.h"
 
 #include <MathLib/FloatStructs.h>
 #include <MathLib/FloatFuncs.h>
@@ -36,7 +36,7 @@ namespace Shooty
     }
 
     // ===============================================================================================
-    // Taken an optimized version of [Neubelt + Pettineo 2013]. https://github.com/TheRealMJP
+    // Using an optimized version of [Neubelt + Pettineo 2013]. https://github.com/TheRealMJP
     // ===============================================================================================
     float GGX_Specular(float m, float3 n, float3 h, float3 v, float3 l)
     {
@@ -59,13 +59,11 @@ namespace Shooty
         // -- calculate the matching geometric term
         tantheta2 = (1 - ndotl2) / ndotl2;
         float g1i = 2.0f / (1 + Math::Sqrtf(1 + adjusted_m2 * tantheta2));
-
         tantheta2 = (1 - ndotv2) / (ndotv2 + 0.00001f);
         float g1o = 2.0f / (1 + Math::Sqrtf(1 + adjusted_m2 * tantheta2));
-
         float g = g1i * g1o;
 
-        // -- add in the rest of the visibility term
+        // -- visibility term
         float vis = AshikhminMicrofacetVisibilityTerm(ndotl, ndotv);
 
         return d * g * vis * (1.0f / 4.0f);

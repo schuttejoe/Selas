@@ -2,45 +2,77 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib\Random.h>
-#include <MathLib\FloatStructs.h>
-#include <MathLib\FloatFuncs.h>
-#include <MathLib\Quaternion.h>
-#include <MathLib\Trigonometric.h>
-#include <SystemLib\JsAssert.h>
+#include <MathLib/Random.h>
+#include <MathLib/FloatStructs.h>
+#include <MathLib/FloatFuncs.h>
+#include <MathLib/Quaternion.h>
+#include <MathLib/Trigonometric.h>
+#include <SystemLib/MemoryAllocation.h>
+#include <SystemLib/JsAssert.h>
 #include <stdlib.h>
 
-namespace Shooty {
-    namespace Random {
+#include <random>
 
-        // -- JSTOTO - Use std's merseinne twister
+namespace Shooty
+{
+    namespace Random
+    {
 
         //==============================================================================
-        uint RandUint(uint max) {
+        struct MersenneTwisterData
+        {
+            std::mt19937 mtEngine;
+        };
+
+        //==============================================================================
+        void MersenneTwisterInitialize(MersenneTwister* twister, uint32 seed)
+        {
+            twister->data = New_(MersenneTwisterData);
+            twister->data->mtEngine.seed(seed);
+        }
+
+        //==============================================================================
+        void MersenneTwisterShutdown(MersenneTwister* twister)
+        {
+            SafeDelete_(twister->data);
+        }
+
+        //==============================================================================
+        float MersenneTwisterFloat(MersenneTwister* twister)
+        {
+            return twister->data->mtEngine() / (float)(0xFFFFFFFF);
+        }
+
+        //==============================================================================
+        uint RandUint(uint max)
+        {
             return rand() % max;
         }
 
         //==============================================================================
-        float RandFloat0_1(void) {
+        float RandFloat0_1(void)
+        {
             float random = (float)rand() / (float)RAND_MAX;
             Assert_(random >= 0.0f && random <= 1.0f);
             return random;
         }
 
         //==============================================================================
-        void FillRandomBuffer(float* buffer, uint count, uint32 seed) {
+        void FillRandomBuffer(float* buffer, uint count, uint32 seed)
+        {
             srand(seed);
 
-            for (uint scan = 0; scan < count; ++scan) {
+            for(uint scan = 0; scan < count; ++scan) {
                 buffer[scan] = RandFloat0_1();
             }
         }
 
         //==============================================================================
-        void FillRandomBuffer(float4* buffer, uint count, uint32 seed) {
+        void FillRandomBuffer(float4* buffer, uint count, uint32 seed)
+        {
             srand(seed);
 
-            for (uint scan = 0; scan < count; ++scan) {
+            for(uint scan = 0; scan < count; ++scan) {
                 buffer[scan].x = RandFloat0_1();
                 buffer[scan].y = RandFloat0_1();
                 buffer[scan].z = RandFloat0_1();
@@ -49,7 +81,8 @@ namespace Shooty {
         }
 
         //==============================================================================
-        float3 UniformConeRandom(float3& direction, float maxTheta) {
+        float3 UniformConeRandom(float3& direction, float maxTheta)
+        {
             Assert_(maxTheta <= 3.14159265f);
             float scale = maxTheta * 1.0f / 3.1415926535f;
 

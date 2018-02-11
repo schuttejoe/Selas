@@ -9,6 +9,8 @@ namespace Shooty {
     namespace Math {
 
         const float Pi_ = 3.141592653589793f;
+        const float TwoPi_ = Pi_ * 2.0f;
+        const float PiSquared_ = Pi_ * Pi_;
         const float OOPi_ = 1.0f / Pi_;
         const float DegreesToRadians_ = Pi_ / 180.f;
 

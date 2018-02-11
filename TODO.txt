@@ -1,0 +1,20 @@
+
+IBL importance sampling
+
+Upgrade to embree 3.0
+
+Get a more complex scene with UVs (Dragon inside a cornell box is fine. Ask Brandon for helps? Just use trial maya?)
+
+Implement recursive path tracer
+
+Switch to full Disney BRDF
+multiple importance sampling
+
+Implement multithreaded path tracer
+
+Ray batching
+
+Read about ray differentials in pbrt
+Implement texture sampling OR find a tool that supports ptex authoring and implement ptex
+
+Russian Roulette

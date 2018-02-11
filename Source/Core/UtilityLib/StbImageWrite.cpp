@@ -25,7 +25,7 @@ namespace Shooty {
                 ret = stbi_write_tga(filepath, (int)width, (int)height, 4, rgba);
                 break;
             case HDR:
-                ret = stbi_write_hdr(filepath, (int)width, (int)height, 4, (float*)rgba);
+                ret = stbi_write_hdr(filepath, (int)width, (int)height, 3, (float*)rgba);
                 break;
             case JPG:
                 ret = stbi_write_jpg(filepath, (int)width, (int)height, 4, rgba, 50);

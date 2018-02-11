@@ -15,7 +15,8 @@ namespace Shooty {
         float3 CartesianToCubemap(const float3& xyz); // returns (face, u, v)
 
         // -- Spherical
-        float3 CartesianToSpherical(const float3& xyz);
+        void NormalizedCartesianToSpherical(const float3& v, float& theta, float& phi);
         float3 SphericalToCartesian(const float3& rthetaphi);
+        float3 SphericalToCartesian(float theta, float phi);
     }
 }
