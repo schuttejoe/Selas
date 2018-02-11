@@ -61,7 +61,6 @@ namespace Shooty {
                 mesh->positions[scan].x = aimesh->mVertices[scan].x;
                 mesh->positions[scan].y = aimesh->mVertices[scan].y;
                 mesh->positions[scan].z = aimesh->mVertices[scan].z;
-                mesh->positions[scan].w = 1.0f;
             }
 
             // -- extract normals

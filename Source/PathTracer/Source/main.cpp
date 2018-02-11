@@ -17,17 +17,21 @@
 #include <MathLib/Projection.h>
 #include <MathLib/Quaternion.h>
 #include <ContainersLib/Rect.h>
+#include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/Memory.h>
+#include <SystemLib/SystemTime.h>
 
-#include <embree2/rtcore.h>
-#include <embree2/rtcore_ray.h>
+#include <embree3/rtcore.h>
+#include <embree3/rtcore_ray.h>
+
+#include "xmmintrin.h"
+#include "pmmintrin.h"
+#include <stdio.h>
+#include <windows.h>
 
 using namespace Shooty;
-
-struct EmbreeVertex   { float x, y, z, a; };
-struct EmbreeTriangle { int i0, i1, i2; };
 
 //==============================================================================
 struct RayCastCameraSettings {
@@ -45,19 +49,18 @@ static uint32 PopulateEmbreeScene(SceneResourceData* sceneData, RTCDevice& rtcDe
     uint32 indexCount = sceneData->totalIndexCount;
     uint32 triangleCount = indexCount / 3;
 
-    uint32 rtcMeshHandle = rtcNewTriangleMesh(rtcScene, RTC_GEOMETRY_STATIC, triangleCount, vertexCount);
+    RTCGeometry rtcMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+   
+    rtcSetSharedGeometryBuffer(rtcMeshHandle, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sceneData->positions, 0, sizeof(float3), sceneData->totalVertexCount);
+    rtcSetSharedGeometryBuffer(rtcMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sceneData->indices, 0, 3 * sizeof(uint32), sceneData->totalIndexCount / 3);
+    rtcCommitGeometry(rtcMeshHandle);
 
-    EmbreeTriangle* triangles = (EmbreeTriangle*)rtcMapBuffer(rtcScene, rtcMeshHandle, RTC_INDEX_BUFFER);
-    Memory::Copy(triangles, sceneData->indices, sceneData->totalIndexCount * sizeof(uint32));
-    rtcUnmapBuffer(rtcScene, rtcMeshHandle, RTC_INDEX_BUFFER);
+    unsigned int geomID = rtcAttachGeometry(rtcScene, rtcMeshHandle);
+    rtcReleaseGeometry(rtcMeshHandle);
 
-    EmbreeVertex* vertices = (EmbreeVertex*)rtcMapBuffer(rtcScene, rtcMeshHandle, RTC_VERTEX_BUFFER);
-    Memory::Copy(vertices, sceneData->positions, sceneData->totalVertexCount * sizeof(EmbreeVertex));
-    rtcUnmapBuffer(rtcScene, rtcMeshHandle, RTC_VERTEX_BUFFER);
+    rtcCommitScene(rtcScene);
 
-    rtcCommit(rtcScene);
-
-    return rtcMeshHandle;
+    return geomID;
 }
 
 //==============================================================================
@@ -98,35 +101,34 @@ static float3 MakeCameraRayDirection(RayCastCameraSettings* __restrict camera, u
 static bool RayPick(RTCScene& rtcScene, SceneResourceData* scene, float3 orig, float3 direction, float znear, float zfar,
                     float3& position, float2& baryCoords, int32& primId) {
 
+    RTCIntersectContext context;
+    rtcInitIntersectContext(&context);
 
-    __declspec(align(16)) RTCRay ray;
-    ray.org[0] = orig.x;
-    ray.org[1] = orig.y;
-    ray.org[2] = orig.z;
+    //Ray ray(Vec3fa(orig), Vec3fa(direction), 0.0f, inf);
 
-    ray.dir[0] = direction.x;
-    ray.dir[1] = direction.y;
-    ray.dir[2] = direction.z;
-
-    ray.tnear = znear;
-    ray.tfar = zfar;
-
-    ray.time = 0.0f;
-    ray.mask = 0;
-
-    ray.geomID = -1;
-    ray.primID = -1;
-    ray.instID = -1;
-
-    rtcIntersect(rtcScene, ray);
-
-    position.x = orig.x + ray.tfar * direction.x;
-    position.y = orig.y + ray.tfar * direction.y;
-    position.z = orig.z + ray.tfar * direction.z;
-    baryCoords = { ray.u, ray.v };
-    primId = ray.primID;
     
-    return ray.geomID != -1;
+    __declspec(align(16)) RTCRayHit rayhit;
+    rayhit.ray.org_x = orig.x;
+    rayhit.ray.org_y = orig.y;
+    rayhit.ray.org_z = orig.z;
+    rayhit.ray.dir_x = direction.x;
+    rayhit.ray.dir_y = direction.y;
+    rayhit.ray.dir_z = direction.z;
+    rayhit.ray.tnear = znear;
+    rayhit.ray.tfar = zfar;
+
+    rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+    rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+
+    rtcIntersect1(rtcScene, &context, &rayhit);
+
+    position.x = rayhit.ray.org_x + rayhit.ray.tfar * direction.x;
+    position.y = rayhit.ray.org_y + rayhit.ray.tfar * direction.y;
+    position.z = rayhit.ray.org_z + rayhit.ray.tfar * direction.z;
+    baryCoords = { rayhit.hit.u, rayhit.hit.v };
+    primId = rayhit.hit.primID;
+    
+    return rayhit.hit.geomID != -1;
 }
 
 //------------------------------------------------------------------------------
@@ -279,7 +281,7 @@ static void GenerateRayCastImage(RTCScene& rtcScene, SceneResourceData* scene, I
                 float3 v = Normalize(cameraPosition - position);
                 
                 // -- kinda hacked ibl
-                float3 iblContrib = iblIntensity * ImportanceSampleIbl(ibl, &twister, n, v, albedo, reflectance, roughness);
+                float3 iblContrib = iblIntensity * ImportanceSampleGgx(ibl, &twister, n, v, albedo, reflectance, roughness);
                 
                 color = iblContrib;
             }
@@ -298,10 +300,13 @@ static void GenerateRayCastImage(RTCScene& rtcScene, SceneResourceData* scene, I
 //==============================================================================
 int main()
 {
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+    _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+
     int retvalue = 0;
 
-    RTCDevice rtcDevice = rtcNewDevice(nullptr);
-    RTCScene rtcScene = rtcDeviceNewScene(rtcDevice, RTC_SCENE_STATIC, RTC_INTERSECT1 | RTC_INTERSECT8);
+    RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
+    RTCScene rtcScene = rtcNewScene(rtcDevice);
     uint32 meshHandle = -1;
 
     SceneResource sceneResource;
@@ -316,19 +321,32 @@ int main()
         goto cleanup;
     }
 
+    int64 timer;
+
+    SystemTime::GetCycleCounter(&timer);
     meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
+    float buildms = SystemTime::ElapsedMs(timer);
+
+    SystemTime::GetCycleCounter(&timer);
     GenerateRayCastImage(rtcScene, sceneResource.data, iblResouce.data, 1024, 1024);
+    float renderms = SystemTime::ElapsedMs(timer);
+
+    FixedString64 buildlog;
+    sprintf_s(buildlog.Ascii(), buildlog.Capcaity(), "Scene build time %fms\n", buildms);
+
+    FixedString64 renderlog;
+    sprintf_s(renderlog.Ascii(), renderlog.Capcaity(), "Scene render time %fms\n", renderms);
+
+    OutputDebugStringA(buildlog.Ascii());
+    OutputDebugStringA(renderlog.Ascii());
 
 cleanup:
     // -- delete the scene
-    SafeFree_(sceneResource.data);
-    SafeFree_(iblResouce.data);
+    SafeFreeAligned_(sceneResource.data);
+    SafeFreeAligned_(iblResouce.data);
 
-    if(meshHandle != -1) {
-        rtcDeleteGeometry(rtcScene, meshHandle);
-    }
-    rtcDeleteScene(rtcScene);
-    rtcDeleteDevice(rtcDevice);
+    rtcReleaseScene(rtcScene);
+    rtcReleaseDevice(rtcDevice);
 
     return retvalue;
 }

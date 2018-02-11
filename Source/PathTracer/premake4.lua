@@ -7,9 +7,9 @@ local ExtraDefines = { "IsWindows_=1", "Is64Bit_=1", "PathTracer_=1", "FriendlyA
 local ExtraLibraries = {}
 ExtraLibraries["Core"] = { "SceneLib" }
 
-local ExtraMiddlewareIncludeDirs = { "Embree-2.7.1/x64/include" }
-local ExtraMiddlewareLinkDirs = { "Embree-2.7.1/x64/lib" }
-local ExtraMiddlewareLibraries = { "embree" }
-local ExtraDllCopies = { "Embree-2.7.1\\x64\\lib\\embree.dll $(TargetDir)embree.dll", "Embree-2.7.1\\x64\\lib\\tbb.dll $(TargetDir)tbb.dll" }
+local ExtraMiddlewareIncludeDirs = { "Embree-3.0/include" }
+local ExtraMiddlewareLinkDirs = { "Embree-3.0/lib" }
+local ExtraMiddlewareLibraries = { "embree3" }
+local ExtraDllCopies = { "Embree-3.0\\bin\\embree3.dll $(TargetDir)embree3.dll", "Embree-3.0\\bin\\tbb.dll $(TargetDir)tbb.dll" }
 
 SetupConsoleApplication(SolutionName, Platform, ExtraDefines, false, ExtraLibraries, ExtraMiddlewareIncludeDirs, ExtraMiddlewareLinkDirs, ExtraMiddlewareLibraries, ExtraDllCopies)

@@ -12,13 +12,6 @@ namespace Shooty {
     //==============================================================================
     static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData) {
 
-
-        CArray<BuiltMeshData> meshes;
-        CArray<uint32>        indices;
-        CArray<float4>        positions;
-        CArray<float3>        normals;
-        CArray<float2>        uv0;
-
         uint32 meshCount = sceneData.meshes.Length();
         uint32 indexCount = sceneData.indices.Length();
         uint32 vertexCount = sceneData.positions.Length();

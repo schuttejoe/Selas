@@ -24,7 +24,7 @@ namespace Shooty {
             *fileSize = ftell(file);
             fseek(file, 0, SEEK_SET);
 
-            *fileData = AllocArray_(uint8, *fileSize);
+            *fileData = AllocAligned_(*fileSize, 16);
 
             size_t bytesRead = fread(*fileData, 1, *fileSize, file);
             fclose(file);

@@ -11,6 +11,7 @@ namespace Shooty {
         char str[T];
 
         char* Ascii(void) { return &str[0]; }
+        uint Capcaity() { return T; }
     };
 
     typedef FixedString<32>  FixedString32;
