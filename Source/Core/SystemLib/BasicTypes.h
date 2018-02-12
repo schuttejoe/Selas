@@ -19,6 +19,7 @@ typedef const char*     cpointer;
 
 #define ForceInline_ __forceinline
 #define Unused_(x) (void)x;
+#define FloatMax_ 3.402823466e+38F
 
 namespace Shooty {
 

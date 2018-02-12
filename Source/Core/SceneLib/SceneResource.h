@@ -16,7 +16,18 @@ namespace Shooty {
         uint32 vertexOffset;
     };
 
+    struct Camera
+    {
+        float3 position;
+        float3 lookAt;
+        float3 up;
+        float  fov;
+        float  znear;
+        float  zfar;
+    };
+
     struct SceneResourceData {
+        Camera         camera;
         uint32         meshCount;
         uint32         totalIndexCount;
         uint32         totalVertexCount;

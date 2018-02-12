@@ -19,8 +19,19 @@ namespace Shooty {
         CArray<uint32> indices;
     };
 
+    struct SceneCamera
+    {
+        float3 position;
+        float3 lookAt;
+        float3 up;
+        float  fov;
+        float  znear;
+        float  zfar;
+    };
+
     struct ImportedScene {
         CArray<ImportedMesh*> meshes;
+        SceneCamera camera;
     };
 
     //== Build =====================================================================
@@ -37,5 +48,6 @@ namespace Shooty {
         CArray<float3>        positions;
         CArray<float3>        normals;
         CArray<float2>        uv0;
+        SceneCamera           camera;
     };
 }

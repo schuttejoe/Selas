@@ -103,9 +103,6 @@ static bool RayPick(RTCScene& rtcScene, SceneResourceData* scene, float3 orig, f
 
     RTCIntersectContext context;
     rtcInitIntersectContext(&context);
-
-    //Ray ray(Vec3fa(orig), Vec3fa(direction), 0.0f, inf);
-
     
     __declspec(align(16)) RTCRayHit rayhit;
     rayhit.ray.org_x = orig.x;
@@ -131,6 +128,28 @@ static bool RayPick(RTCScene& rtcScene, SceneResourceData* scene, float3 orig, f
     return rayhit.hit.geomID != -1;
 }
 
+//==============================================================================
+static bool OcclusionRay(RTCScene& rtcScene, float3 orig, float3 direction, float znear, float zfar)
+{
+    RTCIntersectContext context;
+    rtcInitIntersectContext(&context);
+
+    __declspec(align(16)) RTCRay ray;
+    ray.org_x = orig.x;
+    ray.org_y = orig.y;
+    ray.org_z = orig.z;
+    ray.dir_x = direction.x;
+    ray.dir_y = direction.y;
+    ray.dir_z = direction.z;
+    ray.tnear = znear;
+    ray.tfar = zfar;
+
+    rtcOccluded1(rtcScene, &context, &ray);
+
+    // -- ray.tfar == -inf when hit occurs
+    return (ray.tfar >= 0.0f);
+}
+
 //------------------------------------------------------------------------------
 static float Attenuation(float distance)
 {
@@ -145,10 +164,9 @@ static float Attenuation(float distance)
 }
 
 //==============================================================================
-static float3 ImportanceSampleIbl(ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 n, float3 v, float3 albedo, float3 reflectance, float roughness)
+static float3 ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, float3 albedo, float3 reflectance, float roughness)
 {
-
-    const uint sampleCount = 1024;
+    const uint sampleCount = 512;
 
     float3 lighting = float3::Zero_;
 
@@ -167,10 +185,12 @@ static float3 ImportanceSampleIbl(ImageBasedLightResourceData* ibl, Random::Mers
         if(Dot(wi, n) <= 0.0f)
             continue;
 
-        float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-        float3 irradiance = GgxBrdf(n, wi, v, albedo, reflectance, roughness);
+        if(OcclusionRay(rtcScene, p, wi, 0.001f, FloatMax_)) {
+            float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
+            float3 irradiance = GgxBrdf(n, wi, v, albedo, reflectance, roughness);
 
-        lighting += sample * irradiance * weight;
+            lighting += sample * irradiance * weight;
+        }
     }
 
     return lighting * (1.0f / sampleCount);
@@ -225,41 +245,26 @@ static void GenerateRayCastImage(RTCScene& rtcScene, SceneResourceData* scene, I
     Random::MersenneTwisterInitialize(&twister, 0);
 
     float aspect = (float)width / height;
-    float znear = 0.1f;
-    float zfar = 500.0f;
-    float fov = 40.0f * Math::DegreesToRadians_;
-    // dragon
-    //float3 cameraPosition = float3(0.0f, 7.0f, 20.0f);
-    //float3 lookAt = float3(0.0f, 5.0f, 0.0f);
-    // sphere
-    //float3 cameraPosition = float3(0.0f, 0.0f, 4.0f);
-    //float3 lookAt = float3(0.0f, 0.0f, 0.0f);
-    // teapot
-    //float3 cameraPosition = float3(-20.0f, 0.0f, 45.0f);
-    //float3 lookAt = float3(0.0f, 0.0f, 0.0f);
-    // bunny
-    float3 cameraPosition = float3(-1.0f, 1.5f, -3.0f);
-    float3 lookAt = float3(-0.2f, 0.8f, 0.0f);
 
-    float4x4 projection = PerspectiveFovLhProjection(fov, aspect, znear, zfar);
-    float4x4 view = LookAtLh(cameraPosition, float3::YAxis_, lookAt);
+    float4x4 projection = PerspectiveFovLhProjection(scene->camera.fov, aspect, scene->camera.znear, scene->camera.zfar);
+    float4x4 view = LookAtLh(scene->camera.position, float3::YAxis_, scene->camera.lookAt);
     float4x4 viewProj = MatrixMultiply(view, projection);
 
     RayCastCameraSettings camera;
     camera.invViewProjection = MatrixInverse(viewProj);
     camera.viewport = {0, 0, (sint)width, (sint)height};
-    camera.position = cameraPosition;
-    camera.znear = znear;
-    camera.zfar = zfar;
+    camera.position = scene->camera.position;
+    camera.znear = scene->camera.znear;
+    camera.zfar = scene->camera.zfar;
 
     uint32* imageData = AllocArray_(uint32, width * height);
     
     const float iblIntensity = 1.0f;
     const float3 lightIntensity = 0.0f * float3(226.0f/255.0f, 197.0f/255.0f, 168.0f/255.0f);
     const float3 lightPosition = float3(15.0f, 30.0f, 45.0f);
-    const float roughness = 0.2f;
-    const float3 reflectance = float3(0.8f, 0.8f, 0.8f);
-    const float3 albedo = float3(0.01f, 0.01f, 0.01f);
+    const float roughness = 0.7f;
+    const float3 reflectance = float3(0.1f, 0.1f, 0.1f);
+    const float3 albedo = float3(0.8f, 0.8f, 0.8f);
 
     for (uint y = 0; y < height; ++y) {
         for (uint x = 0; x < width; ++x) {
@@ -269,7 +274,7 @@ static void GenerateRayCastImage(RTCScene& rtcScene, SceneResourceData* scene, I
             float3 position;
             float2 baryCoords;
             int32 primId;
-            bool hit = RayPick(rtcScene, scene, cameraPosition, direction, znear, zfar, position, baryCoords, primId);
+            bool hit = RayPick(rtcScene, scene, scene->camera.position, direction, scene->camera.znear, scene->camera.zfar, position, baryCoords, primId);
 
             float3 color = float3::Zero_;
 
@@ -278,10 +283,10 @@ static void GenerateRayCastImage(RTCScene& rtcScene, SceneResourceData* scene, I
                 float2 uvs;
                 CalculateNormalAndUvs(scene, primId, baryCoords, n, uvs);
 
-                float3 v = Normalize(cameraPosition - position);
+                float3 v = Normalize(scene->camera.position - position);
                 
                 // -- kinda hacked ibl
-                float3 iblContrib = iblIntensity * ImportanceSampleGgx(ibl, &twister, n, v, albedo, reflectance, roughness);
+                float3 iblContrib = iblIntensity * ImportanceSampleIbl(rtcScene, ibl, &twister, position, n, v, albedo, reflectance, roughness);
                 
                 color = iblContrib;
             }
@@ -327,8 +332,11 @@ int main()
     meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
     float buildms = SystemTime::ElapsedMs(timer);
 
+    uint width = 1280;
+    uint height = 720;
+
     SystemTime::GetCycleCounter(&timer);
-    GenerateRayCastImage(rtcScene, sceneResource.data, iblResouce.data, 1024, 1024);
+    GenerateRayCastImage(rtcScene, sceneResource.data, iblResouce.data, width, height);
     float renderms = SystemTime::ElapsedMs(timer);
 
     FixedString64 buildlog;

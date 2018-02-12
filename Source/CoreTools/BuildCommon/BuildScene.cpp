@@ -44,6 +44,8 @@ namespace Shooty {
     bool BuildScene(ImportedScene* imported, BuiltScene* built) {
         BuildMeshes(imported, built);
 
+        built->camera = imported->camera;
+
         return true;
     }
 }

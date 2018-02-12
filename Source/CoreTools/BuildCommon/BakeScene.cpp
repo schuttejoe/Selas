@@ -10,6 +10,12 @@ namespace Shooty {
     #define ReturnFailure_(code) if (!code) { return false; }
 
     //==============================================================================
+    static void SerializeCamera(BinaryWriter* writer, const BuiltScene& sceneData)
+    {
+        SerializerWrite(writer, &sceneData.camera, sizeof(sceneData.camera));
+    }
+
+    //==============================================================================
     static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData) {
 
         uint32 meshCount = sceneData.meshes.Length();
@@ -38,6 +44,7 @@ namespace Shooty {
         BinaryWriter writer;
         ReturnFailure_(SerializerStart(&writer, filepath));
 
+        SerializeCamera(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 
         ReturnFailure_(SerializerEnd(&writer));

@@ -14,6 +14,7 @@
 namespace Shooty {
 
     #define ReturnFailure_(x) if(!x) { return false; }
+    #define AssImpVec3ToFloat3_(v) float3(v.x, v.y, v.z)
 
     //==============================================================================
     static bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count) {
@@ -107,6 +108,31 @@ namespace Shooty {
     }
 
     //==============================================================================
+    static bool ExtractCamera(const aiScene* aiscene, ImportedScene* scene)
+    {
+        // -- prepare defaults
+        scene->camera.position = float3(0.0f, 0.0f, 5.0f);
+        scene->camera.lookAt = float3(0.0f, 0.0f, 0.0f);
+        scene->camera.up = float3(0.0f, 1.0f, 0.0f);
+        scene->camera.fov = 45.0f * Math::DegreesToRadians_;
+        scene->camera.znear = 0.1f;
+        scene->camera.zfar = 500.0f;
+
+        // -- just grabbing the first camera for now
+        if(aiscene->mNumCameras > 0) {
+
+            scene->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
+            scene->camera.lookAt = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
+            scene->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
+            scene->camera.fov = 2.0f * aiscene->mCameras[0]->mHorizontalFOV;
+            scene->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;
+            scene->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
+        }
+
+        return true;
+    }
+
+    //==============================================================================
     bool ImportScene(const char* filename, ImportedScene* scene) {
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
@@ -136,6 +162,7 @@ namespace Shooty {
 
         uint mesh_index = 0;
         ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
+        ReturnFailure_(ExtractCamera(aiscene, scene));
 
         // aiscene is cleaned up by the importer's destructor
         return true;

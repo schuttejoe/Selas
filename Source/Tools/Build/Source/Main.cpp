@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
 #if ExportScene_
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\content\\Meshes\\bunny.obj", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\living_room_open_windows.fbx", &importedScene)) {
         Error_("Error importing obj");
         return -1;
     }
