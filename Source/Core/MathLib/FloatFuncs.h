@@ -10,133 +10,133 @@
 
 namespace Shooty {
 
-    __forceinline float2 operator+(float2 lhs, float2 rhs) {
+    ForceInline_ float2 operator+(float2 lhs, float2 rhs) {
         float2 result = {lhs.x + rhs.x, lhs.y + rhs.y};
         return result;
     }
 
-    __forceinline float3 operator+(float3 lhs, float3 rhs) {
+    ForceInline_ float3 operator+(float3 lhs, float3 rhs) {
         float3 result = {lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
         return result;
     }
 
-    __forceinline float4 operator+(float4 lhs, float4 rhs) {
+    ForceInline_ float4 operator+(float4 lhs, float4 rhs) {
         float4 result = {lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w};
         return result;
     }
 
-    __forceinline float2 operator+(float2 lhs, float rhs) {
+    ForceInline_ float2 operator+(float2 lhs, float rhs) {
         float2 result = {lhs.x + rhs, lhs.y + rhs};
         return result;
     }
 
-    __forceinline float3 operator+(float3 lhs, float rhs) {
+    ForceInline_ float3 operator+(float3 lhs, float rhs) {
         float3 result = {lhs.x + rhs, lhs.y + rhs, lhs.z + rhs};
         return result;
     }
 
-    __forceinline float4 operator+(float4 lhs, float rhs) {
+    ForceInline_ float4 operator+(float4 lhs, float rhs) {
         float4 result = {lhs.x + rhs, lhs.y + rhs, lhs.z + rhs, lhs.w + rhs};
         return result;
     }
 
-    __forceinline float2 operator-(float2 lhs, float2 rhs) {
+    ForceInline_ float2 operator-(float2 lhs, float2 rhs) {
         float2 result = {lhs.x - rhs.x, lhs.y - rhs.y};
         return result;
     }
 
-    __forceinline float3 operator-(float3 lhs, float3 rhs) {
+    ForceInline_ float3 operator-(float3 lhs, float3 rhs) {
         float3 result = {lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
         return result;
     }
 
-    __forceinline float4 operator-(float4 lhs, float4 rhs) {
+    ForceInline_ float4 operator-(float4 lhs, float4 rhs) {
         float4 result = {lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w};
         return result;
     }
 
-    __forceinline float2 operator*(float2 lhs, float2 rhs) {
+    ForceInline_ float2 operator*(float2 lhs, float2 rhs) {
         float2 result = { lhs.x * rhs.x, lhs.y * rhs.y };
         return result;
     }
 
-    __forceinline float3 operator*(float3 lhs, float3 rhs) {
+    ForceInline_ float3 operator*(float3 lhs, float3 rhs) {
         float3 result = {lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z};
         return result;
     }
 
-    __forceinline float4 operator*(float4 lhs, float4 rhs) {
+    ForceInline_ float4 operator*(float4 lhs, float4 rhs) {
         float4 result = { lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w };
         return result;
     }
 
-    __forceinline float2 operator*(float2 lhs, float scale) {
+    ForceInline_ float2 operator*(float2 lhs, float scale) {
         float2 result = {lhs.x * scale, lhs.y * scale};
         return result;
     }
 
-    __forceinline float3 operator*(float3 lhs, float scale) {
+    ForceInline_ float3 operator*(float3 lhs, float scale) {
         float3 result = {lhs.x * scale, lhs.y * scale, lhs.z * scale};
         return result;
     }
 
-    __forceinline float4 operator*(float4 lhs, float scale) {
+    ForceInline_ float4 operator*(float4 lhs, float scale) {
         float4 result = {lhs.x * scale, lhs.y * scale, lhs.z * scale, lhs.w * scale};
         return result;
     }
 
-    __forceinline float2 operator*(float scale, float2 lhs) {
+    ForceInline_ float2 operator*(float scale, float2 lhs) {
         float2 result = {lhs.x * scale, lhs.y * scale};
         return result;
     }
 
-    __forceinline float3 operator*(float scale, float3 lhs) {
+    ForceInline_ float3 operator*(float scale, float3 lhs) {
         float3 result = {lhs.x * scale, lhs.y * scale, lhs.z * scale};
         return result;
     }
 
-    __forceinline float4 operator*(float scale, float4 lhs) {
+    ForceInline_ float4 operator*(float scale, float4 lhs) {
         float4 result = {lhs.x * scale, lhs.y * scale, lhs.z * scale, lhs.w * scale};
         return result;
     }
 
-    __forceinline void operator+=(float2& lhs, float2 rhs) {
+    ForceInline_ void operator+=(float2& lhs, float2 rhs) {
         lhs.x += rhs.x;
         lhs.y += rhs.y;
     }
 
-    __forceinline void operator+=(float3& lhs, float3 rhs) {
+    ForceInline_ void operator+=(float3& lhs, float3 rhs) {
         lhs.x += rhs.x;
         lhs.y += rhs.y;
         lhs.z += rhs.z;
     }
 
-    __forceinline void operator+=(float4& lhs, float4 rhs) {
+    ForceInline_ void operator+=(float4& lhs, float4 rhs) {
         lhs.x += rhs.x;
         lhs.y += rhs.y;
         lhs.z += rhs.z;
         lhs.w += rhs.w;
     }
 
-    __forceinline float2 operator-(float2 lhs)
+    ForceInline_ float2 operator-(float2 lhs)
     {
         float2 result = { -lhs.x, -lhs.y };
         return result;
     }
 
-    __forceinline float3 operator-(float3 lhs)
+    ForceInline_ float3 operator-(float3 lhs)
     {
         float3 result = { -lhs.x, -lhs.y, -lhs.z};
         return result;
     }
 
-    __forceinline float4 operator-(float4 lhs)
+    ForceInline_ float4 operator-(float4 lhs)
     {
         float4 result = { -lhs.x, -lhs.y, -lhs.z, -lhs.w };
         return result;
     }
 
-    __forceinline float3 Cross(float3 lhs, float3 rhs) {
+    ForceInline_ float3 Cross(float3 lhs, float3 rhs) {
         float3 result = {
           lhs.y * rhs.z - lhs.z * rhs.y,
           lhs.z * rhs.x - lhs.x * rhs.z,
@@ -145,62 +145,62 @@ namespace Shooty {
         return result;
     }
 
-    __forceinline float Dot(float2 lhs, float2 rhs) {
+    ForceInline_ float Dot(float2 lhs, float2 rhs) {
         return (lhs.x * rhs.x) + (lhs.y * rhs.y);
     }
 
-    __forceinline float Dot(float3 lhs, float3 rhs) {
+    ForceInline_ float Dot(float3 lhs, float3 rhs) {
         return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z);
     }
 
-    __forceinline float Dot(float4 lhs, float4 rhs) {
+    ForceInline_ float Dot(float4 lhs, float4 rhs) {
         return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z) + (lhs.w * rhs.w);
     }
 
-    __forceinline float LengthSquared(float3 vec) {
+    ForceInline_ float LengthSquared(float3 vec) {
         return Dot(vec, vec);
     }
 
-    __forceinline float LengthSquared(float4 vec) {
+    ForceInline_ float LengthSquared(float4 vec) {
         return Dot(vec, vec);
     }
 
-    __forceinline float Length(float2 vec) {
+    ForceInline_ float Length(float2 vec) {
         return Math::Sqrtf(Dot(vec, vec));
     }
 
-    __forceinline float Length(float3 vec) {
+    ForceInline_ float Length(float3 vec) {
         return Math::Sqrtf(Dot(vec, vec));
     }
 
-    __forceinline float Length(float4 vec) {
+    ForceInline_ float Length(float4 vec) {
         return Math::Sqrtf(Dot(vec, vec));
     }
 
-    __forceinline float LengthInverse(float3 vec3) {
+    ForceInline_ float LengthInverse(float3 vec3) {
         return 1.f / Length(vec3);
     }
 
-    __forceinline float LengthInverse(float4 vec4) {
+    ForceInline_ float LengthInverse(float4 vec4) {
         return 1.f / Length(vec4);
     }
 
-    __forceinline float2 Lerp(float2 a, float2 b, float t)
+    ForceInline_ float2 Lerp(float2 a, float2 b, float t)
     {
         return (1 - t) * a + t * b;
     }
 
-    __forceinline float3 Lerp(float3 a, float3 b, float t)
+    ForceInline_ float3 Lerp(float3 a, float3 b, float t)
     {
         return (1 - t) * a + t * b;
     }
 
-    __forceinline float4 Lerp(float4 a, float4 b, float t)
+    ForceInline_ float4 Lerp(float4 a, float4 b, float t)
     {
         return (1 - t) * a + t * b;
     }
 
-    __forceinline float Saturate(float x) {
+    ForceInline_ float Saturate(float x) {
         if (x < 0.0f) {
             return 0.0f;
         }
@@ -211,14 +211,14 @@ namespace Shooty {
         return x;
     }
 
-    __forceinline float3 Normalize(float3 vec3) {
+    ForceInline_ float3 Normalize(float3 vec3) {
         float invLength = LengthInverse(vec3);
 
         float3 result = {vec3.x * invLength, vec3.y * invLength, vec3.z * invLength};
         return result;
     }
 
-    __forceinline float4 Normalize(float4 vec4) {
+    ForceInline_ float4 Normalize(float4 vec4) {
         float invLength = LengthInverse(vec4);
 
         float4 result = {vec4.x * invLength, vec4.y * invLength, vec4.z * invLength, vec4.w * invLength};

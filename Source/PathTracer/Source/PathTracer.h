@@ -4,7 +4,10 @@
 // Joe Schutte
 //==============================================================================
 
+#include <UtilityLib/Color.h>
+#include <UtilityLib/StbImageWrite.h>
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/BasicTypes.h>
 
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;
@@ -21,7 +24,7 @@ namespace Shooty
         ImageBasedLightResourceData* ibl;
         uint width;
         uint height;
-    };
+    };  
 
-    void GenerateRayCastImage(const SceneContext& context, uint32* imageData);
+    void PathTraceImage(const SceneContext& context, float3* imageData);
 }

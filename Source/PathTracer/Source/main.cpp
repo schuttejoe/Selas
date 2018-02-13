@@ -78,7 +78,7 @@ int main()
     uint width = 1280;
     uint height = 720;
 
-    uint32* imageData = AllocArray_(uint32, width * height);
+    float3* imageData = AllocArray_(float3, width * height);
 
     SceneContext context;
     context.rtcScene = rtcScene;
@@ -88,10 +88,10 @@ int main()
     context.height = height;
 
     SystemTime::GetCycleCounter(&timer);
-    GenerateRayCastImage(context, imageData);
+    PathTraceImage(context, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
-    StbImageWrite("D:\\temp\\test.png", width, height, PNG, imageData);
+    StbImageWrite("D:\\temp\\test.hdr", width, height, HDR, imageData);
     Free_(imageData);
 
     FixedString64 buildlog;

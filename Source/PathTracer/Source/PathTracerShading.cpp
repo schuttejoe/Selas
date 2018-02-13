@@ -19,6 +19,7 @@
 #include <ContainersLib/Rect.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
+#include <SystemLib/MinMax.h>
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -62,77 +63,83 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, float3 albedo, float3 reflectance, float roughness)
+    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
     {
-        const uint sampleCount = 1024;
+        float theta;
+        float phi;
+        Math::NormalizedCartesianToSpherical(wi, theta, phi);
 
-        float3 lighting = float3::Zero_;
-
-        for(uint scan = 0; scan < sampleCount; ++scan) {
-            float r0 = Random::MersenneTwisterFloat(twister);
-            float r1 = Random::MersenneTwisterFloat(twister);
-
-            float theta;
-            float phi;
-            uint x;
-            uint y;
-            float weight;
-            ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, weight);
-
-            float3 wi = Math::SphericalToCartesian(theta, phi);
-            if(Dot(wi, n) <= 0.0f)
-                continue;
-
-            if(OcclusionRay(rtcScene, p, wi, 0.001f, FloatMax_)) {
-                float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-                float3 irradiance = GgxBrdf(n, wi, v, albedo, reflectance, roughness);
-
-                lighting += sample * irradiance * weight;
-            }
-        }
-
-        return lighting * (1.0f / sampleCount);
+        uint x = (uint)((phi / Math::TwoPi_) * ibl->densityfunctions.width - 0.5f);
+        uint y = (uint)((theta / Math::Pi_) * ibl->densityfunctions.height - 0.5f);
+        Assert_(x < ibl->densityfunctions.width);
+        Assert_(y < ibl->densityfunctions.height);
+        return ibl->hdrData[y * ibl->densityfunctions.width + x];
     }
 
     //==============================================================================
-    float3 ImportanceSampleGgx(ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 n, float3 v, float3 albedo, float3 reflectance, float roughness)
+    void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, Material* material,
+                             float3& wi, float3& reflectance)
     {
-        const uint sampleCount = 1024;
+        reflectance = float3::Zero_;
+        const float bias = 0.0001f;
 
-        float3 lighting = float3::Zero_;
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
 
-        float3 axis = Normalize(Cross(float3::YAxis_, n));
-        float radians = Math::Acosf(Dot(float3::YAxis_, n));
+        float theta;
+        float phi;
+        uint x;
+        uint y;
+        float weight;
+        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, weight);
 
-        float4 q = Math::Quaternion::Create(radians, axis);
-
-        for(uint scan = 0; scan < sampleCount; ++scan) {
-            float r0 = Random::MersenneTwisterFloat(twister);
-            float r1 = Random::MersenneTwisterFloat(twister);
-
-            float theta;
-            float phi;
-            float weight;
-            ImportanceSampling::Ggx(roughness, r0, r1, theta, phi, weight);
-
-            float3 wi = Math::SphericalToCartesian(theta, phi);
-            wi = Math::Quaternion::Rotate(q, wi);
-            if(Dot(wi, n) <= 0.0f)
-                continue;
-
-            Math::NormalizedCartesianToSpherical(wi, theta, phi);
-
-            uint x = (uint)((phi / Math::TwoPi_) * ibl->densityfunctions.width - 0.5f);
-            uint y = (uint)((theta / Math::Pi_) * ibl->densityfunctions.height - 0.5f);
-            Assert_(x < ibl->densityfunctions.width);
-            Assert_(y < ibl->densityfunctions.height);
-
-            float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-            float3 irradiance = GgxBrdf(n, wi, v, albedo, reflectance, roughness);
-
-            lighting += sample * irradiance * weight;
+        wi = Math::SphericalToCartesian(theta, phi);
+        if(Dot(wi, n) > 0.0f) {
+            if(OcclusionRay(rtcScene, p + bias * n, wi, 0, FloatMax_)) {
+                float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
+                reflectance = sample * weight * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness);
+            }
         }
+    }
 
-        return lighting * (1.0f / sampleCount);
+    //==============================================================================
+    static float3 OrientToNormal(float3 n, float3 l)
+    {
+        float3 axis = Cross(float3::YAxis_, n);
+        float len = Length(axis);
+
+        if(len > MinFloatEpsilon_) {
+            axis = (1.0f / len) * axis;
+            float radians = Math::Atan2f(len, n.y);
+
+            float4 q = Math::Quaternion::Create(radians, axis);
+            return Math::Quaternion::Rotate(q, l);
+        }
+        else if(n.y > 0.0f) {
+            return l;
+        }
+        else {
+            return -l;
+        }
+    }
+
+    //==============================================================================
+    void ImportanceSampleGgx(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
+    {
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+
+        float theta;
+        float phi;
+        float weight;
+        ImportanceSampling::Ggx(material->roughness, r0, r1, theta, phi, weight);
+
+        wi = OrientToNormal(n, Math::SphericalToCartesian(theta, phi));
+        if(Dot(wi, n) > 0.0f) {
+            reflectance = weight * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness);
+        }
+        else {
+            reflectance = float3::Zero_;
+        }
     }
 }
