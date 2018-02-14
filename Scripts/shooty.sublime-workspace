@@ -128,7 +128,7 @@
 			"file": "/D/Shooty/ShootyEngine/Source/PathTracer/Source/PathTracer.cpp",
 			"settings":
 			{
-				"buffer_size": 12974,
+				"buffer_size": 12656,
 				"line_ending": "Windows"
 			}
 		},
@@ -136,7 +136,7 @@
 			"file": "/D/Shooty/ShootyEngine/Source/PathTracer/Source/main.cpp",
 			"settings":
 			{
-				"buffer_size": 3666,
+				"buffer_size": 3631,
 				"line_ending": "Windows"
 			}
 		},
@@ -540,15 +540,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12974,
+						"buffer_size": 12656,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4819,
-								4819
+								2537,
+								2537
 							]
 						],
 						"settings":
@@ -558,7 +558,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1897.0,
+						"translation.y": 632.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -570,7 +570,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3666,
+						"buffer_size": 3631,
 						"regions":
 						{
 						},
@@ -692,7 +692,7 @@
 	"project": "shooty.sublime-project",
 	"replace":
 	{
-		"height": 42.0
+		"height": 72.0
 	},
 	"save_all_on_build": true,
 	"select_file":
