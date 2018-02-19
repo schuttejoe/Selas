@@ -9,8 +9,6 @@
 
 namespace Shooty {
 
-    #define ReturnFailure_(code) if (!code) { return false; }
-
     //==============================================================================
     bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath) {
         BinaryWriter writer;

@@ -4,23 +4,27 @@
 
 #include <BuildCommon/ImportScene.h>
 #include <MathLib/FloatFuncs.h>
+#include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
+#include <SystemLib/JsAssert.h>
 
 // -- middleware
 #include "assimp/Importer.hpp"
 #include "assimp/Scene.h"
 #include "assimp/postprocess.h"
 
-namespace Shooty {
+namespace Shooty
+{
 
     #define ReturnFailure_(x) if(!x) { return false; }
     #define AssImpVec3ToFloat3_(v) float3(v.x, v.y, v.z)
 
     //==============================================================================
-    static bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count) {
+    static bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count)
+    {
         count += node->mNumMeshes;
 
-        for (uint scan = 0; scan < node->mNumChildren; ++scan) {
+        for(uint scan = 0; scan < node->mNumChildren; ++scan) {
             ReturnFailure_(CountMeshes(aiscene, node->mChildren[scan], count));
         }
 
@@ -28,7 +32,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    static void ExtractTriangles(const aiFace* face, CArray<uint32>& indices) {
+    static void ExtractTriangles(const aiFace* face, CArray<uint32>& indices)
+    {
         Assert_(face->mNumIndices == 3);
         indices.Add(face->mIndices[0]);
         indices.Add(face->mIndices[1]);
@@ -36,7 +41,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    static void ExtractQuad(const aiFace* face, CArray<uint32>& indices) {
+    static void ExtractQuad(const aiFace* face, CArray<uint32>& indices)
+    {
         Assert_(face->mNumIndices == 4);
 
         Error_("Not tested");
@@ -49,25 +55,48 @@ namespace Shooty {
     }
 
     //==============================================================================
-    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& meshIndex) {
-        for (uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
+    static void ExtractMaterials(const aiScene* aiscene, ImportedScene* scene)
+    {
+        uint32 materialCount = aiscene->mNumMaterials;
+        
+        scene->materials.Resize(materialCount);
+        for(uint scan = 0; scan < materialCount; ++scan) {
+            aiMaterial* material = aiscene->mMaterials[scan];
+            aiString name;
+            material->Get(AI_MATKEY_NAME, name);
+
+            scene->materials[scan].Copy(name.data);
+        }
+    }
+
+    //==============================================================================
+    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& meshIndex)
+    {
+        for(uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
             const struct aiMesh* aimesh = aiscene->mMeshes[node->mMeshes[meshscan]];
 
             ImportedMesh* mesh = scene->meshes[meshIndex++];
 
+            mesh->materialIndex = aimesh->mMaterialIndex;
+            if(mesh->materialIndex > scene->materials.Length()) {
+                // -- JSTODO - Error reporting system
+                Assert_(0);
+                return false;
+            }
+
             // -- extract vertices
             uint vertexcount = aimesh->mNumVertices;
             mesh->positions.Resize((uint32)vertexcount);
-            for (uint scan = 0; scan < vertexcount; ++scan) {
+            for(uint scan = 0; scan < vertexcount; ++scan) {
                 mesh->positions[scan].x = aimesh->mVertices[scan].x;
                 mesh->positions[scan].y = aimesh->mVertices[scan].y;
                 mesh->positions[scan].z = aimesh->mVertices[scan].z;
             }
 
             // -- extract normals
-            if (aimesh->HasNormals()) {
+            if(aimesh->HasNormals()) {
                 mesh->normals.Resize((uint32)vertexcount);
-                for (uint scan = 0; scan < vertexcount; ++scan) {
+                for(uint scan = 0; scan < vertexcount; ++scan) {
                     mesh->normals[scan].x = aimesh->mNormals[scan].x;
                     mesh->normals[scan].y = aimesh->mNormals[scan].y;
                     mesh->normals[scan].z = aimesh->mNormals[scan].z;
@@ -75,9 +104,9 @@ namespace Shooty {
             }
 
             // -- extract uvs
-            if (aimesh->HasTextureCoords(0)) {
+            if(aimesh->HasTextureCoords(0)) {
                 mesh->uv0.Resize((uint32)vertexcount);
-                for (uint scan = 0; scan < vertexcount; ++scan) {
+                for(uint scan = 0; scan < vertexcount; ++scan) {
                     mesh->uv0[scan].x = aimesh->mTextureCoords[0][scan].x;
                     mesh->uv0[scan].y = aimesh->mTextureCoords[0][scan].y;
                 }
@@ -85,13 +114,13 @@ namespace Shooty {
 
             // -- extract indices
             mesh->indices.Reserve((uint32)aimesh->mNumFaces * 3);
-            for (uint facescan = 0, facecount = aimesh->mNumFaces; facescan < facecount; ++facescan) {
+            for(uint facescan = 0, facecount = aimesh->mNumFaces; facescan < facecount; ++facescan) {
                 const struct aiFace* face = &aimesh->mFaces[facescan];
 
-                if (face->mNumIndices == 3) {
+                if(face->mNumIndices == 3) {
                     ExtractTriangles(face, mesh->indices);
                 }
-                else if (face->mNumIndices == 4) {
+                else if(face->mNumIndices == 4) {
                     ExtractQuad(face, mesh->indices);
                 }
                 else {
@@ -100,7 +129,7 @@ namespace Shooty {
             }
         }
 
-        for (uint scan = 0; scan < node->mNumChildren; ++scan) {
+        for(uint scan = 0; scan < node->mNumChildren; ++scan) {
             ReturnFailure_(ExtractMeshes(aiscene, node->mChildren[scan], scene, meshIndex));
         }
 
@@ -124,7 +153,7 @@ namespace Shooty {
             scene->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
             scene->camera.lookAt = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
             scene->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
-            scene->camera.fov = 2.0f * aiscene->mCameras[0]->mHorizontalFOV;
+            scene->camera.fov = aiscene->mCameras[0]->mHorizontalFOV;
             scene->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;
             scene->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
         }
@@ -133,7 +162,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool ImportScene(const char* filename, ImportedScene* scene) {
+    bool ImportScene(const char* filename, ImportedScene* scene)
+    {
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
                                                    | aiProcess_CalcTangentSpace
@@ -146,7 +176,7 @@ namespace Shooty {
                                                    | aiProcess_ImproveCacheLocality
                                                    | aiProcess_OptimizeMeshes
                                                    | aiProcess_OptimizeGraph);
-        if (!aiscene) {
+        if(!aiscene) {
             const char* errstr = importer.GetErrorString();
             (void)errstr; // JSTODO - Error reporting
             return false;
@@ -156,21 +186,24 @@ namespace Shooty {
         ReturnFailure_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
 
         scene->meshes.Resize((uint32)meshcount);
-        for (uint scan = 0; scan < meshcount; ++scan) {
+        for(uint scan = 0; scan < meshcount; ++scan) {
             scene->meshes[scan] = New_(ImportedMesh);
         }
+
+        ExtractMaterials(aiscene, scene);
 
         uint mesh_index = 0;
         ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
         ReturnFailure_(ExtractCamera(aiscene, scene));
-
+        
         // aiscene is cleaned up by the importer's destructor
         return true;
     }
 
     //==============================================================================
-    void ShutdownImportedScene(ImportedScene* scene) {
-        for (uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
+    void ShutdownImportedScene(ImportedScene* scene)
+    {
+        for(uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
             Delete_(scene->meshes[scan]);
         }
 

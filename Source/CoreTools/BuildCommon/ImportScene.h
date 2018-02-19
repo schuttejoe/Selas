@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon\SceneBuildPipeline.h>
-#include <SystemLib\BasicTypes.h>
+#include <BuildCommon/SceneBuildPipeline.h>
+#include <SystemLib/BasicTypes.h>
 
 namespace Shooty {
 

@@ -6,9 +6,11 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
+namespace Shooty
+{
+    struct TextureResourceData;
 
-    struct ImportedScene;
-    struct BuiltScene;
-    bool BuildScene(ImportedScene* imported, BuiltScene* built);
+    //==============================================================================
+    bool BakeTexture(const TextureResourceData* data, cpointer filepath);
+
 }

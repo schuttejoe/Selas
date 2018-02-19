@@ -4,11 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
+#include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
+namespace Shooty
+{
+    struct TextureResourceData;
 
-    struct ImportedScene;
-    struct BuiltScene;
-    bool BuildScene(ImportedScene* imported, BuiltScene* built);
+    float3 PointSampleTexture(TextureResourceData* texture, float2 uvs);
 }

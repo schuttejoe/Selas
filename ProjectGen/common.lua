@@ -103,7 +103,7 @@ function AddCoreLibraries (platformName, solutionName, libs)
     AddLibProject (platformName, lib, CoreDir .. lib, solutionName)
     
     -- Need a clean way to define middleware dependencies per library
-    if lib == "UtilityLib" then
+    if lib == "TextureLib" then
       includedirs { MiddlewareDir .. "stb" }
     end
   end

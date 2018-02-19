@@ -5,7 +5,6 @@
 //==============================================================================
 
 #include <UtilityLib/Color.h>
-#include <UtilityLib/StbImageWrite.h>
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
@@ -16,11 +15,13 @@ namespace Shooty
 {
     struct SceneResourceData;
     struct ImageBasedLightResourceData;
+    struct TextureResourceData;
 
     struct SceneContext
     {
         RTCScene rtcScene;
         SceneResourceData* scene;
+        TextureResourceData* textures;
         ImageBasedLightResourceData* ibl;
         uint width;
         uint height;

@@ -21,11 +21,12 @@ namespace Shooty {
         float Acosf(float radians);
         float Atanf(float radians);
         float Atan2f(float x, float y);
+
+        // JSTODO -- These don't belong here
         float Fmodf(float x, float y);
         float Expf(float x);
         float Sqrtf(float x);
         float Absf(float x);
         float Powf(float x, float y);
-
     }
 }

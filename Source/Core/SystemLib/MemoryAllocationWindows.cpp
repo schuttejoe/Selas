@@ -14,7 +14,7 @@
 #include <windows.h>
 
 // -- allocation tracking
-#define EnableManualAllocationTracking_ Debug_ && 0
+#define EnableManualAllocationTracking_ Debug_ && 1
 #define AllocationTrackingIncrement_ 4096
 #define EnableVerboseLogging_           0
 //#define BreakOnAllocation_ 327

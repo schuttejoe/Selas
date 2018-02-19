@@ -5,10 +5,8 @@
 #include <BuildCommon/BakeScene.h>
 #include <IoLib/BinarySerializer.h>
 
-namespace Shooty {
-
-    #define ReturnFailure_(code) if (!code) { return false; }
-
+namespace Shooty
+{
     //==============================================================================
     static void SerializeCamera(BinaryWriter* writer, const BuiltScene& sceneData)
     {
@@ -16,7 +14,21 @@ namespace Shooty {
     }
 
     //==============================================================================
-    static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData) {
+    static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
+    {
+        uint32 materialCount = sceneData.materialData.Length();
+        uint32 pad = 0;
+
+        SerializerWrite(writer, &materialCount, sizeof(materialCount));
+        SerializerWrite(writer, &pad, sizeof(pad));
+
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.materialData.GetData(), sceneData.materialData.DataSize());
+    }
+
+    //==============================================================================
+    static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData)
+    {
 
         uint32 meshCount = sceneData.meshes.Length();
         uint32 indexCount = sceneData.indices.Length();
@@ -28,8 +40,6 @@ namespace Shooty {
         SerializerWrite(writer, &pad, sizeof(pad));
 
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.meshes.GetData(), sceneData.meshes.DataSize());
-        SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.indices.GetData(), sceneData.indices.DataSize());
         SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.positions.GetData(), sceneData.positions.DataSize());
@@ -37,14 +47,18 @@ namespace Shooty {
         SerializerWritePointerData(writer, sceneData.normals.GetData(), sceneData.normals.DataSize());
         SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.uv0.GetData(), sceneData.uv0.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize());
     }
 
     //==============================================================================
-    bool BakeScene(const BuiltScene& sceneData, cpointer filepath) {
+    bool BakeScene(const BuiltScene& sceneData, cpointer filepath)
+    {
         BinaryWriter writer;
         ReturnFailure_(SerializerStart(&writer, filepath));
 
         SerializeCamera(&writer, sceneData);
+        SerializeMaterials(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 
         ReturnFailure_(SerializerEnd(&writer));

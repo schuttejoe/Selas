@@ -1,13 +1,23 @@
 
+Next:
+	Texture sampling (EWA)
+	Multiple importance sampling
 
-Implement multithreaded path tracer
-
+Features:
+---------
 Switch to full Disney BRDF
-multiple importance sampling
+Actual material assets
+Debug tech (depth, material visualizations)
 
-Ray batching
+Optimizations:
+--------------
+Deferred path tracing
+Russian Roulette ray termination
+Texture cache
+Texture layout swizzling
 
-Read about ray differentials in pbrt
-Implement texture sampling OR find a tool that supports ptex authoring and implement ptex
-
-Russian Roulette
+Engine:
+-------
+Serialization system
+Dependency system in Build
+Error system

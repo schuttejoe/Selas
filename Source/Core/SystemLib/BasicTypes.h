@@ -21,6 +21,7 @@ typedef const char*     cpointer;
 #define Unused_(x)        (void)x;
 #define FloatMax_         3.402823466e+38F
 #define MinFloatEpsilon_  1.192092896e-07F
+#define ReturnFailure_(x) if(!x) { return false; }
 
 namespace Shooty {
 

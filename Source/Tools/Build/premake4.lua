@@ -5,7 +5,8 @@ dofile("../../../ProjectGen/common.lua")
 local SolutionName = "Build"
 local Platform = "x64"
 local ExtraDefines = { "IsWindows_=1", "Is64Bit_=1", "Build_=1", "FriendlyAppName_=\"Build\"" }
-local ExtraLibraries = {}
+local ExtraLibraries = { }
+ExtraLibraries["Core"] = { "TextureLib" }
 ExtraLibraries["Tool"] = { "BuildCommon" }
 
 local ExtraMiddlewareIncludeDirs = { "assimp-4.1.0\\include" }

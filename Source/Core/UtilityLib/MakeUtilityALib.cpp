@@ -4,7 +4,7 @@
 
 namespace Shooty {
 
-    int StringWouldLikeToBeALibrary(int hi) {
+    int UtilityWouldLikeToBeALibrary(int hi) {
         return hi;
     }
 }

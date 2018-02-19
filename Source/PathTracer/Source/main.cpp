@@ -7,7 +7,8 @@
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
-#include <UtilityLib/StbImageWrite.h>
+#include <TextureLib/StbImage.h>
+#include <TextureLib/TextureResource.h>
 #include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
@@ -58,13 +59,17 @@ int main()
     uint32 meshHandle = -1;
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\scene.bin", &sceneResource) == false) {
+    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\sphere", &sceneResource) == false) {
+        retvalue = -1;
+        goto cleanup;
+    }
+    if(InitializeSceneResource(&sceneResource) == false) {
         retvalue = -1;
         goto cleanup;
     }
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\ibl.bin", &iblResouce) == false) {
+    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k", &iblResouce) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -83,6 +88,7 @@ int main()
     SceneContext context;
     context.rtcScene = rtcScene;
     context.scene = sceneResource.data;
+    context.textures = sceneResource.textures[0].data; // Yep. Hack.
     context.ibl = iblResouce.data;
     context.width = width;
     context.height = height;
@@ -105,7 +111,7 @@ int main()
 
 cleanup:
     // -- delete the scene
-    SafeFreeAligned_(sceneResource.data);
+    ShutdownSceneResource(&sceneResource);
     SafeFreeAligned_(iblResouce.data);
 
     rtcReleaseScene(rtcScene);

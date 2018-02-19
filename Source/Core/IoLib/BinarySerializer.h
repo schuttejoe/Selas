@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib\BasicTypes.h>
-#include <ContainersLib\CArray.h>
+#include <SystemLib/BasicTypes.h>
+#include <ContainersLib/CArray.h>
 
 namespace Shooty {
 

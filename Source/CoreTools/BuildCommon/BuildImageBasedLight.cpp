@@ -4,14 +4,10 @@
 
 #include <BuildCommon/BuildImageBasedLight.h>
 #include <SceneLib/ImageBasedLightResource.h>
+#include <TextureLib/StbImage.h>
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/Memory.h>
-
-// -- middleware
-// -- probably going to need to move this
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
 
 namespace Shooty {
 
@@ -99,12 +95,11 @@ namespace Shooty {
     //==============================================================================
     bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl) {
         
-        int32 width;
-        int32 height;
-        int32 channels;
-
-        float* raw = stbi_loadf(filename, &width, &height, &channels, 0);
-        if(raw == nullptr)
+        uint width;
+        uint height;
+        uint channels;
+        void* raw;
+        if(StbImageRead(filename, width, height, channels, raw) == false)
             return false;
 
         ibl->hdrData = reinterpret_cast<float3*>(raw);

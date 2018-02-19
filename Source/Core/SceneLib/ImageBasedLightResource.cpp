@@ -7,8 +7,6 @@
 #include <IoLib/File.h>
 #include <SystemLib/BasicTypes.h>
 
-#define ReturnFailure_(code) if (!code) { return false; }
-
 namespace Shooty {
 
     //==============================================================================

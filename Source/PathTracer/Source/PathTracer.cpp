@@ -8,6 +8,8 @@
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
+#include <TextureLib/TextureFiltering.h>
+#include <TextureLib/TextureResource.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
 #include <MathLib/Trigonometric.h>
@@ -52,7 +54,7 @@ namespace Shooty
     };
 
     //==============================================================================
-    static void CalculateNormalAndUvs(const SceneResourceData* __restrict scene, uint32 primitiveId, float2 barycentric, float3& normal, float2& uvs)
+    static void CalculateSurfaceParams(const SceneResourceData* __restrict scene, uint32 primitiveId, float2 barycentric, float3& normal, float2& uvs, uint16& materialIndex)
     {
         uint32 i0 = scene->indices[3 * primitiveId + 0];
         uint32 i1 = scene->indices[3 * primitiveId + 1];
@@ -65,6 +67,8 @@ namespace Shooty
         float2 t0 = scene->uv0[i0];
         float2 t1 = scene->uv0[i1];
         float2 t2 = scene->uv0[i2];
+
+        materialIndex = scene->materialIndices[i0];
 
         float b0 = Saturate(1.0f - (barycentric.x + barycentric.y));
         float b1 = barycentric.x;
@@ -148,6 +152,7 @@ namespace Shooty
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResourceData* scene            = kernelContext->context->scene;
+        TextureResourceData* textures       = kernelContext->context->textures;
         ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
 
         float3 newPosition;
@@ -158,7 +163,11 @@ namespace Shooty
         if(hit) {
             float3 n;
             float2 uvs;
-            CalculateNormalAndUvs(scene, primId, baryCoords, n, uvs);
+            uint16 materialIndex;
+            CalculateSurfaceParams(scene, primId, baryCoords, n, uvs, materialIndex);
+
+            if(materialIndex == 1)
+                return PointSampleTexture(&textures[0], uvs);
 
             float3 v = Normalize(pos - newPosition);
 
@@ -175,7 +184,7 @@ namespace Shooty
             }
         }
         else {
-            return float3(0.86f, 0.49f, 0.25f);
+            return float3::Zero_;
         }
     }
 
@@ -187,6 +196,7 @@ namespace Shooty
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResourceData* scene            = kernelContext->context->scene;
+        TextureResourceData* textures       = kernelContext->context->textures;
         uint width                          = kernelContext->context->width;
         uint height                         = kernelContext->context->height;
 
@@ -200,7 +210,11 @@ namespace Shooty
         if(hit) {
             float3 n;
             float2 uvs;
-            CalculateNormalAndUvs(scene, primId, baryCoords, n, uvs);
+            uint16 materialIndex;
+            CalculateSurfaceParams(scene, primId, baryCoords, n, uvs, materialIndex);
+
+            if(materialIndex == 0)
+                return PointSampleTexture(&textures[0], uvs);
 
             float3 v = Normalize(scene->camera.position - position);
 
@@ -286,9 +300,10 @@ namespace Shooty
         uint blockCount = blockCountX * blockCountY;
 
         float aspect = (float)width / height;
+        float verticalFov = 2.0f * Math::Atanf(scene->camera.fov * 0.5f) * aspect;
 
-        float4x4 projection = PerspectiveFovLhProjection(scene->camera.fov, aspect, scene->camera.znear, scene->camera.zfar);
-        float4x4 view = LookAtLh(scene->camera.position, float3::YAxis_, scene->camera.lookAt);
+        float4x4 projection = PerspectiveFovLhProjection(verticalFov, aspect, scene->camera.znear, scene->camera.zfar);
+        float4x4 view = LookAtLh(scene->camera.position, scene->camera.up, scene->camera.lookAt);
         float4x4 viewProj = MatrixMultiply(view, projection);
 
         RayCastCameraSettings camera;

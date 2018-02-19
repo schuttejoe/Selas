@@ -4,44 +4,58 @@
 // Joe Schutte
 //==============================================================================
 
+#include <StringLib/FixedString.h>
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
-    struct SceneMeshData {
-        uint32 indexCount;
-        uint32 vertexCount;
-        uint32 indexOffset;
-        uint32 vertexOffset;
-    };
+namespace Shooty
+{
+    struct TextureResource;
 
     struct Camera
     {
         float3 position;
-        float3 lookAt;
-        float3 up;
         float  fov;
+        float3 lookAt;
         float  znear;
+        float3 up;
         float  zfar;
     };
 
-    struct SceneResourceData {
+    struct MaterialData
+    {
+        FixedString256 emissiveTexture;
+    };
+
+    struct SceneResourceData
+    {
         Camera         camera;
+        uint32         materialCount;
+        uint32         pad0;
+
+        MaterialData*  materialData;
+
         uint32         meshCount;
         uint32         totalIndexCount;
         uint32         totalVertexCount;
-        uint32         pad;
-        SceneMeshData* meshDatas;
+        uint32         pad1;
+
         uint32*        indices;
         float4*        positions;
         float3*        normals;
         float2*        uv0;
+        uint16*        materialIndices;
     };
 
-    struct SceneResource {
+    struct SceneResource
+    {
         SceneResourceData* data;
+        TextureResource* textures;
+
+        SceneResource();
     };
 
-    bool ReadSceneResource(cpointer filepath, SceneResource* data);
+    bool ReadSceneResource(cpointer filepath, SceneResource* scene);
+    bool InitializeSceneResource(SceneResource* scene);
+    void ShutdownSceneResource(SceneResource* scene);
 }
