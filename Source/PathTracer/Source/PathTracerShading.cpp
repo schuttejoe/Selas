@@ -163,7 +163,7 @@ namespace Shooty
         float phi;
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
-        ImportanceSampling::Ggx(material->roughness, r0, r1, theta, phi);
+        ImportanceSampling::GgxNormalDistribution(material->roughness, r0, r1, theta, phi);
 
         float3 wm = Math::SphericalToCartesian(theta, phi);
         wi = Reflect(wm, wo);

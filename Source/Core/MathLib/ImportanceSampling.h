@@ -34,6 +34,6 @@ namespace Shooty {
         void ShutdownDensityFunctions(IblDensityFunctions* distributions);
 
 
-        void Ggx(float roughness, float r0, float r1, float& theta, float& phi);
+        void GgxNormalDistribution(float roughness, float r0, float r1, float& theta, float& phi);
     }
 }

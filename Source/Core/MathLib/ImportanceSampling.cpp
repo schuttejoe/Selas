@@ -91,7 +91,7 @@ namespace Shooty
         }
 
         //==============================================================================
-        void Ggx(float roughness, float r0, float r1, float& theta, float& phi)
+        void GgxNormalDistribution(float roughness, float r0, float r1, float& theta, float& phi)
         {
             float m2 = roughness * roughness;
 
