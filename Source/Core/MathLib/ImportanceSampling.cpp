@@ -9,6 +9,7 @@
 #include <MathLib/Projection.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/JsAssert.h>
+#include <SystemLib/MinMax.h>
 
 namespace Shooty
 {
@@ -40,12 +41,14 @@ namespace Shooty
         }
 
         //==============================================================================
-        uint CalculateMarginalDensityFunctionCount(uint width, uint height) {
+        uint CalculateMarginalDensityFunctionCount(uint width, uint height)
+        {
             return height;
         }
 
         //==============================================================================
-        uint CalculateConditionalDensityFunctionsCount(uint width, uint height) {
+        uint CalculateConditionalDensityFunctionsCount(uint width, uint height)
+        {
             return width * height;
         }
 
@@ -73,7 +76,7 @@ namespace Shooty
 
             // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
             float pdf = Math::Sinf(theta) * mdf * cdf;
-           
+
             // convert from texture space to spherical with the inverse of the Jacobian
             float invJacobian = (Math::TwoPi_* Math::Pi_) / (widthf * heightf);
 
@@ -88,19 +91,12 @@ namespace Shooty
         }
 
         //==============================================================================
-        void Ggx(float roughness, float r0, float r1, float& theta, float& phi, float& weight)
+        void Ggx(float roughness, float r0, float r1, float& theta, float& phi)
         {
             float m2 = roughness * roughness;
 
             phi = Math::TwoPi_ * r0;
             theta = Math::Acosf(Math::Sqrtf((1.0f - r1) / ((m2 - 1.0f) * r1 + 1.0f)));
-
-            float costheta = Math::Cosf(theta);
-            float sintheta = Math::Sinf(theta);
-            float sqrtdenom = costheta * costheta * (m2 - 1.0f) + 1.0f;
-            float pdf = m2 * costheta * sintheta / (Math::Pi_ * sqrtdenom * sqrtdenom);
-
-            weight = 1.0f / pdf;
         }
     }
 }

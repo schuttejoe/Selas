@@ -28,5 +28,6 @@ namespace Shooty {
         float Sqrtf(float x);
         float Absf(float x);
         float Powf(float x, float y);
+        float Square(float x);
     }
 }

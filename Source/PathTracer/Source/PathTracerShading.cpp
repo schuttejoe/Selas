@@ -24,6 +24,7 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
+//#include <cmath>
 
 namespace Shooty
 {
@@ -103,43 +104,133 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 OrientToNormal(float3 n, float3 l)
+    static float4 ToTangentSpaceQuaternion(float3 n)
     {
-        float3 axis = Cross(float3::YAxis_, n);
+        float3 axis = Cross(n, float3::YAxis_);
         float len = Length(axis);
 
         if(len > MinFloatEpsilon_) {
             axis = (1.0f / len) * axis;
             float radians = Math::Atan2f(len, n.y);
 
-            float4 q = Math::Quaternion::Create(radians, axis);
-            return Math::Quaternion::Rotate(q, l);
+            return Math::Quaternion::Create(radians, axis);
         }
         else if(n.y > 0.0f) {
-            return l;
+            return Math::Quaternion::Identity();
         }
         else {
-            return -l;
+            return Math::Quaternion::Create(180.0f * Math::DegreesToRadians_, float3::XAxis_);
         }
     }
 
-    //==============================================================================
-    void ImportanceSampleGgx(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
+    // ================================================================================================
+    // Fresnel
+    // ================================================================================================
+    static float3 SchlickFresnel(float3 r0, float radians)
     {
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+        float exponential = Math::Powf(1.0f - radians, 5.0f);
+        return r0 + float3(1.0f - r0.x, 1.0f - r0.y, 1.0f - r0.z) * exponential;
+    }
+
+    //==============================================================================
+    static float BsdfNDot(float3 x)
+    {
+        return x.y;
+    }
+
+    //==============================================================================
+    static float SmithGGXMaskingShading(float3 wi, float3 wo, float a2)
+    {
+        float dotNL = BsdfNDot(wi);
+        float dotNV = BsdfNDot(wo);
+
+        float denomA = dotNV * Math::Sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
+        float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
+
+        return 2 * dotNL * dotNV / (denomA + denomB);
+    }
+
+    //==============================================================================
+    void ImportanceSampleGgx(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    {
+        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
+        float4 toLocal = ToTangentSpaceQuaternion(wg);
+        float4 toWorld = Math::Quaternion::Invert(toLocal);
+
+        float3 wo = Math::Quaternion::Rotate(toLocal, v);
 
         float theta;
         float phi;
-        float weight;
-        ImportanceSampling::Ggx(material->roughness, r0, r1, theta, phi, weight);
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+        ImportanceSampling::Ggx(material->roughness, r0, r1, theta, phi);
 
-        wi = OrientToNormal(n, Math::SphericalToCartesian(theta, phi));
-        if(Dot(wi, n) > 0.0f) {
-            reflectance = weight * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness);
+        float3 wm = Math::SphericalToCartesian(theta, phi);
+        wi = Reflect(wm, wo);
+
+        if(BsdfNDot(wi) > 0.0f) {
+            float a = material->roughness;
+            float a2 = a * a;
+
+            float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
+            float G = SmithGGXMaskingShading(wi, wo, a2);
+            float weight = Math::Absf(Dot(wi, wm)) / (BsdfNDot(wi) * BsdfNDot(wm));
+
+            reflectance = F * G * weight;
+            wi = Math::Quaternion::Rotate(toWorld, wi);    
         }
         else {
             reflectance = float3::Zero_;
         }
+    }
+
+    //==============================================================================
+    // JSTODO - This is temp. Get tangent space from mesh.
+    static float3 TransformToWorld(float x, float y, float z, float3 normal)
+    {
+        // Find an axis that is not parallel to normal
+        float3 majorAxis;
+        if(Math::Absf(normal.x) < 0.57735026919f) {
+            majorAxis = float3(1, 0, 0);
+        }
+        else if(Math::Absf(normal.y) < 0.57735026919f) {
+            majorAxis = float3(0, 1, 0);
+        }
+        else {
+            majorAxis = float3(0, 0, 1);
+        }
+
+        // Use majorAxis to create a coordinate system relative to world space
+        float3 u = Normalize(Cross(normal, majorAxis));
+        float3 v = Cross(normal, u);
+        float3 w = normal;
+
+        // Transform from local coordinates to world coordinates
+        return u * x + w * y + v * z;
+    }
+
+    //==============================================================================
+    void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
+    {
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+
+        float r     = Math::Sqrtf(r0);
+        float theta = 2.0f * Math::Pi_ * r1;
+
+        float x     = r * Math::Cosf(theta);
+        float y     = Math::Sqrtf(Max<float>(0.0f, 1.0f - r0));
+        float z     = r * Math::Sinf(theta);
+
+        wi = TransformToWorld(x, y, z, n);
+
+        float dotNL = Dot(wi, n);
+        if(dotNL > 0.0f) {
+            reflectance = material->albedo;
+        }
+        else {
+            reflectance = float3::Zero_;
+        }
+        
     }
 }

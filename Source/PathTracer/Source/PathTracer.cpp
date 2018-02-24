@@ -74,8 +74,8 @@ namespace Shooty
         float b1 = barycentric.x;
         float b2 = barycentric.y;
 
-        normal = b0 * n0 + b1 * n1 + b2 * n2;
-        uvs = b0 * t0 + b1 * t1 + b2 * t2;
+        normal = Normalize(b0 * n0 + b1 * n1 + b2 * n2);
+        uvs    = b0 * t0 + b1 * t1 + b2 * t2;
     }
 
     //==============================================================================
@@ -137,9 +137,9 @@ namespace Shooty
     {
         // -- hack material
         Material material;
-        material.specularColor = float3(0.1f, 0.1f, 0.1f);
-        material.albedo = float3(0.8f, 0.8f, 0.8f);
-        material.roughness = 0.5f;
+        material.specularColor = float3(1.0f, 1.0f, 1.0f);
+        material.albedo        = float3(1.0f, 1.0f, 1.0f);
+        material.roughness     = 0.01f;
 
         return material;
     }
@@ -166,10 +166,10 @@ namespace Shooty
             uint16 materialIndex;
             CalculateSurfaceParams(scene, primId, baryCoords, n, uvs, materialIndex);
 
-            if(materialIndex == 1)
+            if(materialIndex == 0)
                 return PointSampleTexture(&textures[0], uvs);
 
-            float3 v = Normalize(pos - newPosition);
+            float3 v = -direction;
 
             Material material = LookupMaterial();
 
@@ -216,7 +216,7 @@ namespace Shooty
             if(materialIndex == 0)
                 return PointSampleTexture(&textures[0], uvs);
 
-            float3 v = Normalize(scene->camera.position - position);
+            float3 v = -direction;
 
             Material material = LookupMaterial();
 
@@ -245,7 +245,7 @@ namespace Shooty
         uint by = blockIndex / kernelContext->blockCountX;
         uint bx = blockIndex % kernelContext->blockCountX;
 
-        const uint raysPerPixel = 16;
+        const uint raysPerPixel = 1024;
 
         for(uint dy = 0; dy < blockDimensions; ++dy) {
             for(uint dx = 0; dx < blockDimensions; ++dx) {

@@ -66,7 +66,7 @@ namespace Shooty
         // -- visibility term
         float vis = AshikhminMicrofacetVisibilityTerm(ndotl, ndotv);
 
-        return d * g * vis * (1.0f / 4.0f);
+        return d;// *g * vis * (1.0f / 4.0f);
     }
 
     //==============================================================================

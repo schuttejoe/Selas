@@ -24,10 +24,5 @@ namespace Shooty {
 
         uint  RandUint(uint max);
         float RandFloat0_1(void); // [0.0f, 1.0f]
-
-        void FillRandomBuffer(float* buffer, uint count, uint32 seed);
-        void FillRandomBuffer(float4* buffer, uint count, uint32 seed);
-
-        float3 UniformConeRandom(float3& direction, float thetaMax);
     };
 }

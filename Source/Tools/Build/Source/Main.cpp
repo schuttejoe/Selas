@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
 #if ExportScene_
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\sphere.fbx", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\bunny.fbx", &importedScene)) {
         Error_("Error importing obj");
         return -1;
     }
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     }
     ShutdownImportedScene(&importedScene);
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\sphere");
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bunny");
 #endif
 
 #if ExportIbl_

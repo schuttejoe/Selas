@@ -5,7 +5,8 @@
 #include <MathLib/Trigonometric.h>
 #include <math.h>
 
-namespace Shooty {
+namespace Shooty
+{
 
     //==============================================================================
     float Math::Cosf(float radians)
@@ -30,7 +31,7 @@ namespace Shooty {
     {
         return Cosf(radians) / Sinf(radians);
     }
-    
+
     //==============================================================================
     float Math::Acosf(float radians)
     {
@@ -74,8 +75,14 @@ namespace Shooty {
     }
 
     //==============================================================================
-    float Math::Powf(float x, float y) {
+    float Math::Powf(float x, float y)
+    {
         return ::powf(x, y);
     }
 
+    //==============================================================================
+    float Math::Square(float x)
+    {
+        return x * x;
+    }
 }

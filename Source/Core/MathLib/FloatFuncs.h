@@ -185,6 +185,12 @@ namespace Shooty {
         return 1.f / Length(vec4);
     }
 
+    // -- both should face outward
+    ForceInline_ float3 Reflect(float3 n, float3 l)
+    {
+        return 2.0f * Dot(n, l) * n - l;
+    }
+
     ForceInline_ float2 Lerp(float2 a, float2 b, float t)
     {
         return (1 - t) * a + t * b;

@@ -31,9 +31,9 @@ namespace Shooty {
         // -- weight is (solidAngle / pdf) to normalize your sample
         void Ibl(IblDensityFunctions* distributions, float r0, float r1,
                  float& theta, float& phi, uint& x, uint& y, float& weight);
-
         void ShutdownDensityFunctions(IblDensityFunctions* distributions);
 
-        void Ggx(float roughness, float r0, float r1, float& theta, float& phi, float& weight);
+
+        void Ggx(float roughness, float r0, float r1, float& theta, float& phi);
     }
 }
