@@ -45,12 +45,21 @@ namespace Shooty
             built->meshes.Add(meshData);
             AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->indices);
             built->positions.Append(mesh->positions);
-            built->normals.Append(mesh->normals);
-            built->uv0.Append(mesh->uv0);
 
-            built->materialIndices.Reserve(built->materialIndices.Length() + totalVertexCount);
+            built->vertexData.Reserve(built->vertexData.Length() + meshData.vertexCount);
             for(uint i = 0; i < meshData.vertexCount; ++i) {
-                built->materialIndices.Add(mesh->materialIndex);
+                VertexAuxiliaryData vertexData;
+                vertexData.px            = mesh->positions[i].x;
+                vertexData.py            = mesh->positions[i].y;
+                vertexData.pz            = mesh->positions[i].z;
+                vertexData.nx            = mesh->normals[i].x;
+                vertexData.ny            = mesh->normals[i].y;
+                vertexData.nz            = mesh->normals[i].z;
+                vertexData.u             = mesh->uv0[i].x;
+                vertexData.v             = mesh->uv0[i].y;
+                vertexData.materialIndex = mesh->materialIndex;
+
+                built->vertexData.Add(vertexData);
             }
 
             totalIndexCount += meshData.indexCount;

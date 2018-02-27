@@ -5,7 +5,7 @@ local SolutionName = "PathTracer"
 local Platform = "x64"
 local ExtraDefines = { "IsWindows_=1", "Is64Bit_=1", "PathTracer_=1", "FriendlyAppName_=\"PathTracer\"" }
 local ExtraLibraries = { }
-ExtraLibraries["Core"] = { "SceneLib", "TextureLib" }
+ExtraLibraries["Core"] = { "SceneLib", "TextureLib", "GeometryLib" }
 
 local ExtraMiddlewareIncludeDirs = { "Embree-3.0/include" }
 local ExtraMiddlewareLinkDirs = { "Embree-3.0/lib" }

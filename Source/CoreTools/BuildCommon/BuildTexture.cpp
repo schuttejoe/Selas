@@ -78,8 +78,23 @@ namespace Shooty
     //==============================================================================
     static void BoxFilterMip(float3* srcMip, uint srcWidth, uint srcHeight, float3* dstMip, uint dstWidth, uint dstHeight)
     {
-        for(uint y = 0; y < dstHeight; y++) {
-            for(uint x = 0; x < dstWidth; x++) {
+        if(srcWidth == 1) {
+            for(uint y = 0; y < dstHeight; ++y) {
+                *dstMip = 0.5f * (srcMip[0] + srcMip[srcWidth]);
+                srcMip += srcWidth;
+            }
+            return;
+        }
+
+        if(srcHeight == 1) {
+            for(uint x = 0; x < dstHeight; ++x) {
+                *dstMip = 0.5f * (srcMip[0] + srcMip[1]);
+            }
+            return;
+        }
+
+        for(uint y = 0; y < dstHeight; ++y) {
+            for(uint x = 0; x < dstWidth; ++x) {
                 *dstMip = 0.25f * (srcMip[0] + srcMip[1] + srcMip[srcWidth] + srcMip[srcWidth + 1]);
                 dstMip++;
                 srcMip += 2;
@@ -90,8 +105,8 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void GenerateMipMaps(TextureMipFilters prefilter, float3* linear, uint width, uint height,
-                                float3*& mipmaps, uint32& mipCount, uint32& dataSize)
+    static bool GenerateMipMaps(TextureMipFilters prefilter, float3* linear, uint width, uint height,
+                                uint64* mipOffsets, uint32* mipWidths, uint32* mipHeights, float3*& mipmaps, uint32& mipCount, uint32& dataSize)
     {
         AssertMsg_(prefilter == Box, "Only Box filter is currently implemented");
 
@@ -109,6 +124,10 @@ namespace Shooty
             ++mipCount;
         }
 
+        if(mipCount > TextureResourceData::MaxMipCount) {
+            return false;
+        }
+
         mipmaps = AllocArray_(float3, totalTexelCount);
         dataSize = (uint32)(sizeof(float3) * totalTexelCount);
 
@@ -117,7 +136,7 @@ namespace Shooty
 
         // -- Filter remaining mips
         uint offset = 0;
-        for(uint scan = 0; scan < mipCount - 1; ++scan) {
+        for(uint scan = 0; scan < mipCount; ++scan) {
 
             uint srcWidth  = Max<uint>(width >> scan, 1);
             uint srcHeight = Max<uint>(height >> scan, 1);
@@ -132,8 +151,13 @@ namespace Shooty
                 BoxFilterMip(mipmaps + offset, srcWidth, srcHeight, mipmaps + offset + srcTexelCount, dstWidth, dstHeight);
             };
 
+            mipWidths[scan] = (uint32)srcWidth;
+            mipHeights[scan] = (uint32)srcHeight;
+            mipOffsets[scan] = offset;
             offset += srcTexelCount;
         }
+
+        return true;
     }
 
     //==============================================================================
@@ -144,13 +168,11 @@ namespace Shooty
         uint height;
         ReturnFailure_(LoadLinearFloat3Data(filepath, linear, width, height));
 
-        texture->width    = (uint32)width;
-        texture->height   = (uint32)height;
         texture->dataSize = 0;
-        GenerateMipMaps(prefilter, linear, texture->width, texture->height, texture->mipmaps, texture->mipCount, texture->dataSize);
-
+        bool success = GenerateMipMaps(prefilter, linear, width, height,
+                                       texture->mipOffsets, texture->mipWidths, texture->mipHeights, texture->mipmaps, texture->mipCount, texture->dataSize);
         Free_(linear);
 
-        return true;
+        return success;
     }
 }

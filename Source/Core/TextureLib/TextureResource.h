@@ -11,10 +11,14 @@ namespace Shooty
 {
     struct TextureResourceData
     {
-        uint32 width;
-        uint32 height;
+        static const uint MaxMipCount = 16;
+
         uint32 mipCount;
         uint32 dataSize;
+
+        uint32 mipWidths[MaxMipCount];
+        uint32 mipHeights[MaxMipCount];
+        uint64 mipOffsets[MaxMipCount];
 
         // -- 0 is most detailed level
         float3* mipmaps;
@@ -26,4 +30,6 @@ namespace Shooty
     };
 
     bool ReadTextureResource(cpointer filepath, TextureResource* texture);
+
+    void DebugWriteTextureMips(TextureResource* texture, cpointer folder);
 }

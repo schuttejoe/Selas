@@ -10,6 +10,9 @@
 #include <SceneLib/ImageBasedLightResource.h>
 #include <TextureLib/TextureFiltering.h>
 #include <TextureLib/TextureResource.h>
+#include <GeometryLib/Camera.h>
+#include <GeometryLib/Ray.h>
+#include <GeometryLib/SurfaceDifferentials.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
 #include <MathLib/Trigonometric.h>
@@ -29,16 +32,6 @@
 
 namespace Shooty
 {
-    //==============================================================================
-    struct RayCastCameraSettings
-    {
-        float4x4 invViewProjection;
-        Rect     viewport;
-        float3   position;
-        float    znear;
-        float    zfar;
-    };
-
     struct PathTracerKernelContext
     {
         const SceneContext* context;
@@ -54,51 +47,75 @@ namespace Shooty
     };
 
     //==============================================================================
-    static void CalculateSurfaceParams(const SceneResourceData* __restrict scene, uint32 primitiveId, float2 barycentric, float3& normal, float2& uvs, uint16& materialIndex)
+    inline void CoordinateSystem(const float3& v1, float3* v2, float3* v3)
+    {
+        if(Math::Absf(v1.x) > Math::Absf(v1.y))
+            *v2 = float3(-v1.z, 0, v1.x) * (1.0f / Math::Sqrtf(v1.x * v1.x + v1.z * v1.z));
+        else
+            *v2 = float3(0, v1.z, -v1.y) * (1.0f / Math::Sqrtf(v1.y * v1.y + v1.z * v1.z));
+        *v3 = Cross(v1, *v2);
+    }
+
+    //==============================================================================
+    static void CalculateSurfaceParams(const SceneResourceData* __restrict scene, uint32 primitiveId, float2 barycentric,
+                                       float3& normal, float3& dpdu, float3& dpdv, float3& dndu, float3& dndv, float2& uvs, uint16& materialIndex)
     {
         uint32 i0 = scene->indices[3 * primitiveId + 0];
         uint32 i1 = scene->indices[3 * primitiveId + 1];
         uint32 i2 = scene->indices[3 * primitiveId + 2];
 
-        float3 n0 = scene->normals[i0];
-        float3 n1 = scene->normals[i1];
-        float3 n2 = scene->normals[i2];
+        const VertexAuxiliaryData& v0 = scene->vertexData[i0];
+        const VertexAuxiliaryData& v1 = scene->vertexData[i1];
+        const VertexAuxiliaryData& v2 = scene->vertexData[i2];
+        float3 p0wtf                     = scene->positions[i0].XYZ();
+        float3 p1wtf                     = scene->positions[i1].XYZ();
+        float3 p2wtf                     = scene->positions[i2].XYZ();
 
-        float2 t0 = scene->uv0[i0];
-        float2 t1 = scene->uv0[i1];
-        float2 t2 = scene->uv0[i2];
-
-        materialIndex = scene->materialIndices[i0];
+        float3 p0  = float3(v0.px, v0.py, v0.pz);
+        float3 p1  = float3(v1.px, v1.py, v1.pz);
+        float3 p2  = float3(v2.px, v2.py, v2.pz);
+        float3 n0  = float3(v0.nx, v0.ny, v0.nz);
+        float3 n1  = float3(v1.nx, v1.ny, v1.nz);
+        float3 n2  = float3(v2.nx, v2.ny, v2.nz);
+        float2 uv0 = float2(v0.u, v0.v);
+        float2 uv1 = float2(v1.u, v1.v);
+        float2 uv2 = float2(v2.u, v2.v);
 
         float b0 = Saturate(1.0f - (barycentric.x + barycentric.y));
         float b1 = barycentric.x;
         float b2 = barycentric.y;
 
-        normal = Normalize(b0 * n0 + b1 * n1 + b2 * n2);
-        uvs    = b0 * t0 + b1 * t1 + b2 * t2;
+        // Compute deltas for triangle partial derivatives
+        float2 duv02 = uv0 - uv2;
+        float2 duv12 = uv1 - uv2;
+        float determinant = duv02.x * duv12.y - duv02.y * duv12.x;
+        bool degenerateUV = Math::Absf(determinant) < SmallFloatEpsilon_;
+        if(!degenerateUV) {
+            float3 edge02 = p0 - p2;
+            float3 edge12 = p1 - p2;
+            float3 dn02 = n0 - n2;
+            float3 dn12 = n1 - n2;
+
+            float invDet = 1 / determinant;
+            dpdu = ( duv12.y * edge02 - duv02.y * edge12) * invDet;
+            dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invDet;
+            dndu = ( duv12.y * dn02 - duv02.y * dn12) * invDet;
+            dndv = (-duv12.x * dn02 + duv02.x * dn12) * invDet;
+        }
+        if(degenerateUV || LengthSquared(Cross(dpdu, dpdv)) == 0.0f)
+        {
+            CoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &dpdu, &dpdv);
+            dndu = float3::Zero_;
+            dndv = float3::Zero_;
+        }
+
+        normal        = Normalize(b0 * n0  + b1 * n1  + b2 * n2);
+        uvs           = b0 * uv0 + b1 * uv1 + b2 * uv2;
+        materialIndex = v0.materialIndex;
     }
 
     //==============================================================================
-    static float3 MakeCameraRayDirection(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, uint viewX, uint viewY, uint width, uint height)
-    {
-        // JSTODO - Fix. Blue noise probably ideal here. Maybe this: http://liris.cnrs.fr/david.coeurjolly/publications/perrier18eg.html ?
-        float dx = MersenneTwisterFloat(twister);
-        float dy = MersenneTwisterFloat(twister);
-
-        float vx = viewX + dx;
-        float vy = viewY + dy;
-
-        float x = (2.0f * vx) / width - 1.0f;
-        float y = 1.0f - (2.0f * vy) / height;
-
-        float4 un = MatrixMultiplyFloat4(float4(x, y, 0.0f, 1.0f), camera->invViewProjection);
-        float3 worldPosition = (1.0f / un.w) * float3(un.x, un.y, un.z);
-
-        return Normalize(worldPosition - camera->position);
-    }
-
-    //==============================================================================
-    static bool RayPick(const RTCScene& rtcScene, const SceneResourceData* scene, float3 orig, float3 direction, float znear, float zfar,
+    static bool RayPick(const RTCScene& rtcScene, const SceneResourceData* scene, const Ray& ray,
                         float3& position, float2& baryCoords, int32& primId)
     {
 
@@ -106,14 +123,14 @@ namespace Shooty
         rtcInitIntersectContext(&context);
 
         __declspec(align(16)) RTCRayHit rayhit;
-        rayhit.ray.org_x = orig.x;
-        rayhit.ray.org_y = orig.y;
-        rayhit.ray.org_z = orig.z;
-        rayhit.ray.dir_x = direction.x;
-        rayhit.ray.dir_y = direction.y;
-        rayhit.ray.dir_z = direction.z;
-        rayhit.ray.tnear = znear;
-        rayhit.ray.tfar  = zfar;
+        rayhit.ray.org_x = ray.origin.x;
+        rayhit.ray.org_y = ray.origin.y;
+        rayhit.ray.org_z = ray.origin.z;
+        rayhit.ray.dir_x = ray.direction.x;
+        rayhit.ray.dir_y = ray.direction.y;
+        rayhit.ray.dir_z = ray.direction.z;
+        rayhit.ray.tnear = ray.tnear;
+        rayhit.ray.tfar  = ray.tfar;
 
         rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
@@ -123,9 +140,9 @@ namespace Shooty
         if(rayhit.hit.geomID == -1)
             return false;
 
-        position.x = rayhit.ray.org_x + rayhit.ray.tfar * direction.x;
-        position.y = rayhit.ray.org_y + rayhit.ray.tfar * direction.y;
-        position.z = rayhit.ray.org_z + rayhit.ray.tfar * direction.z;
+        position.x = rayhit.ray.org_x + rayhit.ray.tfar * ray.direction.x;
+        position.y = rayhit.ray.org_y + rayhit.ray.tfar * ray.direction.y;
+        position.z = rayhit.ray.org_z + rayhit.ray.tfar * ray.direction.z;
         baryCoords = { rayhit.hit.u, rayhit.hit.v };
         primId = rayhit.hit.primID;
 
@@ -145,9 +162,9 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 CastIncoherentRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, float3 pos, float3 direction, uint bounceCount)
+    static float3 CastIncoherentRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, const Ray& ray, uint bounceCount)
     {
-        const float bias = 0.0001f;
+        const float bias = 0.00001f;
 
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
@@ -158,18 +175,24 @@ namespace Shooty
         float3 newPosition;
         float2 baryCoords;
         int32 primId;
-        bool hit = RayPick(rtcScene, scene, pos, direction, 0.00001f, FloatMax_, newPosition, baryCoords, primId);
+        bool hit = RayPick(rtcScene, scene, ray, newPosition, baryCoords, primId);
 
         if(hit) {
             float3 n;
+            float3 dpdu, dpdv;
+            float3 dndu, dndv;
             float2 uvs;
             uint16 materialIndex;
-            CalculateSurfaceParams(scene, primId, baryCoords, n, uvs, materialIndex);
+            CalculateSurfaceParams(scene, primId, baryCoords, n, dpdu, dpdv, dndu, dndv, uvs, materialIndex);
 
-            if(materialIndex == 0)
-                return PointSampleTexture(&textures[0], uvs);
+            SurfaceDifferentials differentials;
+            CalculateSurfaceDifferentials(ray, n, newPosition, dpdu, dpdv, differentials);
 
-            float3 v = -direction;
+            if(materialIndex == 0) {
+                return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+            }
+
+            float3 v = -ray.direction;
 
             Material material = LookupMaterial();
 
@@ -180,7 +203,11 @@ namespace Shooty
             }
             else {
                 ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
-                return reflectance * CastIncoherentRay(kernelContext, twister, newPosition + bias * n, wi, bounceCount + 1);
+                if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
+                    return float3::Zero_;
+
+                Ray bounceRay = MakeRay(newPosition + bias * n, wi, bias, FloatMax_);
+                return reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
             }
         }
         else {
@@ -197,34 +224,48 @@ namespace Shooty
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResourceData* scene            = kernelContext->context->scene;
         TextureResourceData* textures       = kernelContext->context->textures;
-        uint width                          = kernelContext->context->width;
-        uint height                         = kernelContext->context->height;
 
-        float3 direction = MakeCameraRayDirection(&camera, twister, x, y, width, height);
+        Ray ray = JitteredCameraRay(&camera, twister, (float)x, (float)y);
 
         float3 position;
         float2 baryCoords;
         int32 primId;
-        bool hit = RayPick(rtcScene, scene, scene->camera.position, direction, scene->camera.znear, scene->camera.zfar, position, baryCoords, primId);
+        bool hit = RayPick(rtcScene, scene, ray, position, baryCoords, primId);
 
         if(hit) {
             float3 n;
+            float3 dpdu, dpdv;
+            float3 dndu, dndv;
             float2 uvs;
             uint16 materialIndex;
-            CalculateSurfaceParams(scene, primId, baryCoords, n, uvs, materialIndex);
+            CalculateSurfaceParams(scene, primId, baryCoords, n, dpdu, dpdv, dndu, dndv, uvs, materialIndex);
 
-            if(materialIndex == 0)
-                return PointSampleTexture(&textures[0], uvs);
+            SurfaceDifferentials differentials;
+            CalculateSurfaceDifferentials(ray, n, position, dpdu, dpdv, differentials);
 
-            float3 v = -direction;
+            if(materialIndex == 0) {
+                return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+            }
+
+            float3 v = -ray.direction;
 
             Material material = LookupMaterial();
 
             float3 wi;
             float3 reflectance;
             ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
+            if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
+                return float3::Zero_;
 
-            return reflectance * CastIncoherentRay(kernelContext, twister, position + bias * n, wi, 1);
+            Ray bounceRay;
+            if(ray.hasDifferentials) {
+                bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, position, n, v, wi, differentials, dndu, dndv, bias, FloatMax_);
+            }
+            else {
+                bounceRay = MakeRay(position + bias * n, wi, bias, FloatMax_);
+            }
+
+            return reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, 1);
         }
 
         return float3::Zero_;
@@ -245,7 +286,7 @@ namespace Shooty
         uint by = blockIndex / kernelContext->blockCountX;
         uint bx = blockIndex % kernelContext->blockCountX;
 
-        const uint raysPerPixel = 1024;
+        const uint raysPerPixel = 720;
 
         for(uint dy = 0; dy < blockDimensions; ++dy) {
             for(uint dx = 0; dx < blockDimensions; ++dx) {
@@ -308,7 +349,8 @@ namespace Shooty
 
         RayCastCameraSettings camera;
         camera.invViewProjection = MatrixInverse(viewProj);
-        camera.viewport = { 0, 0, (sint)width, (sint)height };
+        camera.viewportWidth  = (float)width;
+        camera.viewportHeight = (float)height;
         camera.position = scene->camera.position;
         camera.znear = scene->camera.znear;
         camera.zfar = scene->camera.zfar;

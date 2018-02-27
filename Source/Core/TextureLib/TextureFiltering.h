@@ -11,5 +11,18 @@ namespace Shooty
 {
     struct TextureResourceData;
 
-    float3 PointSampleTexture(TextureResourceData* texture, float2 uvs);
+    namespace TextureFiltering
+    {
+        enum WrapMode
+        {
+            Clamp,
+            Repeat
+        };
+        void InitializeEWAFilterWeights();
+
+        float3 Point(TextureResourceData* texture, float2 st);
+
+        float3 Triangle(TextureResourceData* texture, int32 level, float2 st);
+        float3 EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
+    }
 }

@@ -160,12 +160,6 @@ namespace Shooty
         }
 
         //==============================================================================
-        int32 Sprintf(char* destString, int32 destMaxLength, char const* format, va_list arglist)
-        {
-            return vsnprintf_s(destString, destMaxLength, _TRUNCATE, format, arglist);
-        }
-
-        //==============================================================================
         void RemoveExtension(char* str)
         {
             char* last = FindLastChar(str, '.');

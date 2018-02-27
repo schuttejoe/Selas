@@ -25,9 +25,15 @@ namespace Shooty {
         // JSTODO -- These don't belong here
         float Fmodf(float x, float y);
         float Expf(float x);
+        float Log2(float x);
         float Sqrtf(float x);
         float Absf(float x);
         float Powf(float x, float y);
         float Square(float x);
+        float Floor(float x);
+        float Ceil(float x);
+        
+        bool IsInf(float x);
+        bool IsNaN(float x);
     }
 }

@@ -157,6 +157,11 @@ namespace Shooty {
         return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z) + (lhs.w * rhs.w);
     }
 
+    ForceInline_ float LengthSquared(float2 vec)
+    {
+        return Dot(vec, vec);
+    }
+
     ForceInline_ float LengthSquared(float3 vec) {
         return Dot(vec, vec);
     }
@@ -191,19 +196,24 @@ namespace Shooty {
         return 2.0f * Dot(n, l) * n - l;
     }
 
+    ForceInline_ float Lerp(float a, float b, float t)
+    {
+        return (1.0f - t) * a + t * b;
+    }
+
     ForceInline_ float2 Lerp(float2 a, float2 b, float t)
     {
-        return (1 - t) * a + t * b;
+        return (1.0f - t) * a + t * b;
     }
 
     ForceInline_ float3 Lerp(float3 a, float3 b, float t)
     {
-        return (1 - t) * a + t * b;
+        return (1.0f - t) * a + t * b;
     }
 
     ForceInline_ float4 Lerp(float4 a, float4 b, float t)
     {
-        return (1 - t) * a + t * b;
+        return (1.0f - t) * a + t * b;
     }
 
     ForceInline_ float Saturate(float x) {
@@ -242,6 +252,11 @@ namespace Shooty {
     namespace Matrix3x3 {
         float3x3 Identity(void);
     };
+
+    namespace Matrix2x2
+    {
+        bool SolveLinearSystem(float2x2 A, float2 B, float2& r);
+    }
 
     // 4x4 matrix functions
     float4x4 MatrixTranspose(float4x4 const& mat);

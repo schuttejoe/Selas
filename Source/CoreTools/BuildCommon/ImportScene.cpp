@@ -112,6 +112,15 @@ namespace Shooty
                 }
             }
 
+            if(aimesh->HasTangentsAndBitangents()) {
+                mesh->tangents.Resize((uint32)vertexcount);
+                mesh->bitangents.Resize((uint32)vertexcount);
+                for(uint scan = 0; scan < vertexcount; ++scan) {
+                    mesh->tangents[scan] = AssImpVec3ToFloat3_(aimesh->mTangents[scan]);
+                    mesh->bitangents[scan] = AssImpVec3ToFloat3_(aimesh->mBitangents[scan]);
+                }
+            }
+
             // -- extract indices
             mesh->indices.Reserve((uint32)aimesh->mNumFaces * 3);
             for(uint facescan = 0, facecount = aimesh->mNumFaces; facescan < facecount; ++facescan) {

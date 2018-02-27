@@ -4,6 +4,7 @@
 
 #include <MathLib/Trigonometric.h>
 #include <math.h>
+#include <cmath>
 
 namespace Shooty
 {
@@ -63,6 +64,12 @@ namespace Shooty
     }
 
     //==============================================================================
+    float Math::Log2(float x)
+    {
+        return ::log2f(x);
+    }
+
+    //==============================================================================
     float Math::Sqrtf(float x)
     {
         return static_cast<float>(::sqrtf(x));
@@ -84,5 +91,29 @@ namespace Shooty
     float Math::Square(float x)
     {
         return x * x;
+    }
+
+    //==============================================================================
+    float Math::Floor(float x)
+    {
+        return ::floorf(x);
+    }
+
+    //==============================================================================
+    float Math::Ceil(float x)
+    {
+        return ::ceilf(x);
+    }
+
+    //==============================================================================
+    bool Math::IsInf(float x)
+    {
+        return std::isinf(x);
+    }
+
+    //==============================================================================
+    bool Math::IsNaN(float x)
+    {
+        return std::isnan(x);
     }
 }

@@ -8,6 +8,7 @@
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
 #include <TextureLib/StbImage.h>
+#include <TextureLib/TextureFiltering.h>
 #include <TextureLib/TextureResource.h>
 #include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -53,6 +54,8 @@ int main()
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     int retvalue = 0;
+
+    TextureFiltering::InitializeEWAFilterWeights();
 
     RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
     RTCScene rtcScene = rtcNewScene(rtcDevice);

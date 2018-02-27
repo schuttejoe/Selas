@@ -8,9 +8,11 @@
 #include <SystemLib/JsAssert.h>
 #include <math.h>
 
-namespace Shooty {
-
-    void MatrixMultiply(float4x4* const __restrict lhs, float4x4* const __restrict rhs, float4x4* __restrict mat) {
+namespace Shooty
+{
+    //==============================================================================
+    void MatrixMultiply(float4x4* const __restrict lhs, float4x4* const __restrict rhs, float4x4* __restrict mat)
+    {
         Assert_(lhs != mat);
         Assert_(rhs != mat);
 
@@ -35,8 +37,11 @@ namespace Shooty {
         mat->r3.x = lhs->r3.x * rhs->r0.w + lhs->r3.y * rhs->r1.w + lhs->r3.z * rhs->r2.w + lhs->r3.w * rhs->r3.w;
     }
 
-    namespace Matrix4x4 {
-        float4x4 Identity(void) {
+    namespace Matrix4x4
+    {
+        //==============================================================================
+        float4x4 Identity(void)
+        {
             float4x4 result = {
                 float4(1.f, 0.f, 0.f, 0.f),
                 float4(0.f, 1.f, 0.f, 0.f),
@@ -46,7 +51,9 @@ namespace Shooty {
             return result;
         }
 
-        float4x4 Zero(void) {
+        //==============================================================================
+        float4x4 Zero(void)
+        {
             float4x4 result = {
                 float4(0.f, 0.f, 0.f, 0.f),
                 float4(0.f, 0.f, 0.f, 0.f),
@@ -56,7 +63,9 @@ namespace Shooty {
             return result;
         }
 
-        float4x4 Translate(float x, float y, float z) {
+        //==============================================================================
+        float4x4 Translate(float x, float y, float z)
+        {
             float4x4 result = {
                 float4(1.f, 0.f, 0.f, 0.f),
                 float4(0.f, 1.f, 0.f, 0.f),
@@ -66,7 +75,9 @@ namespace Shooty {
             return result;
         }
 
-        float4x4 ScaleTranslate(float s, float tx, float ty, float tz) {
+        //==============================================================================
+        float4x4 ScaleTranslate(float s, float tx, float ty, float tz)
+        {
             float4x4 result = {
                 float4(s,   0.f, 0.f, 0.f),
                 float4(0.f, s,   0.f, 0.f),
@@ -76,7 +87,9 @@ namespace Shooty {
             return result;
         }
 
-        float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz) {
+        //==============================================================================
+        float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz)
+        {
             float4x4 result = {
                 float4(sx,   0.f, 0.f, 0.f),
                 float4(0.f, sy,   0.f, 0.f),
@@ -87,8 +100,11 @@ namespace Shooty {
         }
     };
 
-    namespace Matrix3x3 {
-        float3x3 Identity(void) {
+    namespace Matrix3x3
+    {
+        //==============================================================================
+        float3x3 Identity(void)
+        {
             float3x3 result = {
                 float3(1.f, 0.f, 0.f),
                 float3(0.f, 1.f, 0.f),
@@ -98,7 +114,30 @@ namespace Shooty {
         }
     };
 
-    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs) {
+    namespace Matrix2x2
+    {
+        //==============================================================================
+        bool SolveLinearSystem(float2x2 A, float2 B, float2& r)
+        {
+            // Taken from PBRT
+            float det = A.r0.x * A.r1.y - A.r0.y * A.r1.x;
+            if(Math::Absf(det) < SmallFloatEpsilon_) {
+                return false;
+            }
+
+            r.x = (A.r1.y * B.x - A.r0.y * B.y) / det;
+            r.y = (A.r0.x * B.y - A.r1.x * B.x) / det;
+            if(Math::IsNaN(r.x) || Math::IsNaN(r.y)) {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    //==============================================================================
+    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs)
+    {
         float4x4 result = {
             {
                 lhs.r0.x * rhs.r0.x + lhs.r0.y * rhs.r1.x + lhs.r0.z * rhs.r2.x + lhs.r0.w * rhs.r3.x,
@@ -129,7 +168,9 @@ namespace Shooty {
         return result;
     }
 
-    float4x4 MatrixTranspose(float4x4 const& mat) {
+    //==============================================================================
+    float4x4 MatrixTranspose(float4x4 const& mat)
+    {
         float4x4 result = {
             float4(mat.r0.x, mat.r1.x, mat.r2.x, mat.r3.x),
             float4(mat.r0.y, mat.r1.y, mat.r2.y, mat.r3.y),
@@ -139,7 +180,9 @@ namespace Shooty {
         return result;
     }
 
-    float4x4 MatrixInverse(float4x4 const& mat) {
+    //==============================================================================
+    float4x4 MatrixInverse(float4x4 const& mat)
+    {
         float tmp[12]; // temp array for pairs
         float dst[16]; // destination matrix
         float det;     // determinant
@@ -222,7 +265,7 @@ namespace Shooty {
 
         // calculate matrix inverse
         // make sure det is not zero
-        if ((det < -0.0000001f || det > 0.0000001f)) {
+        if((det < -0.0000001f || det > 0.0000001f)) {
             det = 1 / det;
 
             result = MakeFloat4x4(
@@ -236,7 +279,9 @@ namespace Shooty {
         return result;
     }
 
-    float3 MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat) {
+    //==============================================================================
+    float3 MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat)
+    {
         Assert_(mat.r0.w == 0.f);
         Assert_(mat.r1.w == 0.f);
         Assert_(mat.r2.w == 0.f);
@@ -250,7 +295,9 @@ namespace Shooty {
         return result;
     }
 
-    float4 MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat) {
+    //==============================================================================
+    float4 MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat)
+    {
         float4 result = {
             vec.x * mat.r0.x + vec.y * mat.r1.x + vec.z * mat.r2.x + vec.w * mat.r3.x,
             vec.x * mat.r0.y + vec.y * mat.r1.y + vec.z * mat.r2.y + vec.w * mat.r3.y,
@@ -260,7 +307,9 @@ namespace Shooty {
         return result;
     }
 
-    float4x4 ScreenProjection(uint width, uint height) {
+    //==============================================================================
+    float4x4 ScreenProjection(uint width, uint height)
+    {
         float half_width = 0.5f * width;
         float half_height = 0.5f * height;
 
@@ -273,7 +322,9 @@ namespace Shooty {
         return result;
     }
 
-    float4x4 ScreenProjection(float x, float y, uint width, uint height) {
+    //==============================================================================
+    float4x4 ScreenProjection(float x, float y, uint width, uint height)
+    {
         Assert_(width != 0);
         Assert_(height != 0);
 
@@ -290,7 +341,9 @@ namespace Shooty {
         return projection_matrix;
     }
 
-    float4x4 PerspectiveFovLhProjection(float fov, float aspect, float near, float far) {
+    //==============================================================================
+    float4x4 PerspectiveFovLhProjection(float fov, float aspect, float near, float far)
+    {
         float height = 1.0f / Math::Tanf(fov * 0.5f);
         float width = height / aspect;
 
@@ -306,7 +359,9 @@ namespace Shooty {
         return result;
     }
 
-    float4x4 OffsetCenterProjectionLh(float l, float r, float t, float b, float n, float f) {
+    //==============================================================================
+    float4x4 OffsetCenterProjectionLh(float l, float r, float t, float b, float n, float f)
+    {
         float4x4 result = {
             float4(2.0f / (r - l),              0.0f,           0.0f, 0.0f),
             float4(0.0f,    2.0f / (b - t),           0.0f, 0.0f),
@@ -317,12 +372,14 @@ namespace Shooty {
 
     }
 
-    float4x4 LookAtLh(float3 eye, float3 up, float3 target) {
+    //==============================================================================
+    float4x4 LookAtLh(float3 eye, float3 up, float3 target)
+    {
         float3 z_axis = Normalize(target - eye);
         float3 x_axis = Normalize(Cross(up, z_axis));
         float3 y_axis = Cross(z_axis, x_axis);
 
-        float3 offset = {-Dot(x_axis, eye), -Dot(y_axis, eye), -Dot(z_axis, eye)};
+        float3 offset = { -Dot(x_axis, eye), -Dot(y_axis, eye), -Dot(z_axis, eye) };
 
         float4x4 matrix = {
             float4(x_axis.x, y_axis.x, z_axis.x, 0.f),
@@ -333,12 +390,14 @@ namespace Shooty {
         return matrix;
     }
 
-    float4x4 ViewLh(float3 position, float3 forward, float3 up, float3 right) {
+    //==============================================================================
+    float4x4 ViewLh(float3 position, float3 forward, float3 up, float3 right)
+    {
         float3 z_axis = forward;
         float3 x_axis = right;
         float3 y_axis = up;
 
-        float3 offset = {-Dot(x_axis, position), -Dot(y_axis, position), -Dot(z_axis, position)};
+        float3 offset = { -Dot(x_axis, position), -Dot(y_axis, position), -Dot(z_axis, position) };
 
         float4x4 matrix = {
             float4(x_axis.x, y_axis.x, z_axis.x, 0.f),

@@ -40,8 +40,6 @@ namespace Shooty
         int32 ToInt32(char const* text);
         float ToFloat(char const* text);
 
-        int32 Sprintf(char* destString, int destMaxLength, char const* format, va_list arglist);
-
         void RemoveExtension(char* str);
     }
 

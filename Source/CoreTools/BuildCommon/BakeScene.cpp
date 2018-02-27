@@ -44,11 +44,7 @@ namespace Shooty
         SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.positions.GetData(), sceneData.positions.DataSize());
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.normals.GetData(), sceneData.normals.DataSize());
-        SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.uv0.GetData(), sceneData.uv0.DataSize());
-        SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize());
+        SerializerWritePointerData(writer, sceneData.vertexData.GetData(), sceneData.vertexData.DataSize());
     }
 
     //==============================================================================

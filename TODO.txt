@@ -1,7 +1,8 @@
 
 Next:
-	Texture sampling (EWA)
 	Multiple importance sampling
+	Correct setup of scene textures and build material data
+	Figure out why samples on the sphere seem to be hitting the sphere again. Episilon errors?
 
 Features:
 ---------

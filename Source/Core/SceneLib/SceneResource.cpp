@@ -35,9 +35,7 @@ namespace Shooty
         FixupPointerX64(fileData, data->data->materialData);
         FixupPointerX64(fileData, data->data->indices);
         FixupPointerX64(fileData, data->data->positions);
-        FixupPointerX64(fileData, data->data->normals);
-        FixupPointerX64(fileData, data->data->uv0);
-        FixupPointerX64(fileData, data->data->materialIndices);
+        FixupPointerX64(fileData, data->data->vertexData);
 
         return true;
     }

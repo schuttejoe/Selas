@@ -34,13 +34,13 @@ int main(int argc, char *argv[])
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\");
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
-    #define ExportScene_ 1
+    #define ExportScene_ 0
     #define ExportIbl_ 0
-    #define ExportTextures_ 0
+    #define ExportTextures_ 1
 
 #if ExportScene_
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\bunny.fbx", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\sphere.fbx", &importedScene)) {
         Error_("Error importing obj");
         return -1;
     }
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     }
     ShutdownImportedScene(&importedScene);
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bunny");
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\sphere");
 #endif
 
 #if ExportIbl_
