@@ -24,16 +24,14 @@ namespace Shooty {
         uint CalculateMarginalDensityFunctionCount(uint width, uint height);
         uint CalculateConditionalDensityFunctionsCount(uint width, uint height);
 
-        // -- Importance sample the IBL.
-        // -- r0 and r1 are random numbers between 0 and 1 
-        // -- theta and phi are spherical coordinates for the sample direction
-        // -- x and y are row and column in the HDR texture to sample
-        // -- weight is (solidAngle / pdf) to normalize your sample
-        void Ibl(IblDensityFunctions* distributions, float r0, float r1,
-                 float& theta, float& phi, uint& x, uint& y, float& weight);
+        float IblPdf(IblDensityFunctions* distributions, float3 w);
+        void Ibl(IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
         void ShutdownDensityFunctions(IblDensityFunctions* distributions);
 
+        float GgxDPdf(float roughness, float dotNH);
+        void GgxD(float roughness, float r0, float r1, float& theta, float& phi);
 
-        void GgxNormalDistribution(float roughness, float r0, float r1, float& theta, float& phi);
+        float BalanceHeuristic(uint nf, float fPdf, uint ng, float gPdf);
+        float PowerHeuristic(uint nf, float fPdf, uint ng, float gPdf);
     }
 }

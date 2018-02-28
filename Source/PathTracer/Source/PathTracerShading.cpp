@@ -91,14 +91,14 @@ namespace Shooty
         float phi;
         uint x;
         uint y;
-        float weight;
-        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, weight);
+        float iblPdf;
+        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
 
         wi = Math::SphericalToCartesian(theta, phi);
         if(Dot(wi, n) > 0.0f) {
             if(OcclusionRay(rtcScene, p + bias * n, wi, 0, FloatMax_)) {
                 float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-                reflectance = sample * weight * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness);
+                reflectance = sample * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness) * (1.0f / iblPdf);
             }
         }
     }
@@ -163,7 +163,7 @@ namespace Shooty
         float phi;
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
-        ImportanceSampling::GgxNormalDistribution(material->roughness, r0, r1, theta, phi);
+        ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
 
         float3 wm = Math::SphericalToCartesian(theta, phi);
         wi = Reflect(wm, wo);
@@ -231,6 +231,65 @@ namespace Shooty
         else {
             reflectance = float3::Zero_;
         }
-        
+    }
+
+    //==============================================================================
+    void MIS(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    {
+        float iblR0 = Random::MersenneTwisterFloat(twister);
+        float iblR1 = Random::MersenneTwisterFloat(twister);
+
+        float thetaIbl;
+        float phiIbl;
+        uint x;
+        uint y;
+        float iblPdf;
+        ImportanceSampling::Ibl(&ibl->densityfunctions, iblR0, iblR1, thetaIbl, phiIbl, x, y, iblPdf);      
+
+        float3 iblWi = Math::SphericalToCartesian(thetaIbl, phiIbl);
+        if(Dot(iblWi, wg) > 0.0f) {
+            //if(OcclusionRay(rtcScene, p, iblWi, 0, FloatMax_)) {
+                float3 iblH = Normalize(iblWi + v);
+                float distributionPdf = ImportanceSampling::GgxDPdf(material->roughness, Dot(iblH, wg));
+                float misWeight = ImportanceSampling::PowerHeuristic(1, iblPdf, 1, distributionPdf);
+
+                float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
+                reflectance = sample * misWeight * GgxBrdf(wg, iblWi, v, material->albedo, material->specularColor, material->roughness);
+            //}
+        }
+
+        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
+        float4 toLocal = ToTangentSpaceQuaternion(wg);
+        float4 toWorld = Math::Quaternion::Invert(toLocal);
+
+        float3 wo = Math::Quaternion::Rotate(toLocal, v);
+
+        float theta;
+        float phi;
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+        ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
+
+        float3 wm = Math::SphericalToCartesian(theta, phi);
+        float3 localWi = Reflect(wm, wo);
+
+        if(BsdfNDot(localWi) > 0.0f) {
+            float a = material->roughness;
+            float a2 = a * a;
+
+            wi = Math::Quaternion::Rotate(toWorld, localWi);
+            float iblPdf = ImportanceSampling::IblPdf(&ibl->densityfunctions, wi);
+
+            float D = ImportanceSampling::GgxDPdf(material->roughness, BsdfNDot(wm));
+            float3 F = SchlickFresnel(material->specularColor, Dot(localWi, wm));
+            float G = SmithGGXMaskingShading(localWi, wo, a2);
+            float weight = ImportanceSampling::PowerHeuristic(1, D, 1, iblPdf) * Math::Absf(Dot(localWi, wm)) / (BsdfNDot(localWi) * BsdfNDot(wm));
+
+            reflectance = F * G * weight;
+            
+        }
+        else {
+            reflectance = float3::Zero_;
+        }
     }
 }

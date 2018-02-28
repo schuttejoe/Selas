@@ -53,9 +53,31 @@ namespace Shooty
         }
 
         //==============================================================================
-        void Ibl(IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& weight)
+        float IblPdf(IblDensityFunctions* distributions, float3 w)
         {
-            // - http://www.igorsklyar.com/system/documents/papers/4/fiscourse.comp.pdf
+            int32 width  = (int32)distributions->width;
+            int32 height = (int32)distributions->height;
+            float widthf = (float)width;
+            float heightf = (float)height;
+
+            float theta;
+            float phi;
+            Math::NormalizedCartesianToSpherical(w, theta, phi);
+
+            int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
+            int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
+
+            float mdf = distributions->marginalDensityFunction[y];
+            float cdf = (distributions->conditionalDensityFunctions + y * width)[x];
+
+            // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
+            return Math::Sinf(theta) * mdf * cdf;
+        }
+
+        //==============================================================================
+        void Ibl(IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
+        {
+            // - http://www.igorsklyar.com/system/documents/papers/4/fiscourse.comp.pdf Section 4.2
             // - See also: Physically based rendering volume 2 section 13.6.5
 
             uint width = distributions->width;
@@ -74,13 +96,11 @@ namespace Shooty
             // -- phi represents the horizontal position on the sphere and varies between 0 and 2pi
             phi = (x + 0.5f) * Math::TwoPi_ / widthf;
 
-            // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-            float pdf = Math::Sinf(theta) * mdf * cdf;
-
             // convert from texture space to spherical with the inverse of the Jacobian
-            float invJacobian = (Math::TwoPi_* Math::Pi_) / (widthf * heightf);
+            float jacobian = (widthf * heightf) / Math::TwoPi_;
 
-            weight = invJacobian / pdf;
+            // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
+            pdf = Math::Sinf(theta) * mdf * cdf * jacobian;
         }
 
         //==============================================================================
@@ -91,12 +111,36 @@ namespace Shooty
         }
 
         //==============================================================================
-        void GgxNormalDistribution(float roughness, float r0, float r1, float& theta, float& phi)
+        float GgxDPdf(float roughness, float dotNH)
+        {
+            float a2 = roughness * roughness;
+            float sqrtdenom = (dotNH * dotNH) * (a2 - 1) + 1;
+
+            return a2 / (Math::Pi_ * sqrtdenom * sqrtdenom);
+            
+        }
+
+        //==============================================================================
+        void GgxD(float roughness, float r0, float r1, float& theta, float& phi)
         {
             float m2 = roughness * roughness;
 
             phi = Math::TwoPi_ * r0;
             theta = Math::Acosf(Math::Sqrtf((1.0f - r1) / ((m2 - 1.0f) * r1 + 1.0f)));
+        }
+
+        //==============================================================================
+        float BalanceHeuristic(uint nf, float fPdf, uint ng, float gPdf)
+        {
+            return (nf * fPdf) / (nf * fPdf + ng * gPdf);
+        }
+
+        //==============================================================================
+        float PowerHeuristic(uint nf, float fPdf, uint ng, float gPdf)
+        {
+            float f = nf * fPdf;
+            float g = ng * gPdf;
+            return (f * f) / (f * f + g * g);
         }
     }
 }

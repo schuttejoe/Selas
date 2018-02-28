@@ -202,7 +202,7 @@ namespace Shooty
                 return float3::Zero_;
             }
             else {
-                ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
+                MIS(rtcScene, ibl, twister, newPosition, n, v, &material, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                     return float3::Zero_;
 
@@ -224,6 +224,7 @@ namespace Shooty
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResourceData* scene            = kernelContext->context->scene;
         TextureResourceData* textures       = kernelContext->context->textures;
+        ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
 
         Ray ray = JitteredCameraRay(&camera, twister, (float)x, (float)y);
 
@@ -253,7 +254,7 @@ namespace Shooty
 
             float3 wi;
             float3 reflectance;
-            ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
+            MIS(rtcScene, ibl, twister, position, n, v, &material, wi, reflectance);
             if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                 return float3::Zero_;
 

@@ -32,4 +32,6 @@ namespace Shooty
     void ImportanceSampleGgx(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance);
 
     void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance);
+
+    void MIS(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance);
 }

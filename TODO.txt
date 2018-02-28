@@ -1,13 +1,13 @@
 
 Next:
-	Multiple importance sampling
+	Importance sampling distribution of visible normals for isotropic GGX
+	Actual material assets?
 	Correct setup of scene textures and build material data
 	Figure out why samples on the sphere seem to be hitting the sphere again. Episilon errors?
 
 Features:
 ---------
 Switch to full Disney BRDF
-Actual material assets
 Debug tech (depth, material visualizations)
 
 Optimizations:

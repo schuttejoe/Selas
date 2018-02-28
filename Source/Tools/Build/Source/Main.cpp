@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
     #define ExportScene_ 0
-    #define ExportIbl_ 0
-    #define ExportTextures_ 1
+    #define ExportIbl_ 1
+    #define ExportTextures_ 0
 
 #if ExportScene_
     ImportedScene importedScene;
@@ -57,12 +57,12 @@ int main(int argc, char *argv[])
 
 #if ExportIbl_
     ImageBasedLightResourceData iblData;
-    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_4k.hdr", &iblData)) {
+    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_1k.hdr", &iblData)) {
         Error_("Error importing hdr");
         return -1;
     }
 
-    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_4k");
+    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_1k");
     SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);
