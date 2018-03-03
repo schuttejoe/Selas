@@ -139,19 +139,31 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float SmithGGXMaskingShading(float3 wi, float3 wo, float a2)
+    static float SmithGGXMasking(float3 wi, float3 wo, float3 wm, float a2)
     {
-        float dotNL = BsdfNDot(wi);
-        float dotNV = BsdfNDot(wo);
+        float dotNL = Dot(wi, wm);
+        float dotNV = Dot(wo, wm);
+        float denomC = Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV) + dotNV;
+
+        return 2.0f * dotNV / denomC;
+    }
+
+    //==============================================================================
+    static float SmithGGXMaskingShading(float3 wi, float3 wo, float3 wm, float a2)
+    {
+        // non height-correlated masking function
+        // https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
+        float dotNL = Dot(wi, wm);
+        float dotNV = Dot(wo, wm);
 
         float denomA = dotNV * Math::Sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
         float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
 
-        return 2 * dotNL * dotNV / (denomA + denomB);
+        return 2.0f * dotNL * dotNV / (denomA + denomB);
     }
 
     //==============================================================================
-    void ImportanceSampleGgx(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    void ImportanceSampleGgxD(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
     {
         // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
         float4 toLocal = ToTangentSpaceQuaternion(wg);
@@ -173,7 +185,7 @@ namespace Shooty
             float a2 = a * a;
 
             float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
-            float G = SmithGGXMaskingShading(wi, wo, a2);
+            float G = SmithGGXMaskingShading(wi, wo, wm, a2);
             float weight = Math::Absf(Dot(wi, wm)) / (BsdfNDot(wi) * BsdfNDot(wm));
 
             reflectance = F * G * weight;
@@ -234,29 +246,10 @@ namespace Shooty
     }
 
     //==============================================================================
-    void MIS(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
     {
-        float iblR0 = Random::MersenneTwisterFloat(twister);
-        float iblR1 = Random::MersenneTwisterFloat(twister);
-
-        float thetaIbl;
-        float phiIbl;
-        uint x;
-        uint y;
-        float iblPdf;
-        ImportanceSampling::Ibl(&ibl->densityfunctions, iblR0, iblR1, thetaIbl, phiIbl, x, y, iblPdf);      
-
-        float3 iblWi = Math::SphericalToCartesian(thetaIbl, phiIbl);
-        if(Dot(iblWi, wg) > 0.0f) {
-            //if(OcclusionRay(rtcScene, p, iblWi, 0, FloatMax_)) {
-                float3 iblH = Normalize(iblWi + v);
-                float distributionPdf = ImportanceSampling::GgxDPdf(material->roughness, Dot(iblH, wg));
-                float misWeight = ImportanceSampling::PowerHeuristic(1, iblPdf, 1, distributionPdf);
-
-                float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-                reflectance = sample * misWeight * GgxBrdf(wg, iblWi, v, material->albedo, material->specularColor, material->roughness);
-            //}
-        }
+        float a = material->roughness;
+        float a2 = a * a;
 
         // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
         float4 toLocal = ToTangentSpaceQuaternion(wg);
@@ -264,28 +257,20 @@ namespace Shooty
 
         float3 wo = Math::Quaternion::Rotate(toLocal, v);
 
-        float theta;
-        float phi;
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
-        ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
+        float3 wm = ImportanceSampling::GgxVndf(wo, material->roughness, r0, r1);
 
-        float3 wm = Math::SphericalToCartesian(theta, phi);
         float3 localWi = Reflect(wm, wo);
 
         if(BsdfNDot(localWi) > 0.0f) {
-            float a = material->roughness;
-            float a2 = a * a;
-
             wi = Math::Quaternion::Rotate(toWorld, localWi);
-            float iblPdf = ImportanceSampling::IblPdf(&ibl->densityfunctions, wi);
 
-            float D = ImportanceSampling::GgxDPdf(material->roughness, BsdfNDot(wm));
             float3 F = SchlickFresnel(material->specularColor, Dot(localWi, wm));
-            float G = SmithGGXMaskingShading(localWi, wo, a2);
-            float weight = ImportanceSampling::PowerHeuristic(1, D, 1, iblPdf) * Math::Absf(Dot(localWi, wm)) / (BsdfNDot(localWi) * BsdfNDot(wm));
+            float G1 = SmithGGXMasking(localWi, wo, wm, a2);
+            float G2 = SmithGGXMaskingShading(localWi, wo, wm, a2);
 
-            reflectance = F * G * weight;
+            reflectance = F * (G2 / G1);
             
         }
         else {

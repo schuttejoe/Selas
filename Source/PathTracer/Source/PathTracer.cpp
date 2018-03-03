@@ -30,6 +30,9 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
+#define EnableMultiThreading_       1
+#define RaysPerPixel_               1024
+
 namespace Shooty
 {
     struct PathTracerKernelContext
@@ -156,7 +159,7 @@ namespace Shooty
         Material material;
         material.specularColor = float3(1.0f, 1.0f, 1.0f);
         material.albedo        = float3(1.0f, 1.0f, 1.0f);
-        material.roughness     = 0.01f;
+        material.roughness     = 0.05f;
 
         return material;
     }
@@ -164,7 +167,7 @@ namespace Shooty
     //==============================================================================
     static float3 CastIncoherentRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, const Ray& ray, uint bounceCount)
     {
-        const float bias = 0.00001f;
+        const float bias = 0.01f;
 
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
@@ -202,7 +205,8 @@ namespace Shooty
                 return float3::Zero_;
             }
             else {
-                MIS(rtcScene, ibl, twister, newPosition, n, v, &material, wi, reflectance);
+                ImportanceSampleGgxVdn(twister, n, v, &material, wi, reflectance);
+                //ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                     return float3::Zero_;
 
@@ -218,7 +222,7 @@ namespace Shooty
     //==============================================================================
     static float3 CastPrimaryRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, uint x, uint y)
     {
-        const float bias = 0.0001f;
+        const float bias = 0.01f;
 
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
@@ -254,13 +258,14 @@ namespace Shooty
 
             float3 wi;
             float3 reflectance;
-            MIS(rtcScene, ibl, twister, position, n, v, &material, wi, reflectance);
+            ImportanceSampleGgxVdn(twister, n, v, &material, wi, reflectance);
+            //ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
             if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                 return float3::Zero_;
 
             Ray bounceRay;
             if(ray.hasDifferentials) {
-                bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, position, n, v, wi, differentials, dndu, dndv, bias, FloatMax_);
+                bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, position + bias * n, n, v, wi, differentials, dndu, dndv, bias, FloatMax_);
             }
             else {
                 bounceRay = MakeRay(position + bias * n, wi, bias, FloatMax_);
@@ -287,7 +292,7 @@ namespace Shooty
         uint by = blockIndex / kernelContext->blockCountX;
         uint bx = blockIndex % kernelContext->blockCountX;
 
-        const uint raysPerPixel = 720;
+        const uint raysPerPixel = RaysPerPixel_;
 
         for(uint dy = 0; dy < blockDimensions; ++dy) {
             for(uint dx = 0; dx < blockDimensions; ++dx) {
@@ -296,7 +301,8 @@ namespace Shooty
 
                 float3 color = float3::Zero_;
                 for(uint scan = 0; scan < raysPerPixel; ++scan) {
-                    color += CastPrimaryRay(kernelContext, twister, x, y);
+                    float3 sample = CastPrimaryRay(kernelContext, twister, x, y);
+                    color += sample;
                 }
                 color = (1.0f / raysPerPixel) * color;
                 kernelContext->imageData[y * width + x] = color;
@@ -370,22 +376,26 @@ namespace Shooty
         kernelContext.consumedBlocks  = &consumedBlocks;
         kernelContext.completedBlocks = &completedBlocks;
 
-        const uint threadCount = 7;
-        ThreadHandle threadHandles[threadCount];
+        #if EnableMultiThreading_ 
+            const uint threadCount = 7;
+            ThreadHandle threadHandles[threadCount];
 
-        // -- fork threads
-        for(uint scan = 0; scan < threadCount; ++scan) {
-            threadHandles[scan] = CreateThread(PathTracerKernel, &kernelContext);
-        }
-        
+            // -- fork threads
+            for(uint scan = 0; scan < threadCount; ++scan) {
+                threadHandles[scan] = CreateThread(PathTracerKernel, &kernelContext);
+            }
+        #endif
+
         // -- do work on the main thread too
         PathTracerKernel(&kernelContext);
 
-        // -- wait for any other threads to finish
-        while(*kernelContext.completedBlocks != blockCount);
+        #if EnableMultiThreading_ 
+            // -- wait for any other threads to finish
+            while(*kernelContext.completedBlocks != blockCount);
 
-        for(uint scan = 0; scan < threadCount; ++scan) {
-            ShutdownThread(threadHandles[scan]);
-        }
+            for(uint scan = 0; scan < threadCount; ++scan) {
+                ShutdownThread(threadHandles[scan]);
+            }
+        #endif
     }
 }

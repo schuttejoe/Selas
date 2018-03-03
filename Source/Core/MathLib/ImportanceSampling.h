@@ -30,6 +30,7 @@ namespace Shooty {
 
         float GgxDPdf(float roughness, float dotNH);
         void GgxD(float roughness, float r0, float r1, float& theta, float& phi);
+        float3 GgxVndf(float3 wo, float roughness, float u1, float u2);
 
         float BalanceHeuristic(uint nf, float fPdf, uint ng, float gPdf);
         float PowerHeuristic(uint nf, float fPdf, uint ng, float gPdf);

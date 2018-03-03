@@ -1,13 +1,11 @@
 
-Next:
-	Importance sampling distribution of visible normals for isotropic GGX
-	Actual material assets?
-	Correct setup of scene textures and build material data
-	Figure out why samples on the sphere seem to be hitting the sphere again. Episilon errors?
-
 Features:
 ---------
-Switch to full Disney BRDF
+Correct setup of scene textures and build material data
+Area lights
+Transmissive materials
+Do something better than sloppy biasing to prevent self-intersection. Haven't seen much research on that but maybe bias based on cos(theta)?
+Switch to a more complete BRDF (Disney?)
 Debug tech (depth, material visualizations)
 
 Optimizations:

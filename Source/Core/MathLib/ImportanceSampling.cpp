@@ -130,6 +130,31 @@ namespace Shooty
         }
 
         //==============================================================================
+        // https://hal.archives-ouvertes.fr/hal-01509746/document
+        float3 GgxVndf(float3 wo, float roughness, float u1, float u2)
+        {
+            // -- Stretch the view vector so we are sampling as though roughness==1
+            float3 v = Normalize(float3(wo.x * roughness, wo.y, wo.z * roughness));
+            
+            // -- Build an orthonormal basis with v, t1, and t2
+            float3 t1 = (v.y < 0.9999f) ? Normalize(Cross(v, float3::YAxis_)) : float3::XAxis_;
+            float3 t2 = Cross(t1, v);
+
+            // -- Choose a point on a disk with each half of the disk weighted proportionally to its projection onto direction v
+            float a = 1.0f / (1.0f + v.y);
+            float r = Math::Sqrtf(u1);
+            float phi = (u2 < a) ? (u2 / a) * Math::Pi_ : Math::Pi_ + (u2 - a) / (1.0f - a) * Math::Pi_;
+            float p1 = r * Math::Cosf(phi);
+            float p2 = r * Math::Sinf(phi) * ((u2 < a) ? 1.0f : v.y);
+
+            // -- Calculate the normal in this stretched tangent space
+            float3 n = p1 * t1 + p2 * t2 + Math::Sqrtf(Max<float>(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
+
+            // -- unstretch and normalize the normal
+            return Normalize(float3(roughness * n.x, Max<float>(0.0f, n.y), roughness * n.z));
+        }
+
+        //==============================================================================
         float BalanceHeuristic(uint nf, float fPdf, uint ng, float gPdf)
         {
             return (nf * fPdf) / (nf * fPdf + ng * gPdf);
