@@ -24,8 +24,6 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-//#include <cmath>
-
 namespace Shooty
 {
     //==============================================================================
@@ -180,13 +178,13 @@ namespace Shooty
         float3 wm = Math::SphericalToCartesian(theta, phi);
         wi = Reflect(wm, wo);
 
-        if(BsdfNDot(wi) > 0.0f) {
+        if(BsdfNDot(wi) > 0.0f && Dot(wi, wm) > 0.0f) {
             float a = material->roughness;
             float a2 = a * a;
 
             float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
             float G = SmithGGXMaskingShading(wi, wo, wm, a2);
-            float weight = Math::Absf(Dot(wi, wm)) / (BsdfNDot(wi) * BsdfNDot(wm));
+            float weight = Math::Absf(Dot(wo, wm)) / (BsdfNDot(wo) * BsdfNDot(wm));
 
             reflectance = F * G * weight;
             wi = Math::Quaternion::Rotate(toWorld, wi);    

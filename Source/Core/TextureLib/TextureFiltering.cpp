@@ -129,7 +129,8 @@ namespace Shooty
             // Compute the ellipse's bounding box in texture space
             float det = -B * B + 4 * A * C;
             float invDet = 1 / det;
-            float uSqrt = Math::Sqrtf(det * C), vSqrt = Math::Sqrtf(A * det);
+            float uSqrt = Math::Sqrtf(det * C);
+            float vSqrt = Math::Sqrtf(A * det);
             int32 s0 = (int32)Math::Ceil(st.x - 2 * invDet * uSqrt);
             int32 s1 = (int32)Math::Floor(st.x + 2 * invDet * uSqrt);
             int32 t0 = (int32)Math::Ceil(st.y - 2 * invDet * vSqrt);

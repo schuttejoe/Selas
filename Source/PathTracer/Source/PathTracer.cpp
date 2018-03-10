@@ -31,7 +31,8 @@
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
-#define RaysPerPixel_               1024
+#define UseEwaFiltering_            0
+#define RaysPerPixel_               512
 
 namespace Shooty
 {
@@ -192,7 +193,11 @@ namespace Shooty
             CalculateSurfaceDifferentials(ray, n, newPosition, dpdu, dpdv, differentials);
 
             if(materialIndex == 0) {
-                return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+                #if UseEwaFiltering_
+                    return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+                #else
+                    return TextureFiltering::Triangle(&textures[0], 0, uvs);
+                #endif
             }
 
             float3 v = -ray.direction;
@@ -206,7 +211,6 @@ namespace Shooty
             }
             else {
                 ImportanceSampleGgxVdn(twister, n, v, &material, wi, reflectance);
-                //ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                     return float3::Zero_;
 
@@ -249,7 +253,11 @@ namespace Shooty
             CalculateSurfaceDifferentials(ray, n, position, dpdu, dpdv, differentials);
 
             if(materialIndex == 0) {
-                return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+                #if UseEwaFiltering_
+                    return TextureFiltering::EWA(&textures[0], uvs, differentials.duvdx, differentials.duvdy);
+                #else
+                    return TextureFiltering::Triangle(&textures[0], 0, uvs);
+                #endif
             }
 
             float3 v = -ray.direction;
@@ -259,7 +267,6 @@ namespace Shooty
             float3 wi;
             float3 reflectance;
             ImportanceSampleGgxVdn(twister, n, v, &material, wi, reflectance);
-            //ImportanceSampleGgx(twister, n, v, &material, wi, reflectance);
             if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
                 return float3::Zero_;
 

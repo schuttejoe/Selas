@@ -27,6 +27,8 @@ def main(argv):
             targetDir = os.path.join(engineDir, "_Projects")
         if argv[0].lower() == "middleware":
             targetDir = os.path.join(engineDir, "Middleware")
+        if argv[0].lower() == "blog":
+            targetDir = os.path.join(engineDir, "..", "schuttejoe.github.io")
 
         if argv[0].lower() == "demos":
             targetDir = "D:\\Demos"
