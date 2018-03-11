@@ -13,8 +13,9 @@ namespace Shooty {
     void AssertHandler(const char* message, const char* filename, int line) {
         (void)filename;
         (void)line;
+        (void)message;
 
-        assert(message);//, filename, line);
+        assert(0);
     }
 
 }

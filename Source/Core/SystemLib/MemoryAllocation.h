@@ -15,6 +15,7 @@ namespace Shooty {
                                                            
     #define Alloc_(AllocSize_)                             Shooty::ShootyMalloc(AllocSize_, __FUNCTION__, __FILE__, __LINE__)
     #define AllocArray_(Type_, Count_)                     static_cast<Type_*>(Shooty::ShootyMalloc(Count_ * sizeof(Type_), __FUNCTION__, __FILE__, __LINE__))
+    #define Realloc_(Addr_, Size_)                         Shooty::ShootyRealloc(Addr_, Size_, __FUNCTION__, __FILE__, __LINE__);
     #define Free_(Var_)                                    Shooty::ShootyFree(Var_)
     #define SafeFree_(Var_)                                if(Var_) { Shooty::ShootyFree(Var_); Var_ = nullptr; }
 
@@ -25,6 +26,7 @@ namespace Shooty {
 
     extern void* ShootyAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line);
     extern void* ShootyMalloc(size_t size, const char* name, const char* file, int line);
+    extern void* ShootyRealloc(void* address, size_t size, const char* name, const char* file, int line);
     extern void  ShootyAlignedFree(void* address);
     extern void  ShootyFree(void* address);
 

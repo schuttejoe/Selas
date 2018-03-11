@@ -3,6 +3,7 @@ Features:
 ---------
 Correct setup of scene textures and build material data
 Area lights
+Self intersection stuff http://pbrt.org/fp-error-section.pdf
 Transmissive materials
 Do something better than sloppy biasing to prevent self-intersection. Haven't seen much research on that but maybe bias based on cos(theta)?
 Switch to a more complete BRDF (Disney?)

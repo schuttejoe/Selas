@@ -134,12 +134,16 @@ namespace Shooty
         // -- copy top level
         Memory::Copy(mipmaps, linear, sizeof(float3)*width*height);
 
+        mipWidths[0] = (uint32)width;
+        mipHeights[0] = (uint32)height;
+        mipOffsets[0] = 0;
+
         // -- Filter remaining mips
         uint offset = 0;
-        for(uint scan = 0; scan < mipCount; ++scan) {
+        for(uint scan = 1; scan < mipCount; ++scan) {
 
-            uint srcWidth  = Max<uint>(width >> scan, 1);
-            uint srcHeight = Max<uint>(height >> scan, 1);
+            uint srcWidth  = Max<uint>(width >> (scan-1), 1);
+            uint srcHeight = Max<uint>(height >> (scan-1), 1);
             uint dstWidth  = Max<uint>(srcWidth >> 1, 1);
             uint dstHeight = Max<uint>(srcHeight >> 1, 1);
 
@@ -151,10 +155,10 @@ namespace Shooty
                 BoxFilterMip(mipmaps + offset, srcWidth, srcHeight, mipmaps + offset + srcTexelCount, dstWidth, dstHeight);
             };
 
-            mipWidths[scan] = (uint32)srcWidth;
-            mipHeights[scan] = (uint32)srcHeight;
-            mipOffsets[scan] = offset;
             offset += srcTexelCount;
+            mipWidths[scan] = (uint32)dstWidth;
+            mipHeights[scan] = (uint32)dstHeight;
+            mipOffsets[scan] = offset;            
         }
 
         return true;

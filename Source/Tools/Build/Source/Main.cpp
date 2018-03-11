@@ -35,12 +35,12 @@ int main(int argc, char *argv[])
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
     #define ExportScene_ 1
-    #define ExportIbl_ 0
+    #define ExportIbl_ 1
     #define ExportTextures_ 1
 
 #if ExportScene_
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\bunny.fbx", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\living_room_open_windows.fbx", &importedScene)) {
         Error_("Error importing obj");
         return -1;
     }
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     }
     ShutdownImportedScene(&importedScene);
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bunny");
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\living_room_open_windows");
 #endif
 
 #if ExportIbl_
@@ -74,7 +74,11 @@ int main(int argc, char *argv[])
         Error_("Error importing texture");
         return -1;
     }
-    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k"))
+    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k")) {
+        Error_("Error writing texture asset");
+        return -1;
+    }
+
     Free_(textureData.mipmaps);
 
 #endif

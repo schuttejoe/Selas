@@ -4,6 +4,11 @@
 
 #include <TextureLib/StbImage.h>
 #include <StringLib/StringUtil.h>
+#include <SystemLib/MemoryAllocation.h>
+
+#define STBI_MALLOC     Alloc_
+#define STBI_REALLOC    Realloc_
+#define STBI_FREE       Free_
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
