@@ -90,7 +90,7 @@ int main()
 
     SceneContext context;
     context.rtcScene = rtcScene;
-    context.scene = sceneResource.data;
+    context.scene = &sceneResource;
     context.textures = sceneResource.textures[0].data; // Yep. Hack.
     context.ibl = iblResouce.data;
     context.width = width;

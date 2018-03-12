@@ -4,6 +4,8 @@
 
 #include <SceneLib/SceneResource.h>
 #include <TextureLib/TextureResource.h>
+#include <MathLib/FloatFuncs.h>
+#include <MathLib/FloatStructs.h>
 #include <IoLib/BinarySerializer.h>
 #include <IoLib/File.h>
 #include <SystemLib/BasicTypes.h>
@@ -32,7 +34,8 @@ namespace Shooty
         SerializerAttach(&reader, reinterpret_cast<void**>(&data->data), fileSize);
         SerializerEnd(&reader);
 
-        FixupPointerX64(fileData, data->data->materialData);
+        FixupPointerX64(fileData, data->data->textureResourceNames);
+        FixupPointerX64(fileData, data->data->materials);
         FixupPointerX64(fileData, data->data->indices);
         FixupPointerX64(fileData, data->data->positions);
         FixupPointerX64(fileData, data->data->vertexData);

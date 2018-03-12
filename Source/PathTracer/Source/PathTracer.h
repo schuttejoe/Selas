@@ -13,14 +13,14 @@ typedef struct RTCSceneTy* RTCScene;
 
 namespace Shooty
 {
-    struct SceneResourceData;
+    struct SceneResource;
     struct ImageBasedLightResourceData;
     struct TextureResourceData;
 
     struct SceneContext
     {
         RTCScene rtcScene;
-        SceneResourceData* scene;
+        SceneResource* scene;
         TextureResourceData* textures;
         ImageBasedLightResourceData* ibl;
         uint width;

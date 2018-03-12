@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SceneLib/SceneResource.h>
 #include <ContainersLib/CArray.h>
 #include <StringLib/FixedString.h>
 #include <MathLib/FloatStructs.h>
@@ -15,7 +16,7 @@ namespace Shooty
 
     //==============================================================================
     // -- Things that are embedded into the scene
-    struct MaterialData
+    struct ImportedMaterialData
     {      
         FixedString256 emissiveTexture;
     };
@@ -33,21 +34,11 @@ namespace Shooty
         uint32         materialIndex;
     };
 
-    struct SceneCamera
-    {
-        float3 position;
-        float  fov;
-        float3 lookAt;
-        float  znear;
-        float3 up;
-        float  zfar;
-    };
-
     struct ImportedScene
     {
         CArray<ImportedMesh*> meshes;
         CArray<FixedString256> materials;
-        SceneCamera camera;
+        Camera camera;
     };
 
     //== Build =====================================================================
@@ -59,26 +50,20 @@ namespace Shooty
         uint32 vertexOffset;
     };
 
-    struct VertexAuxiliaryData
-    {
-        // -- not using float3/float2 here to avoid padding sneaking in.
-        float px, py, pz;
-        float nx, ny, nz;
-        float u, v;
-        uint32 materialIndex;
-    };
-
     struct BuiltScene
     {
-        // -- Mesh Data
+        // -- meta data
+        Camera camera;
+
+        // -- material information
+        CArray<FixedString256> textures;
+        CArray<Material>       materials;
+
+        // -- geometry information
         CArray<BuiltMeshData>       meshes;
         CArray<uint32>              indices;
         CArray<float3>              positions;
         CArray<VertexAuxiliaryData> vertexData;
-
-        // -- Additional scene Data
-        CArray<MaterialData> materialData;
-        SceneCamera          camera;
     };
 
 }

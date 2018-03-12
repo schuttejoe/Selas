@@ -1,7 +1,14 @@
 
+Short term goals
+---------------------
+Only calculate dndu, dndv when making a ray with differentials
+Only call CalculateSurfaceDifferentials when using EWA filtering
+Stop using shenanigans in place of actual tangent space stuff
+Unify hit behavior between cast primary ray and cast incoherent ray
+
 Features:
 ---------
-Correct setup of scene textures and build material data
+Materials from json files? Or something I can get from substance.
 Area lights
 Self intersection stuff http://pbrt.org/fp-error-section.pdf
 Transmissive materials

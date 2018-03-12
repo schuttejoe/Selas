@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
     #define ExportScene_ 1
-    #define ExportIbl_ 1
-    #define ExportTextures_ 1
+    #define ExportIbl_ 0
+    #define ExportTextures_ 0
 
 #if ExportScene_
     ImportedScene importedScene;

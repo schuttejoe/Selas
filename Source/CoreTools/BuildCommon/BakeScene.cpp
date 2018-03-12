@@ -16,14 +16,17 @@ namespace Shooty
     //==============================================================================
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
     {
-        uint32 materialCount = sceneData.materialData.Length();
-        uint32 pad = 0;
+        uint32 materialCount = sceneData.materials.Length();
+        uint32 textureCount  = sceneData.textures.Length();
 
+        SerializerWrite(writer, &textureCount, sizeof(textureCount));
         SerializerWrite(writer, &materialCount, sizeof(materialCount));
-        SerializerWrite(writer, &pad, sizeof(pad));
 
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.materialData.GetData(), sceneData.materialData.DataSize());
+        SerializerWritePointerData(writer, sceneData.textures.GetData(), sceneData.textures.DataSize());
+
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.materials.GetData(), sceneData.materials.DataSize());
     }
 
     //==============================================================================

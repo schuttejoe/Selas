@@ -68,11 +68,39 @@ namespace Shooty
     }
 
     //==============================================================================
+    static uint32 AddTexture(BuiltScene* builtScene, const FixedString256& path)
+    {
+        // JSTODO - Implement a hash set
+        for(uint scan = 0, count = builtScene->textures.Length(); scan < count; ++scan) {
+            if(StringUtil::EqualsIgnoreCase(builtScene->textures[scan].Ascii(), path.Ascii())) {
+                return (uint32)scan;
+            }
+        }
+
+        builtScene->textures.Add(path);
+        return (uint32)builtScene->textures.Length() - 1;
+    }
+
+    //==============================================================================
     static bool BuildMaterials(ImportedScene* imported, BuiltScene* built)
     {
-        built->materialData.Resize(imported->materials.Length());
+        built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
-            ReturnFailure_(ImportMaterial(imported->materials[scan].Ascii(), &built->materialData[scan]));
+            ImportedMaterialData importedMaterialData;
+            ReturnFailure_(ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData));
+
+            Material& material = built->materials[scan];
+            material.specularColor = float3(1, 1, 1);
+            material.roughness = 0.5f;
+            material.albedo = float3(1, 1, 1);
+
+            if(StringUtil::Length(importedMaterialData.emissiveTexture.Ascii())) {
+                material.flags = eHasEmissiveTexture;
+                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTexture);
+            } else {
+                material.flags = eHasReflectance;
+                material.emissiveTextureIndex = -1;
+            }
         }
 
         return true;
@@ -81,7 +109,6 @@ namespace Shooty
     //==============================================================================
     bool BuildScene(ImportedScene* imported, BuiltScene* built)
     {
-
         ReturnFailure_(BuildMaterials(imported, built));
 
         BuildMeshes(imported, built);

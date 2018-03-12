@@ -16,14 +16,8 @@ namespace Shooty
         struct MersenneTwister;
     }
 
+    struct Material;
     struct ImageBasedLightResourceData;
-
-    struct Material
-    {
-        float3 specularColor;
-        float3 albedo;
-        float  roughness;
-    };
 
     float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 direction);
 

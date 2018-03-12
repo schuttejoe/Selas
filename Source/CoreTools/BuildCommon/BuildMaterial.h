@@ -8,7 +8,7 @@
 
 namespace Shooty {
 
-    struct MaterialData;
+    struct ImportedMaterialData;
 
-    bool ImportMaterial(const char* materialName, MaterialData* material);
+    bool ImportMaterial(const char* materialName, ImportedMaterialData* material);
 };

@@ -13,6 +13,7 @@ namespace Shooty {
         char str[T];
 
         char* Ascii(void) { return &str[0]; }
+        const char* Ascii(void) const { return &str[0]; }
         uint Capcaity() { return T; }
         void Clear() { str[0] = '\0'; }
 
