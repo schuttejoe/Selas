@@ -25,6 +25,7 @@ Texture layout swizzling
 
 Engine:
 -------
+Ray tracer kernel context needs to be per thread. Then I can queue up subsequent rays rather than returning wi for evaluation.
 Serialization system
 Dependency system in Build
 Error system

@@ -43,6 +43,7 @@ namespace Shooty
         float3 albedo;
         uint32 flags;
         uint32 emissiveTextureIndex;
+        float  metalness;
     };
 
     struct VertexAuxiliaryData

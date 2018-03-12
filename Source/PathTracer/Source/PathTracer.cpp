@@ -126,19 +126,19 @@ namespace Shooty
 
                 float3 wi;
                 float3 reflectance;
-                ImportanceSampleGgxVdn(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
-                if(Dot(reflectance, float3(1, 1, 1)) <= 0.0f)
-                    return float3::Zero_;
+                ImportanceSampleDisneyBrdf(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
+                if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
-                Ray bounceRay;
-                if(ray.hasDifferentials) {
-                    bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * hitParams.n, hitParams.n, wo, wi, differentials, hitParams.dndu, hitParams.dndv, bias, FloatMax_);
-                }
-                else {
-                    bounceRay = MakeRay(newPosition + bias * hitParams.n, wi, bias, FloatMax_);
-                }
+                    Ray bounceRay;
+                    if(ray.hasDifferentials) {
+                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * hitParams.n, hitParams.n, wo, wi, differentials, hitParams.dndu, hitParams.dndv, bias, FloatMax_);
+                    }
+                    else {
+                        bounceRay = MakeRay(newPosition + bias * hitParams.n, wi, bias, FloatMax_);
+                    }
 
-                Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
+                    Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
+                }
             }
         }
 
@@ -185,7 +185,7 @@ namespace Shooty
 
                 float3 wi;
                 float3 reflectance;
-                ImportanceSampleGgxVdn(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
+                ImportanceSampleDisneyBrdf(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
                     Ray bounceRay;
                     if(ray.hasDifferentials) {

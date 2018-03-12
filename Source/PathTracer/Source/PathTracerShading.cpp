@@ -130,6 +130,13 @@ namespace Shooty
         return r0 + float3(1.0f - r0.x, 1.0f - r0.y, 1.0f - r0.z) * exponential;
     }
 
+    static float SchlickFresnel(float u)
+    {
+        float m = Saturate(1.0f - u);
+        float m2 = m * m;
+        return m * m2 * m2;
+    }
+
     //==============================================================================
     static float BsdfNDot(float3 x)
     {
@@ -273,6 +280,54 @@ namespace Shooty
         }
         else {
             reflectance = float3::Zero_;
+        }
+    }
+
+    //==============================================================================
+    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    {
+        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
+        float4 toLocal = ToTangentSpaceQuaternion(wg);
+        float4 toWorld = Math::Quaternion::Invert(toLocal);
+
+        float metalness = material->metalness;
+        float a = material->roughness;
+        float a2 = a * a;
+
+        float3 wo = Math::Quaternion::Rotate(toLocal, v);
+
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+        float3 wm = ImportanceSampling::GgxVndf(wo, material->roughness, r0, r1);
+
+        float3 localWi = Reflect(wm, wo);
+
+        reflectance = float3::Zero_;
+
+        if(BsdfNDot(localWi) > 0.0f) {
+            float3 F = SchlickFresnel(material->specularColor, Dot(localWi, wm));
+            // -- JSTODO - Wait. I'm using wo.wm and wi.wm here while disney.brdf is using n.l and n.v. Which is correct?
+            float G1 = SmithGGXMasking(localWi, wo, wm, a2);
+            float G2 = SmithGGXMaskingShading(localWi, wo, wm, a2);
+
+            // -- reflectance from the importance sampled GGX is interpolated based on metalness
+            reflectance = metalness * F * (G2 / G1);
+
+            // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
+            // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
+            float dotHL = BsdfNDot(localWi);
+            float dotHV = BsdfNDot(wo);
+            float rr = 0.5f + 2.0f * dotHL * dotHL * a;
+            float fl = SchlickFresnel(dotHL);
+            float fv = SchlickFresnel(dotHV);
+            
+            float3 fLambert = Math::OOPi_ * material->albedo;
+            float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
+            float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
+
+            reflectance = reflectance + (1.0f - metalness) * diffuse;
+
+            wi = Math::Quaternion::Rotate(toWorld, localWi);
         }
     }
 }

@@ -90,16 +90,21 @@ namespace Shooty
             ReturnFailure_(ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData));
 
             Material& material = built->materials[scan];
-            material.specularColor = float3(1, 1, 1);
-            material.roughness = 0.5f;
-            material.albedo = float3(1, 1, 1);
 
             if(StringUtil::Length(importedMaterialData.emissiveTexture.Ascii())) {
                 material.flags = eHasEmissiveTexture;
                 material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTexture);
+                material.specularColor = float3(1, 1, 1);
+                material.roughness = 0.5f;
+                material.albedo = float3(1, 1, 1);
+                material.metalness = 1.0f;
             } else {
                 material.flags = eHasReflectance;
                 material.emissiveTextureIndex = -1;
+                material.specularColor = float3(1, 1, 1);
+                material.roughness = 0.3f;
+                material.albedo = float3(1, 1, 1);
+                material.metalness = 0.1f;
             }
         }
 
