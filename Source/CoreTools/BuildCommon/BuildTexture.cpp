@@ -31,6 +31,21 @@ namespace Shooty
     }
 
     //==============================================================================
+    static void Uint24ToLinearFloat3(bool isLinear, uint width, uint height, uint8* rawData, float3* output)
+    {
+        uint count = width * height;
+
+        for(uint scan = 0; scan < count; ++scan) {
+            uint8 r = rawData[3 * scan + 0];
+            uint8 g = rawData[3 * scan + 1];
+            uint8 b = rawData[3 * scan + 2];
+
+            float3 linear = isLinear ? MakeColor3f(r, g, b) : Math::SrgbToLinearPrecise(MakeColor3f(r, g, b));
+            output[scan] = linear;
+        }
+    }
+
+    //==============================================================================
     static void Float4ToLinearFloat3(bool isLinear, uint width, uint height, float4* rawData, float3* output)
     {
         uint count = width * height;
@@ -68,7 +83,17 @@ namespace Shooty
             }
         }
         else {
-            Uint32ToLinearFloat3(false, width, height, (uint32*)rawData, output);
+            if(channels == 3) {
+                Uint24ToLinearFloat3(false, width, height, (uint8*)rawData, output);
+            }
+            else if(channels == 4) {
+                Uint32ToLinearFloat3(false, width, height, (uint32*)rawData, output);
+            }
+            else {
+                Free_(rawData);
+                return false;
+            }
+            
         }
         Free_(rawData);
 

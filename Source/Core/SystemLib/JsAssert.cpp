@@ -6,8 +6,8 @@
 
 #if AllowAsserts_
 
-#include <assert.h>
-
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 namespace Shooty {
 
     void AssertHandler(const char* message, const char* filename, int line) {
@@ -15,7 +15,8 @@ namespace Shooty {
         (void)line;
         (void)message;
 
-        assert(0);
+        DebugBreak();
+        //assert(0);
     }
 
 }

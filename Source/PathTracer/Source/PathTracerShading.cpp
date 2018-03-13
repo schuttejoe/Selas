@@ -4,6 +4,7 @@
 //==============================================================================
 
 #include "PathTracerShading.h"
+#include "SurfaceParameters.h"
 #include "Brdf.h"
 
 #include <SceneLib/SceneResource.h>
@@ -75,31 +76,31 @@ namespace Shooty
         return ibl->hdrData[y * ibl->densityfunctions.width + x];
     }
 
-    //==============================================================================
-    void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, Material* material,
-                             float3& wi, float3& reflectance)
-    {
-        reflectance = float3::Zero_;
-        const float bias = 0.0001f;
+    ////==============================================================================
+    //void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, Material* material,
+    //                         float3& wi, float3& reflectance)
+    //{
+    //    reflectance = float3::Zero_;
+    //    const float bias = 0.0001f;
 
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+    //    float r0 = Random::MersenneTwisterFloat(twister);
+    //    float r1 = Random::MersenneTwisterFloat(twister);
 
-        float theta;
-        float phi;
-        uint x;
-        uint y;
-        float iblPdf;
-        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
+    //    float theta;
+    //    float phi;
+    //    uint x;
+    //    uint y;
+    //    float iblPdf;
+    //    ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
 
-        wi = Math::SphericalToCartesian(theta, phi);
-        if(Dot(wi, n) > 0.0f) {
-            if(OcclusionRay(rtcScene, p + bias * n, wi, 0, FloatMax_)) {
-                float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-                reflectance = sample * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness) * (1.0f / iblPdf);
-            }
-        }
-    }
+    //    wi = Math::SphericalToCartesian(theta, phi);
+    //    if(Dot(wi, n) > 0.0f) {
+    //        if(OcclusionRay(rtcScene, p + bias * n, wi, 0, FloatMax_)) {
+    //            float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
+    //            reflectance = sample * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness) * (1.0f / iblPdf);
+    //        }
+    //    }
+    //}
 
     //==============================================================================
     static float4 ToTangentSpaceQuaternion(float3 n)
@@ -146,8 +147,8 @@ namespace Shooty
     //==============================================================================
     static float SmithGGXMasking(float3 wi, float3 wo, float3 wm, float a2)
     {
-        float dotNL = Dot(wi, wm);
-        float dotNV = Dot(wo, wm);
+        float dotNL = BsdfNDot(wi);
+        float dotNV = BsdfNDot(wo);
         float denomC = Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV) + dotNV;
 
         return 2.0f * dotNV / denomC;
@@ -158,8 +159,8 @@ namespace Shooty
     {
         // non height-correlated masking function
         // https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
-        float dotNL = Dot(wi, wm);
-        float dotNV = Dot(wo, wm);
+        float dotNL = BsdfNDot(wi);
+        float dotNV = BsdfNDot(wo);
 
         float denomA = dotNV * Math::Sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
         float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
@@ -227,28 +228,28 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
-    {
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+    //void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
+    //{
+    //    float r0 = Random::MersenneTwisterFloat(twister);
+    //    float r1 = Random::MersenneTwisterFloat(twister);
 
-        float r     = Math::Sqrtf(r0);
-        float theta = 2.0f * Math::Pi_ * r1;
+    //    float r     = Math::Sqrtf(r0);
+    //    float theta = 2.0f * Math::Pi_ * r1;
 
-        float x     = r * Math::Cosf(theta);
-        float y     = Math::Sqrtf(Max<float>(0.0f, 1.0f - r0));
-        float z     = r * Math::Sinf(theta);
+    //    float x     = r * Math::Cosf(theta);
+    //    float y     = Math::Sqrtf(Max<float>(0.0f, 1.0f - r0));
+    //    float z     = r * Math::Sinf(theta);
 
-        wi = TransformToWorld(x, y, z, n);
+    //    wi = TransformToWorld(x, y, z, n);
 
-        float dotNL = Dot(wi, n);
-        if(dotNL > 0.0f) {
-            reflectance = material->albedo;
-        }
-        else {
-            reflectance = float3::Zero_;
-        }
-    }
+    //    float dotNL = Dot(wi, n);
+    //    if(dotNL > 0.0f) {
+    //        reflectance = material->albedo;
+    //    }
+    //    else {
+    //        reflectance = float3::Zero_;
+    //    }
+    //}
 
     //==============================================================================
     void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
@@ -284,34 +285,35 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v, float3& wi, float3& reflectance)
     {
+        float3 wg = surface.normal;
+
         // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
         float4 toLocal = ToTangentSpaceQuaternion(wg);
         float4 toWorld = Math::Quaternion::Invert(toLocal);
 
-        float metalness = material->metalness;
-        float a = material->roughness;
+        float a = surface.roughness;
         float a2 = a * a;
 
         float3 wo = Math::Quaternion::Rotate(toLocal, v);
 
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
-        float3 wm = ImportanceSampling::GgxVndf(wo, material->roughness, r0, r1);
+        float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
         float3 localWi = Reflect(wm, wo);
 
         reflectance = float3::Zero_;
 
         if(BsdfNDot(localWi) > 0.0f) {
-            float3 F = SchlickFresnel(material->specularColor, Dot(localWi, wm));
+            float3 F = SchlickFresnel(surface.specularColor, Dot(localWi, wm));
             // -- JSTODO - Wait. I'm using wo.wm and wi.wm here while disney.brdf is using n.l and n.v. Which is correct?
             float G1 = SmithGGXMasking(localWi, wo, wm, a2);
             float G2 = SmithGGXMaskingShading(localWi, wo, wm, a2);
 
             // -- reflectance from the importance sampled GGX is interpolated based on metalness
-            reflectance = metalness * F * (G2 / G1);
+            reflectance = surface.metalness * F * (G2 / G1);
 
             // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
             // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
@@ -321,11 +323,11 @@ namespace Shooty
             float fl = SchlickFresnel(dotHL);
             float fv = SchlickFresnel(dotHV);
             
-            float3 fLambert = Math::OOPi_ * material->albedo;
+            float3 fLambert = Math::OOPi_ * surface.albedo;
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
-            reflectance = reflectance + (1.0f - metalness) * diffuse;
+            reflectance = reflectance + (1.0f - surface.metalness) * diffuse;
 
             wi = Math::Quaternion::Rotate(toWorld, localWi);
         }

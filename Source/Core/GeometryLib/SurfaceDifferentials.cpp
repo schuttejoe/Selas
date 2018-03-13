@@ -67,7 +67,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    Ray MakeDifferentialRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float3 dndu, float3 dndv, float near, float far)
+    Ray MakeDifferentialRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float near, float far)
     {
         // JSTODO - Write this up in the notebook
 
@@ -80,8 +80,8 @@ namespace Shooty
         ray.rxOrigin = p + differentials.dpdx;
         ray.ryOrigin = p + differentials.dpdy;
 
-        float3 dndx = dndu * differentials.duvdx.x + dndv * differentials.duvdx.y;
-        float3 dndy = dndu * differentials.duvdy.x + dndv * differentials.duvdy.y;
+        float3 dndx = differentials.dndu * differentials.duvdx.x + differentials.dndv * differentials.duvdx.y;
+        float3 dndy = differentials.dndu * differentials.duvdy.x + differentials.dndv * differentials.duvdy.y;
 
         float3 dwodx = -rxDirection - wo;
         float3 dwody = -ryDirection - wo;

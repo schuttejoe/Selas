@@ -47,13 +47,13 @@ namespace Shooty
     bool InitializeSceneResource(SceneResource* scene)
     {
         // -- JSTODO - Should be fetching other resource data from some asset mgr here rather than directly loading it
-        // -- JSTODO - Texture count from scene asset data
 
-        uint textureCount = 1;
+        uint textureCount = scene->data->textureCount;
         scene->textures = AllocArray_(TextureResource, textureCount);
 
-        cpointer path = "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k";
-        ReturnFailure_(ReadTextureResource(path, &scene->textures[0]));
+        for(uint scan = 0, count = scene->data->textureCount; scan < count; ++scan) {
+            ReturnFailure_(ReadTextureResource(scene->data->textureResourceNames[scan].Ascii(), &scene->textures[scan]));
+        }
 
         return true;
     }
@@ -61,6 +61,10 @@ namespace Shooty
     //==============================================================================
     void ShutdownSceneResource(SceneResource* scene)
     {
+        for(uint scan = 0, count = scene->data->textureCount; scan < count; ++scan) {
+            ShutdownTextureResource(&scene->textures[scan]);
+        }
+
         SafeFree_(scene->textures);
         SafeFreeAligned_(scene->data);
     }

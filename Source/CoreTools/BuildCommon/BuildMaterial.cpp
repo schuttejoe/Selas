@@ -17,9 +17,11 @@ namespace Shooty {
         material->emissiveTexture.Clear();
 
         if(StringUtil::EqualsIgnoreCase(materialName, "HDR")) {
-            material->emissiveTexture.Copy("red_wall_4k");
+            material->emissiveTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k");
         }
-
+        if(StringUtil::EqualsIgnoreCase(materialName, "room")) {
+            material->albedoTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\OffsetBlocks");
+        }
         return true;
     }
 }

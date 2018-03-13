@@ -32,6 +32,12 @@ namespace Shooty
     }
 
     //==============================================================================
+    void ShutdownTextureResource(TextureResource* texture)
+    {
+        SafeFreeAligned_(texture->data);
+    }
+
+    //==============================================================================
     static void DebugWriteTextureMip(TextureResource* texture, uint level, cpointer filepath)
     {
         uint64 mipOffset = texture->data->mipOffsets[level];

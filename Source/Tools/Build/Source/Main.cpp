@@ -70,11 +70,11 @@ int main(int argc, char *argv[])
 
 #if ExportTextures_
     TextureResourceData textureData;
-    if(!ImportTexture("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_4k.hdr", Box, &textureData)) {
+    if(!ImportTexture("D:\\Shooty\\ShootyEngine\\Content\\Textures\\OffsetBlocks.tga", Box, &textureData)) {
         Error_("Error importing texture");
         return -1;
     }
-    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k")) {
+    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\OffsetBlocks")) {
         Error_("Error writing texture asset");
         return -1;
     }

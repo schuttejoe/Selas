@@ -22,5 +22,5 @@ namespace Shooty
     };
 
     void CalculateSurfaceDifferentials(const Ray& ray, float3 n, float3 p, float3 dpdu, float3 dpdv, SurfaceDifferentials& outputs);
-    Ray MakeDifferentialRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float3 dndu, float3 dndv, float near, float far);
+    Ray MakeDifferentialRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float near, float far);
 }

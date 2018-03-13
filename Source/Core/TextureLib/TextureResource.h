@@ -30,6 +30,6 @@ namespace Shooty
     };
 
     bool ReadTextureResource(cpointer filepath, TextureResource* texture);
-
+    void ShutdownTextureResource(TextureResource* texture);
     void DebugWriteTextureMips(TextureResource* texture, cpointer folder);
 }

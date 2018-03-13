@@ -32,18 +32,19 @@ namespace Shooty
 
     enum eMaterialFlags
     {
-        eHasEmissiveTexture = 0x01,
-        eHasReflectance     = 0x02
+        ePreserveRayDifferentials = 0x01,
+        eHasReflectance           = 0x02
     };
 
     struct Material
     {
         float3 specularColor;
         float  roughness;
-        float3 albedo;
+
+        float  metalness;
         uint32 flags;
         uint32 emissiveTextureIndex;
-        float  metalness;
+        uint32 albedoTextureIndex;
     };
 
     struct VertexAuxiliaryData

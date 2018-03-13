@@ -23,6 +23,8 @@ typedef const char*     cpointer;
 #define MinFloatEpsilon_    1.192092896e-07F
 #define SmallFloatEpsilon_  1e-10f
 #define ReturnFailure_(x) if(!x) { return false; }
+#define InvalidIndex64      uint64(-1)
+#define InvalidIndex32      uint32(-1)
 
 namespace Shooty {
 

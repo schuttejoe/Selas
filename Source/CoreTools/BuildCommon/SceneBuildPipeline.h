@@ -19,6 +19,7 @@ namespace Shooty
     struct ImportedMaterialData
     {      
         FixedString256 emissiveTexture;
+        FixedString256 albedoTexture;
     };
 
     //== Import ====================================================================

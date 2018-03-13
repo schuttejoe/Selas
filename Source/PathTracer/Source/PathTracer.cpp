@@ -5,7 +5,7 @@
 
 #include "PathTracer.h"
 #include "PathTracerShading.h"
-#include "HitParameters.h"
+#include "SurfaceParameters.h"
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
@@ -32,8 +32,7 @@
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
-#define UseEwaFiltering_            0
-#define RaysPerPixel_               16
+#define RaysPerPixel_               512
 #define MaxBounceCount_             2
 
 namespace Shooty
@@ -95,7 +94,6 @@ namespace Shooty
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResource* scene                = kernelContext->context->scene;
-        TextureResourceData* textures       = kernelContext->context->textures;
         ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
 
         float3 newPosition;
@@ -107,34 +105,25 @@ namespace Shooty
 
         if(hit) {
 
-            HitParameters hitParams;
-            CalculateSurfaceParams(scene, primId, baryCoords, hitParams);
+            SurfaceParameters surface;
+            CalculateSurfaceParams(scene, ray, newPosition, primId, baryCoords, surface);
 
-            SurfaceDifferentials differentials;
-            CalculateSurfaceDifferentials(ray, hitParams.n, newPosition, hitParams.dpdu, hitParams.dpdv, differentials);
+            Lo += surface.emissive;
 
-            if(hitParams.material->flags & eHasEmissiveTexture) {
-                #if UseEwaFiltering_
-                    Lo += TextureFiltering::EWA(&textures[hitParams.material->emissiveTextureIndex], uvs, differentials.duvdx, differentials.duvdy);
-                #else
-                    Lo += TextureFiltering::Triangle(&textures[hitParams.material->emissiveTextureIndex], 0, hitParams.uvs);
-                #endif
-            }
-
-            if(bounceCount < MaxBounceCount_ && hitParams.material->flags & eHasReflectance) {
+            if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
                 float3 wo = -ray.direction;
 
                 float3 wi;
                 float3 reflectance;
-                ImportanceSampleDisneyBrdf(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
+                ImportanceSampleDisneyBrdf(twister, surface, wo, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
                     Ray bounceRay;
-                    if(ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * hitParams.n, hitParams.n, wo, wi, differentials, hitParams.dndu, hitParams.dndv, bias, FloatMax_);
+                    if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
+                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * surface.normal, surface.normal, wo, wi, surface.differentials, bias, FloatMax_);
                     }
                     else {
-                        bounceRay = MakeRay(newPosition + bias * hitParams.n, wi, bias, FloatMax_);
+                        bounceRay = MakeRay(newPosition + bias * surface.normal, wi, bias, FloatMax_);
                     }
 
                     Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
@@ -148,59 +137,9 @@ namespace Shooty
     //==============================================================================
     static float3 CastPrimaryRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, uint x, uint y)
     {
-        const float bias = 0.01f;
-
         const RayCastCameraSettings& camera = kernelContext->camera;
-        RTCScene rtcScene                   = kernelContext->context->rtcScene;
-        SceneResource* scene                = kernelContext->context->scene;
-        TextureResourceData* textures       = kernelContext->context->textures;
-        ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
-
         Ray ray = JitteredCameraRay(&camera, twister, (float)x, (float)y);
-
-        float3 position;
-        float2 baryCoords;
-        int32 primId;
-        bool hit = RayPick(rtcScene, scene->data, ray, position, baryCoords, primId);
-
-        float3 Lo = float3::Zero_;
-
-        if(hit) {
-            HitParameters hitParams;
-            CalculateSurfaceParams(scene, primId, baryCoords, hitParams);
-
-            SurfaceDifferentials differentials;
-            CalculateSurfaceDifferentials(ray, hitParams.n, position, hitParams.dpdu, hitParams.dpdv, differentials);
-
-            if(hitParams.material->flags & eHasEmissiveTexture) {
-                #if UseEwaFiltering_
-                    Lo += TextureFiltering::EWA(&textures[hitParams.material->emissiveTextureIndex], uvs, differentials.duvdx, differentials.duvdy);
-                #else
-                    Lo += TextureFiltering::Triangle(&textures[hitParams.material->emissiveTextureIndex], 0, hitParams.uvs);
-                #endif
-            }
-
-            if(hitParams.material->flags & eHasReflectance) {
-                float3 wo = -ray.direction;
-
-                float3 wi;
-                float3 reflectance;
-                ImportanceSampleDisneyBrdf(twister, hitParams.n, wo, hitParams.material, wi, reflectance);
-                if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
-                    Ray bounceRay;
-                    if(ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, position + bias * hitParams.n, hitParams.n, wo, wi, differentials, hitParams.dndu, hitParams.dndv, bias, FloatMax_);
-                    }
-                    else {
-                        bounceRay = MakeRay(position + bias * hitParams.n, wi, bias, FloatMax_);
-                    }
-
-                    Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, 1);
-                }
-            }
-        }
-
-        return Lo;
+        return CastIncoherentRay(kernelContext, twister, ray, 0);
     }
 
     //==============================================================================
