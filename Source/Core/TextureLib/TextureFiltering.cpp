@@ -100,15 +100,19 @@ namespace Shooty
         //==============================================================================
         static float3 EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1)
         {
-            int32 level = Min<uint32>(reqLevel, texture->mipCount - 1);
-
             WrapMode wrapMode = WrapMode::Repeat;
 
-            uint64 mipOffset = texture->mipOffsets[level];
-            uint32 mipWidth = texture->mipWidths[level];
-            uint32 mipHeight = texture->mipHeights[level];
-            float3* mip = &texture->mipmaps[mipOffset];
+            if(reqLevel >= (int32)texture->mipCount) {
+                uint64 mipOffset = texture->mipOffsets[texture->mipCount-1];
+                float3* mip = &texture->mipmaps[mipOffset];
+                return Sample(mip, wrapMode, 1, 1, 0, 0);
+            }
 
+            uint64 mipOffset = texture->mipOffsets[reqLevel];
+            uint32 mipWidth = texture->mipWidths[reqLevel];
+            uint32 mipHeight = texture->mipHeights[reqLevel];
+            float3* mip = &texture->mipmaps[mipOffset];
+            
             // Convert EWA coordinates to appropriate scale for level
             st.x = st.x * mipWidth - 0.5f;
             st.y = st.y * mipHeight - 0.5f;
