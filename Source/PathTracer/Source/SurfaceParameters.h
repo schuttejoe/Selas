@@ -21,9 +21,6 @@ namespace Shooty
         // -- spatial differentials
         float3 dpdu, dpdv;
 
-        // -- necessary any more?
-        float2 uvs;
-
         // -- material layer info
         float3 emissive;
         uint32 materialFlags;
@@ -32,7 +29,7 @@ namespace Shooty
         float3 specularColor;
         float  roughness;
 
-        // -- uv differentials. Necessary any more?
+        // -- uv differentials.
         SurfaceDifferentials differentials;
     };
 

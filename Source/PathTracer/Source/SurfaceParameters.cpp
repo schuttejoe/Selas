@@ -24,7 +24,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, uint textureIndex, bool sRGB, bool hasDifferentials)
+    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials)
     {
         if(textureIndex == InvalidIndex32)
             return float3::Zero_;
@@ -33,10 +33,10 @@ namespace Shooty
 
         float3 sample;
         if(hasDifferentials) {
-            sample = TextureFiltering::EWA(textures[textureIndex].data, surface.uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            sample = TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
         }
         else {
-            sample = TextureFiltering::Triangle(textures[textureIndex].data, 0, surface.uvs);
+            sample = TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs);
         }
 
         if(sRGB) {
@@ -73,40 +73,50 @@ namespace Shooty
         float b1 = barycentric.x;
         float b2 = barycentric.y;
 
-        // Compute deltas for triangle partial derivatives
-        float2 duv02 = uv0 - uv2;
-        float2 duv12 = uv1 - uv2;
-        float determinant = duv02.x * duv12.y - duv02.y * duv12.x;
-        bool degenerateUV = Math::Absf(determinant) < SmallFloatEpsilon_;
-        if(!degenerateUV) {
-            float3 edge02 = p0 - p2;
-            float3 edge12 = p1 - p2;
-            float3 dn02 = n0 - n2;
-            float3 dn12 = n1 - n2;
-
-            float invDet = 1 / determinant;
-            surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invDet;
-            surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invDet;
-            surface.differentials.dndu = (duv12.y * dn02 - duv02.y * dn12) * invDet;
-            surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invDet;
-        }
-        if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
-            CoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
-            surface.differentials.dndu = float3::Zero_;
-            surface.differentials.dndv = float3::Zero_;
-        }
-
-        surface.normal = Normalize(b0 * n0 + b1 * n1 + b2 * n2);
-        surface.position = position;
-        surface.uvs = b0 * uv0 + b1 * uv1 + b2 * uv2;
-        
-        CalculateSurfaceDifferentials(ray, surface.normal, position, surface.dpdu, surface.dpdv, surface.differentials);
-
-        surface.emissive      = SampleTextureFloat3(surface, scene, material->emissiveTextureIndex, false, ray.hasDifferentials);
-        surface.albedo        = SampleTextureFloat3(surface, scene, material->albedoTextureIndex, false, ray.hasDifferentials);
+        surface.normal        = Normalize(b0 * n0 + b1 * n1 + b2 * n2);
+        surface.position      = position;
         surface.materialFlags = material->flags;
         surface.metalness     = material->metalness;
         surface.specularColor = material->specularColor;
         surface.roughness     = material->roughness;
+
+        bool canUseDifferentials = (material->flags & eHasTextures) && ray.hasDifferentials;
+        bool preserveDifferentials = (material->flags | ePreserveRayDifferentials) && ray.hasDifferentials;
+        
+        if (canUseDifferentials || preserveDifferentials)  {
+            // Compute deltas for triangle partial derivatives
+            float2 duv02 = uv0 - uv2;
+            float2 duv12 = uv1 - uv2;
+            float determinant = duv02.x * duv12.y - duv02.y * duv12.x;
+            bool degenerateUV = Math::Absf(determinant) < SmallFloatEpsilon_;
+            if(!degenerateUV) {
+                float3 edge02 = p0 - p2;
+                float3 edge12 = p1 - p2;
+                float3 dn02 = n0 - n2;
+                float3 dn12 = n1 - n2;
+
+                float invDet = 1 / determinant;
+                surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invDet;
+                surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invDet;
+
+                if(preserveDifferentials) {
+                    surface.differentials.dndu = (duv12.y * dn02 - duv02.y * dn12) * invDet;
+                    surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invDet;
+                }
+            }
+            if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
+                CoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
+                surface.differentials.dndu = float3::Zero_;
+                surface.differentials.dndv = float3::Zero_;
+            }
+        }
+
+        if(canUseDifferentials) {
+            CalculateSurfaceDifferentials(ray, surface.normal, position, surface.dpdu, surface.dpdv, surface.differentials);
+        }
+
+        float2 uvs = b0 * uv0 + b1 * uv1 + b2 * uv2;
+        surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials);
+        surface.albedo   = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials);
     }
 }

@@ -92,14 +92,14 @@ namespace Shooty
             Material& material = built->materials[scan];
 
             if(StringUtil::Length(importedMaterialData.emissiveTexture.Ascii())) {
-                material.flags = 0;
+                material.flags =  eHasTextures;
                 material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTexture);
                 material.albedoTextureIndex = InvalidIndex32;
                 material.specularColor = float3(1, 1, 1);
                 material.roughness = 0.5f;
                 material.metalness = 1.0f;
             } else {
-                material.flags = eHasReflectance;
+                material.flags = eHasReflectance | eHasTextures;
                 material.emissiveTextureIndex = InvalidIndex32;
                 material.specularColor = float3(1, 1, 1);
                 material.roughness = 0.3f;

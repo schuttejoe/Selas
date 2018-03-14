@@ -32,8 +32,9 @@ namespace Shooty
 
     enum eMaterialFlags
     {
-        ePreserveRayDifferentials = 0x01,
-        eHasReflectance           = 0x02
+        ePreserveRayDifferentials = 1 << 0,
+        eHasReflectance           = 1 << 1,
+        eHasTextures              = 1 << 2
     };
 
     struct Material
