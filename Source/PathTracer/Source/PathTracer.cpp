@@ -109,15 +109,23 @@ namespace Shooty
             CalculateSurfaceParams(scene, ray, newPosition, primId, baryCoords, surface);
 
             Lo += surface.emissive;
+            Lo += CalculateDirectLighting(scene, twister, surface);
 
             if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
-                float3 wo = -ray.direction;
+                
+                float4 toLocal = ToTangentSpaceQuaternion(surface.normal);
+                float4 toWorld = Math::Quaternion::Invert(toLocal);
+
+                float3 v = -ray.direction;
+                float3 wo = Normalize(MatrixMultiplyFloat3(v, surface.worldToTangent));
 
                 float3 wi;
                 float3 reflectance;
                 ImportanceSampleDisneyBrdf(twister, surface, wo, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
+                    wi = MatrixMultiplyFloat3(wi, surface.tangentToWorld);
+                    
                     Ray bounceRay;
                     if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
                         bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * surface.normal, surface.normal, wo, wi, surface.differentials, bias, FloatMax_);

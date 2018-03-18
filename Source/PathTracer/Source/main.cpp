@@ -62,7 +62,7 @@ int main()
     uint32 meshHandle = -1;
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\living_room_open_windows", &sceneResource) == false) {
+    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bunny", &sceneResource) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -91,7 +91,6 @@ int main()
     SceneContext context;
     context.rtcScene = rtcScene;
     context.scene = &sceneResource;
-    context.textures = sceneResource.textures[0].data; // Yep. Hack.
     context.ibl = iblResouce.data;
     context.width = width;
     context.height = height;

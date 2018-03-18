@@ -21,7 +21,6 @@ namespace Shooty
     {
         RTCScene rtcScene;
         SceneResource* scene;
-        TextureResourceData* textures;
         ImageBasedLightResourceData* ibl;
         uint width;
         uint height;

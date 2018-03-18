@@ -52,6 +52,7 @@ namespace Shooty
     {
         float px, py, pz;
         float nx, ny, nz;
+        float tx, ty, tz, bh;
         float u, v;
         uint32 materialIndex;
     };

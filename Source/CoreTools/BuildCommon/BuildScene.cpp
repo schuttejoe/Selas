@@ -48,13 +48,28 @@ namespace Shooty
 
             built->vertexData.Reserve(built->vertexData.Length() + meshData.vertexCount);
             for(uint i = 0; i < meshData.vertexCount; ++i) {
+
+                float3 n = mesh->normals[i];
+                float3 t = mesh->tangents[i];
+                float3 b = mesh->bitangents[i];
+
+                // -- Gram-Schmidt to make sure they are orthogonal
+                t = t - Dot(n, t) * n;
+
+                // -- calculate handedness of input bitangent
+                float handedness = (Dot(Cross(n, t), b) < 0.0f) ? -1.0f : 1.0f;
+
                 VertexAuxiliaryData vertexData;
                 vertexData.px            = mesh->positions[i].x;
                 vertexData.py            = mesh->positions[i].y;
                 vertexData.pz            = mesh->positions[i].z;
-                vertexData.nx            = mesh->normals[i].x;
-                vertexData.ny            = mesh->normals[i].y;
-                vertexData.nz            = mesh->normals[i].z;
+                vertexData.nx            = n.x;
+                vertexData.ny            = n.y;
+                vertexData.nz            = n.z;
+                vertexData.tx            = t.x;
+                vertexData.ty            = t.y;
+                vertexData.tz            = t.z;
+                vertexData.bh            = handedness;
                 vertexData.u             = mesh->uv0[i].x;
                 vertexData.v             = mesh->uv0[i].y;
                 vertexData.materialIndex = mesh->materialIndex;

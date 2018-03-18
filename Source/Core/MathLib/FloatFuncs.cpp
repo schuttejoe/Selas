@@ -280,6 +280,22 @@ namespace Shooty
     }
 
     //==============================================================================
+    float3 MatrixMultiplyFloat3(float3 const& vec, float4x4 const& mat)
+    {
+        Assert_(mat.r0.w == 0.f);
+        Assert_(mat.r1.w == 0.f);
+        Assert_(mat.r2.w == 0.f);
+        Assert_(mat.r3.w == 1.f);
+
+        float3 result = {
+            vec.x * mat.r0.x + vec.y * mat.r1.x + vec.z * mat.r2.x,
+            vec.x * mat.r0.y + vec.y * mat.r1.y + vec.z * mat.r2.y,
+            vec.x * mat.r0.z + vec.y * mat.r1.z + vec.z * mat.r2.z
+        };
+        return result;
+    }
+
+    //==============================================================================
     float3 MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat)
     {
         Assert_(mat.r0.w == 0.f);

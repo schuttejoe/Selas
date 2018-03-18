@@ -18,6 +18,9 @@ namespace Shooty
         float3 position;
         float3 normal;
 
+        float4x4 worldToTangent;
+        float4x4 tangentToWorld;
+
         // -- spatial differentials
         float3 dpdu, dpdv;
 

@@ -19,7 +19,7 @@ namespace Shooty {
         if(StringUtil::EqualsIgnoreCase(materialName, "HDR")) {
             material->emissiveTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k");
         }
-        if(StringUtil::EqualsIgnoreCase(materialName, "room")) {
+        else {
             material->albedoTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\OffsetBlocks");
         }
         return true;

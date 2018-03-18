@@ -65,15 +65,31 @@ namespace Shooty
         float3 n0 = float3(v0.nx, v0.ny, v0.nz);
         float3 n1 = float3(v1.nx, v1.ny, v1.nz);
         float3 n2 = float3(v2.nx, v2.ny, v2.nz);
+        float3 t0 = float3(v0.tx, v0.ty, v0.tz);
+        float3 t1 = float3(v1.tx, v1.ty, v1.tz);
+        float3 t2 = float3(v2.tx, v2.ty, v2.tz);
+        float3 b0 = Cross(n0, t0) * v0.bh;
+        float3 b1 = Cross(n1, t1) * v1.bh;
+        float3 b2 = Cross(n2, t2) * v2.bh;
         float2 uv0 = float2(v0.u, v0.v);
         float2 uv1 = float2(v1.u, v1.v);
         float2 uv2 = float2(v2.u, v2.v);
 
-        float b0 = Saturate(1.0f - (barycentric.x + barycentric.y));
-        float b1 = barycentric.x;
-        float b2 = barycentric.y;
+        float a0 = Saturate(1.0f - (barycentric.x + barycentric.y));
+        float a1 = barycentric.x;
+        float a2 = barycentric.y;
 
-        surface.normal        = Normalize(b0 * n0 + b1 * n1 + b2 * n2);
+        float3 t = Normalize(a0 * t0 + a1 * t1 + a2 * t2);
+        float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
+        float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
+        
+        surface.tangentToWorld = MakeFloat4x4(float4(t, 0.0f),
+                                              float4(n, 0.0f),
+                                              float4(b, 0.0f),
+                                              float4(0.0f, 0.0f, 0.0f, 1.0f));
+        surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
+
+        surface.normal        = n;
         surface.position      = position;
         surface.materialFlags = material->flags;
         surface.metalness     = material->metalness;
@@ -115,7 +131,7 @@ namespace Shooty
             CalculateSurfaceDifferentials(ray, surface.normal, position, surface.dpdu, surface.dpdv, surface.differentials);
         }
 
-        float2 uvs = b0 * uv0 + b1 * uv1 + b2 * uv2;
+        float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
         surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials);
         surface.albedo   = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials);
     }

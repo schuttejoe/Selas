@@ -19,15 +19,12 @@ namespace Shooty
     struct Material;
     struct ImageBasedLightResourceData;
     struct SurfaceParameters;
+    struct SceneResource;
 
-    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 direction);
+    float4 ToTangentSpaceQuaternion(float3 n);
 
-    //void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, Material* material,
-    //                         float3& wi, float3& reflectance);
-    void ImportanceSampleGgxD(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance);
-    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance);
+    float3 CalculateDirectLighting(SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface);
 
-    //void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance);
-
-    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v, float3& wi, float3& reflectance);
+    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance);
+    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance);
 }

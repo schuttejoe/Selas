@@ -63,7 +63,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
+    static float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
     {
         float theta;
         float phi;
@@ -102,8 +102,42 @@ namespace Shooty
     //    }
     //}
 
+    ////==============================================================================
+    //void ImportanceSampleGgxD(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    //{
+    //    // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
+    //    float4 toLocal = ToTangentSpaceQuaternion(wg);
+    //    float4 toWorld = Math::Quaternion::Invert(toLocal);
+
+    //    float3 wo = Math::Quaternion::Rotate(toLocal, v);
+
+    //    float theta;
+    //    float phi;
+    //    float r0 = Random::MersenneTwisterFloat(twister);
+    //    float r1 = Random::MersenneTwisterFloat(twister);
+    //    ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
+
+    //    float3 wm = Math::SphericalToCartesian(theta, phi);
+    //    wi = Reflect(wm, wo);
+
+    //    if(BsdfNDot(wi) > 0.0f && Dot(wi, wm) > 0.0f) {
+    //        float a = material->roughness;
+    //        float a2 = a * a;
+
+    //        float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
+    //        float G = SmithGGXMaskingShading(wi, wo, wm, a2);
+    //        float weight = Math::Absf(Dot(wo, wm)) / (BsdfNDot(wo) * BsdfNDot(wm));
+
+    //        reflectance = F * G * weight;
+    //        wi = Math::Quaternion::Rotate(toWorld, wi);    
+    //    }
+    //    else {
+    //        reflectance = float3::Zero_;
+    //    }
+    //}
+
     //==============================================================================
-    static float4 ToTangentSpaceQuaternion(float3 n)
+    float4 ToTangentSpaceQuaternion(float3 n)
     {
         float3 axis = Cross(n, float3::YAxis_);
         float len = Length(axis);
@@ -169,112 +203,37 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleGgxD(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
+    float3 CalculateDirectLighting(SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface)
     {
-        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
-        float4 toLocal = ToTangentSpaceQuaternion(wg);
-        float4 toWorld = Math::Quaternion::Invert(toLocal);
+        // -- JSTODO - find light sources that can effect this point
 
-        float3 wo = Math::Quaternion::Rotate(toLocal, v);
+        // -- for each light source
+            // switch(lighttype)
+                // call light type function
+                    // for each ray
+                        
+        float3 hackLightPosition = float3(0, 10.0f, 0);
+        float3 l = Normalize(hackLightPosition - surface.position);
 
-        float theta;
-        float phi;
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
-        ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
-
-        float3 wm = Math::SphericalToCartesian(theta, phi);
-        wi = Reflect(wm, wo);
-
-        if(BsdfNDot(wi) > 0.0f && Dot(wi, wm) > 0.0f) {
-            float a = material->roughness;
-            float a2 = a * a;
-
-            float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
-            float G = SmithGGXMaskingShading(wi, wo, wm, a2);
-            float weight = Math::Absf(Dot(wo, wm)) / (BsdfNDot(wo) * BsdfNDot(wm));
-
-            reflectance = F * G * weight;
-            wi = Math::Quaternion::Rotate(toWorld, wi);    
-        }
-        else {
-            reflectance = float3::Zero_;
-        }
+        return 5.0f * Dot(surface.normal, l) * float3(1, 1, 1);
     }
 
     //==============================================================================
-    // JSTODO - This is temp. Get tangent space from mesh.
-    static float3 TransformToWorld(float x, float y, float z, float3 normal)
+    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance)
     {
-        // Find an axis that is not parallel to normal
-        float3 majorAxis;
-        if(Math::Absf(normal.x) < 0.57735026919f) {
-            majorAxis = float3(1, 0, 0);
-        }
-        else if(Math::Absf(normal.y) < 0.57735026919f) {
-            majorAxis = float3(0, 1, 0);
-        }
-        else {
-            majorAxis = float3(0, 0, 1);
-        }
-
-        // Use majorAxis to create a coordinate system relative to world space
-        float3 u = Normalize(Cross(normal, majorAxis));
-        float3 v = Cross(normal, u);
-        float3 w = normal;
-
-        // Transform from local coordinates to world coordinates
-        return u * x + w * y + v * z;
-    }
-
-    //==============================================================================
-    //void ImportanceSampleLambert(Random::MersenneTwister* twister, float3 n, float3 v, Material* material, float3& wi, float3& reflectance)
-    //{
-    //    float r0 = Random::MersenneTwisterFloat(twister);
-    //    float r1 = Random::MersenneTwisterFloat(twister);
-
-    //    float r     = Math::Sqrtf(r0);
-    //    float theta = 2.0f * Math::Pi_ * r1;
-
-    //    float x     = r * Math::Cosf(theta);
-    //    float y     = Math::Sqrtf(Max<float>(0.0f, 1.0f - r0));
-    //    float z     = r * Math::Sinf(theta);
-
-    //    wi = TransformToWorld(x, y, z, n);
-
-    //    float dotNL = Dot(wi, n);
-    //    if(dotNL > 0.0f) {
-    //        reflectance = material->albedo;
-    //    }
-    //    else {
-    //        reflectance = float3::Zero_;
-    //    }
-    //}
-
-    //==============================================================================
-    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
-    {
-        float a = material->roughness;
+        float a = surface.roughness;
         float a2 = a * a;
 
-        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
-        float4 toLocal = ToTangentSpaceQuaternion(wg);
-        float4 toWorld = Math::Quaternion::Invert(toLocal);
-
-        float3 wo = Math::Quaternion::Rotate(toLocal, v);
-
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
-        float3 wm = ImportanceSampling::GgxVndf(wo, material->roughness, r0, r1);
+        float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
-        float3 localWi = Reflect(wm, wo);
+        wi = Normalize(Reflect(wm, wo));
 
-        if(BsdfNDot(localWi) > 0.0f) {
-            wi = Math::Quaternion::Rotate(toWorld, localWi);
-
-            float3 F = SchlickFresnel(material->specularColor, Dot(localWi, wm));
-            float G1 = SmithGGXMasking(localWi, wo, wm, a2);
-            float G2 = SmithGGXMaskingShading(localWi, wo, wm, a2);
+        if(BsdfNDot(wi) > 0.0f) {
+            float3 F = SchlickFresnel(surface.specularColor, Dot(wi, wm));
+            float G1 = SmithGGXMasking(wi, wo, wm, a2);
+            float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
 
             reflectance = F * (G2 / G1);
             
@@ -285,39 +244,31 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v, float3& wi, float3& reflectance)
+    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance)
     {
-        float3 wg = surface.normal;
-
-        // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
-        float4 toLocal = ToTangentSpaceQuaternion(wg);
-        float4 toWorld = Math::Quaternion::Invert(toLocal);
-
         float a = surface.roughness;
         float a2 = a * a;
-
-        float3 wo = Math::Quaternion::Rotate(toLocal, v);
 
         float r0 = Random::MersenneTwisterFloat(twister);
         float r1 = Random::MersenneTwisterFloat(twister);
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
-        float3 localWi = Reflect(wm, wo);
+        wi = Reflect(wm, wo);
+        wi = Normalize(wi);
 
         reflectance = float3::Zero_;
 
-        if(BsdfNDot(localWi) > 0.0f) {
-            float3 F = SchlickFresnel(surface.specularColor, Dot(localWi, wm));
-            // -- JSTODO - Wait. I'm using wo.wm and wi.wm here while disney.brdf is using n.l and n.v. Which is correct?
-            float G1 = SmithGGXMasking(localWi, wo, wm, a2);
-            float G2 = SmithGGXMaskingShading(localWi, wo, wm, a2);
+        if(BsdfNDot(wi) > 0.0f) {
+            float3 F = SchlickFresnel(surface.specularColor, Dot(wi, wm));
+            float G1 = SmithGGXMasking(wi, wo, wm, a2);
+            float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
 
             // -- reflectance from the importance sampled GGX is interpolated based on metalness
             reflectance = surface.metalness * F * (G2 / G1);
 
             // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
             // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
-            float dotHL = BsdfNDot(localWi);
+            float dotHL = BsdfNDot(wi);
             float dotHV = BsdfNDot(wo);
             float rr = 0.5f + 2.0f * dotHL * dotHL * a;
             float fl = SchlickFresnel(dotHL);
@@ -328,8 +279,6 @@ namespace Shooty
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
             reflectance = reflectance + (1.0f - surface.metalness) * diffuse;
-
-            wi = Math::Quaternion::Rotate(toWorld, localWi);
         }
     }
 }
