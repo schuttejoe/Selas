@@ -83,6 +83,9 @@ int main()
     meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
     float buildms = SystemTime::ElapsedMs(timer);
 
+    //sceneResource.data->camera.fov = 0.7f;
+    //uint width = 128;
+    //uint height = 128;
     uint width = 1280;
     uint height = 720;
 

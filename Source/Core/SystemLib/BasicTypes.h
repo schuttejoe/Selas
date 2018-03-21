@@ -26,6 +26,9 @@ typedef const char*     cpointer;
 #define InvalidIndex64      uint64(-1)
 #define InvalidIndex32      uint32(-1)
 
+#define FloatInfinityBits_         0x7F800000
+#define FloatNegativeInfinityBits_ 0xFF800000
+
 namespace Shooty {
 
     #if Is64Bit_

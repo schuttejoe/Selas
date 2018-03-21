@@ -82,7 +82,15 @@ namespace Shooty
         float3 t = Normalize(a0 * t0 + a1 * t1 + a2 * t2);
         float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
         float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
-        
+
+        // -- adjust tangent frame to ensure it's facing in the direction the ray came from
+        if(Dot(n, -ray.direction) < 0.0f) {
+            t = -t;
+            b = -b;
+            n = -n;
+        }
+
+        // -- Calculate tangent space transforms
         surface.tangentToWorld = MakeFloat4x4(float4(t, 0.0f),
                                               float4(n, 0.0f),
                                               float4(b, 0.0f),

@@ -21,6 +21,7 @@ namespace Shooty {
         void MersenneTwisterInitialize(MersenneTwister* twister, uint32 seed);
         void MersenneTwisterShutdown(MersenneTwister* twister);
         float MersenneTwisterFloat(MersenneTwister* twister);
+        uint32 MersenneTwisterUint32(MersenneTwister* twister);
 
         uint  RandUint(uint max);
         float RandFloat0_1(void); // [0.0f, 1.0f]

@@ -43,6 +43,11 @@ namespace Shooty
             return twister->data->mtEngine() / (float)(0xFFFFFFFF);
         }
 
+        uint32 MersenneTwisterUint32(MersenneTwister* twister)
+        {
+            return twister->data->mtEngine();
+        }
+
         //==============================================================================
         uint RandUint(uint max)
         {

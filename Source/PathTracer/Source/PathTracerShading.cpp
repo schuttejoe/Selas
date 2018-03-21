@@ -136,26 +136,6 @@ namespace Shooty
     //    }
     //}
 
-    //==============================================================================
-    float4 ToTangentSpaceQuaternion(float3 n)
-    {
-        float3 axis = Cross(n, float3::YAxis_);
-        float len = Length(axis);
-
-        if(len > MinFloatEpsilon_) {
-            axis = (1.0f / len) * axis;
-            float radians = Math::Atan2f(len, n.y);
-
-            return Math::Quaternion::Create(radians, axis);
-        }
-        else if(n.y > 0.0f) {
-            return Math::Quaternion::Identity();
-        }
-        else {
-            return Math::Quaternion::Create(180.0f * Math::DegreesToRadians_, float3::XAxis_);
-        }
-    }
-
     // ================================================================================================
     // Fresnel
     // ================================================================================================

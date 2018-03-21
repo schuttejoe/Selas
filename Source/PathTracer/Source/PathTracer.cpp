@@ -14,6 +14,7 @@
 #include <GeometryLib/Camera.h>
 #include <GeometryLib/Ray.h>
 #include <GeometryLib/SurfaceDifferentials.h>
+#include <UtilityLib/FloatingPoint.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
 #include <MathLib/Trigonometric.h>
@@ -26,14 +27,16 @@
 #include <SystemLib/OSThreading.h>
 #include <SystemLib/Atomic.h>
 #include <SystemLib/MemoryAllocation.h>
+#include <SystemLib/Memory.h>
 #include <SystemLib/BasicTypes.h>
+#include <SystemLib/MinMax.h>
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
 #define RaysPerPixel_               512
-#define MaxBounceCount_             2
+#define MaxBounceCount_             4
 
 namespace Shooty
 {
@@ -53,7 +56,7 @@ namespace Shooty
 
     //==============================================================================
     static bool RayPick(const RTCScene& rtcScene, const SceneResourceData* scene, const Ray& ray,
-                        float3& position, float2& baryCoords, int32& primId)
+                        float3& position, float2& baryCoords, int32& primId, float& error)
     {
 
         RTCIntersectContext context;
@@ -83,14 +86,14 @@ namespace Shooty
         baryCoords = { rayhit.hit.u, rayhit.hit.v };
         primId = rayhit.hit.primID;
 
+        error = 32.0f * 1.19209e-07f * Max(Max(Math::Absf(position.x), Math::Absf(position.y)), Max(Math::Absf(position.z), rayhit.ray.tfar));
+
         return true;
     }
 
     //==============================================================================
     static float3 CastIncoherentRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, const Ray& ray, uint bounceCount)
     {
-        const float bias = 0.01f;
-
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResource* scene                = kernelContext->context->scene;
@@ -99,7 +102,8 @@ namespace Shooty
         float3 newPosition;
         float2 baryCoords;
         int32 primId;
-        bool hit = RayPick(rtcScene, scene->data, ray, newPosition, baryCoords, primId);
+        float error;
+        bool hit = RayPick(rtcScene, scene->data, ray, newPosition, baryCoords, primId, error);
 
         float3 Lo = float3::Zero_;
 
@@ -113,9 +117,6 @@ namespace Shooty
 
             if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
                 
-                float4 toLocal = ToTangentSpaceQuaternion(surface.normal);
-                float4 toWorld = Math::Quaternion::Invert(toLocal);
-
                 float3 v = -ray.direction;
                 float3 wo = Normalize(MatrixMultiplyFloat3(v, surface.worldToTangent));
 
@@ -125,13 +126,16 @@ namespace Shooty
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
                     wi = MatrixMultiplyFloat3(wi, surface.tangentToWorld);
-                    
+
+                    float offsetDirection = Dot(wi, surface.normal) < 0.0f ? -1.0f : 1.0f;
+                    float3 newOrigin = newPosition + offsetDirection * error * surface.normal;
+
                     Ray bounceRay;
                     if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newPosition + bias * surface.normal, surface.normal, wo, wi, surface.differentials, bias, FloatMax_);
+                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.normal, wo, wi, surface.differentials, error, FloatMax_);
                     }
                     else {
-                        bounceRay = MakeRay(newPosition + bias * surface.normal, wi, bias, FloatMax_);
+                        bounceRay = MakeRay(newOrigin, wi, error, FloatMax_);
                     }
 
                     Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
