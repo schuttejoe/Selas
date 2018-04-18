@@ -7,22 +7,12 @@
 #include <TextureLib/TextureResource.h>
 #include <SceneLib/SceneResource.h>
 #include <GeometryLib/Ray.h>
+#include <GeometryLib/CoordinateSystem.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/ColorSpace.h>
 
-#
 namespace Shooty
 {
-    //==============================================================================
-    static void CoordinateSystem(const float3& v1, float3* v2, float3* v3)
-    {
-        if(Math::Absf(v1.x) > Math::Absf(v1.y))
-            *v2 = float3(-v1.z, 0, v1.x) * (1.0f / Math::Sqrtf(v1.x * v1.x + v1.z * v1.z));
-        else
-            *v2 = float3(0, v1.z, -v1.y) * (1.0f / Math::Sqrtf(v1.y * v1.y + v1.z * v1.z));
-        *v3 = Cross(v1, *v2);
-    }
-
     //==============================================================================
     static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials)
     {
@@ -47,7 +37,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface)
+    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface)
     {
         uint32 i0 = scene->data->indices[3 * primitiveId + 0];
         uint32 i1 = scene->data->indices[3 * primitiveId + 1];
@@ -91,14 +81,12 @@ namespace Shooty
         }
 
         // -- Calculate tangent space transforms
-        surface.tangentToWorld = MakeFloat4x4(float4(t, 0.0f),
-                                              float4(n, 0.0f),
-                                              float4(b, 0.0f),
-                                              float4(0.0f, 0.0f, 0.0f, 1.0f));
+        surface.tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
 
         surface.normal        = n;
         surface.position      = position;
+        surface.error         = error;
         surface.materialFlags = material->flags;
         surface.metalness     = material->metalness;
         surface.specularColor = material->specularColor;
@@ -129,7 +117,7 @@ namespace Shooty
                 }
             }
             if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
-                CoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
+                MakeOrthogonalCoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
                 surface.differentials.dndu = float3::Zero_;
                 surface.differentials.dndv = float3::Zero_;
             }
@@ -142,5 +130,13 @@ namespace Shooty
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
         surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials);
         surface.albedo   = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials);
+    }
+
+    //==============================================================================
+    float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale)
+    {
+        float offsetDirection = Dot(direction, surface.normal) < 0.0f ? -1.0f : 1.0f;
+        float3 offset = offsetDirection * surface.error * biasScale * surface.normal;
+        return surface.position + offset;
     }
 }

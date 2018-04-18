@@ -20,7 +20,7 @@ namespace Shooty {
             material->emissiveTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k");
         }
         else {
-            material->albedoTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\OffsetBlocks");
+            material->albedoTexture.Copy("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\CommonWhite");
         }
         return true;
     }

@@ -19,6 +19,7 @@ namespace Shooty {
         float Tanf(float radians);
         float Cotf(float radians);
         float Acosf(float radians);
+        float Asinf(float radians);
         float Atanf(float radians);
         float Atan2f(float x, float y);
 

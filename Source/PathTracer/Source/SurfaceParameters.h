@@ -17,9 +17,10 @@ namespace Shooty
     {
         float3 position;
         float3 normal;
+        float error;
 
-        float4x4 worldToTangent;
-        float4x4 tangentToWorld;
+        float3x3 worldToTangent;
+        float3x3 tangentToWorld;
 
         // -- spatial differentials
         float3 dpdu, dpdv;
@@ -36,5 +37,6 @@ namespace Shooty
         SurfaceDifferentials differentials;
     };
 
-    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface);
+    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface);
+    float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
 }

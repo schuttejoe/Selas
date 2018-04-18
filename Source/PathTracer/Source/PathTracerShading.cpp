@@ -9,6 +9,8 @@
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
+#include <GeometryLib/RectangulerLight.h>
+#include <GeometryLib/CoordinateSystem.h>
 #include <UtilityLib/Color.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
@@ -17,6 +19,7 @@
 #include <MathLib/Random.h>
 #include <MathLib/Projection.h>
 #include <MathLib/Quaternion.h>
+#include <MathLib/GeometryIntersection.h>
 #include <ContainersLib/Rect.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
@@ -28,20 +31,23 @@
 namespace Shooty
 {
     //==============================================================================
-    static bool OcclusionRay(RTCScene& rtcScene, float3 orig, float3 direction, float znear, float zfar)
+    static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
     {
+        // -- Why does this need to be so "large" to avoid artifacts when lighting from a point light?
+        float3 origin = OffsetRayOrigin(surface, direction, 64.0f);
+
         RTCIntersectContext context;
         rtcInitIntersectContext(&context);
 
         __declspec(align(16)) RTCRay ray;
-        ray.org_x = orig.x;
-        ray.org_y = orig.y;
-        ray.org_z = orig.z;
+        ray.org_x = origin.x;
+        ray.org_y = origin.y;
+        ray.org_z = origin.z;
         ray.dir_x = direction.x;
         ray.dir_y = direction.y;
         ray.dir_z = direction.z;
-        ray.tnear = znear;
-        ray.tfar = zfar;
+        ray.tnear = surface.error;
+        ray.tfar  = distance;
 
         rtcOccluded1(rtcScene, &context, &ray);
 
@@ -183,19 +189,197 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDirectLighting(SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface)
+    static float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    {
+        float3 eX = light.eX;
+        float3 eZ = light.eZ;
+        float3 s = light.corner;
+
+        float eXLength = Length(eX);
+        float eZLength = Length(eZ);
+
+        float3 lightFacing = Normalize(Cross(eX, eZ));
+
+        if(Dot(-lightFacing, surface.normal) <= 0.0f) {
+            return float3::Zero_;
+        }
+
+        float3 Lo = float3::Zero_;
+
+        float pdf = 1.0f / (eXLength * eZLength);
+
+        for(uint scan = 0; scan < sampleCount; ++scan) {
+            float u = Random::MersenneTwisterFloat(twister);
+            float v = Random::MersenneTwisterFloat(twister);
+
+            float3 position = s + u * eX + v * eZ;
+
+            float3 ul = position - surface.position;
+            float distSquared = LengthSquared(ul);
+            float dist = Math::Sqrtf(distSquared);
+            float3 l = (1.0f / dist) * ul;
+
+            float dotNL = Saturate(Dot(surface.normal, l));
+            float dotSL = Saturate(Dot(lightFacing, -l));
+
+            if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
+                Lo += (dotNL * dotSL / distSquared) * light.intensity;
+            }
+        }
+
+        return Lo * (1.0f / (pdf * sampleCount));
+    }
+
+    //==============================================================================
+    static float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    {
+        float3 eX = light.eX;
+        float3 eZ = light.eZ;
+        float3 s  = light.corner;
+
+        RectangleLightSampler sampler;
+        InitializeRectangleLightSampler(s, eX, eZ, surface.position, sampler);
+
+        float3 lightFacing = sampler.z;
+
+        float3 Lo = float3::Zero_;
+
+        float pdf = 1.0f / sampler.S;
+
+        for(uint scan = 0; scan < sampleCount; ++scan) {
+            float u = Random::MersenneTwisterFloat(twister);
+            float v = Random::MersenneTwisterFloat(twister);
+
+            float3 position = SampleRectangleLight(sampler, u, v);
+
+            float3 ul = position - surface.position;
+            float distSquared = LengthSquared(ul);
+            float dist = Math::Sqrtf(distSquared);
+            float3 l = (1.0f / dist) * ul;
+
+            float dotNL = Saturate(Dot(surface.normal, l));
+            float dotSL = Saturate(Dot(lightFacing, -l));
+
+            if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
+                // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
+                // -- the pdf is constant so that is applied below.
+                Lo +=  dotNL * light.intensity;
+            }
+        }
+
+        return Lo * (1.0f / (pdf * sampleCount));
+    }
+
+    //==============================================================================
+    static float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
+    {
+        float3 L = light.intensity;
+        float3 c = light.center;
+        float  r = light.radius;
+
+        float3 Lo = float3::Zero_;
+
+        float pdf = 1.0f / (4.0f * Math::Pi_ * r * r);
+
+        for(uint scan = 0; scan < lightSampleCount; ++scan) {
+            float r0 = Random::MersenneTwisterFloat(twister);
+            float r1 = Random::MersenneTwisterFloat(twister);
+
+            float theta = Math::Acosf(1 - 2.0f * r0);
+            float phi   = Math::TwoPi_ * r1;
+
+            float3 sn = Math::SphericalToCartesian(theta, phi);
+            float3 xp = c + r * sn;
+
+            float3 w = xp - surface.position;
+            float distSquared = Dot(w, w);
+            float dist = Math::Sqrtf(distSquared);
+            w = (1.0f / dist) * w;
+
+            float dotSL = Dot(sn, -w);
+            float dotNL = Dot(surface.normal, w);
+
+            if(dotSL > 0.0f && dotNL > 0.0f && OcclusionRay(rtcScene, surface, w, dist)) {
+                Lo += L * dotNL * dotSL * (1.0f / distSquared);
+            }
+        }
+
+        return Lo * (1.0f / (lightSampleCount * pdf));
+    }
+
+    //==============================================================================
+    static float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
+    {
+        float3 L = light.intensity;
+        float3 c = light.center;
+        float  r = light.radius;
+
+        float3 w = c - surface.position;
+        float distanceToCenter = Length(w);
+        w = w * (1.0f / distanceToCenter);
+
+        float q = Math::Sqrtf(1.0f - (r / distanceToCenter) * (r / distanceToCenter));
+
+        float3 n = surface.normal;
+        float3 v, u;
+        MakeOrthogonalCoordinateSystem(w, &v, &u);        
+
+        float3x3 toWorld = MakeFloat3x3(u, w, v);
+        
+        float3 Lo = float3::Zero_;
+
+        for(uint scan = 0; scan < lightSampleCount; ++scan) {
+            float r0 = Random::MersenneTwisterFloat(twister);
+            float r1 = Random::MersenneTwisterFloat(twister);
+
+            float theta = Math::Acosf(1 - r0 + r0 * q);
+            float phi   = Math::TwoPi_ * r1;
+
+            float3 nwp = MatrixMultiply(Math::SphericalToCartesian(theta, phi), toWorld);
+            float3 wp = -nwp;
+
+            float3 xp;
+            Intersection::RaySphereNearest(surface.position, nwp, c, r, xp);
+
+            float test = Length(xp - c);
+
+            float distSquared = LengthSquared(xp - surface.position);
+            float dist = Math::Sqrtf(distSquared);
+
+            float dotNL = Saturate(Dot(nwp, surface.normal));
+            if(dotNL > 0.0f && OcclusionRay(rtcScene, surface, nwp, dist)) {
+                // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
+                float pdf_xp = 1.0f / (Math::TwoPi_ * (1.0f - q));
+                Lo += dotNL * (1.0f / pdf_xp) * L;
+            }
+        }
+
+        return Lo * (1.0f / lightSampleCount);
+    }
+
+    //==============================================================================
+    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface)
     {
         // -- JSTODO - find light sources that can effect this point
 
-        // -- for each light source
-            // switch(lighttype)
-                // call light type function
-                    // for each ray
-                        
-        float3 hackLightPosition = float3(0, 10.0f, 0);
-        float3 l = Normalize(hackLightPosition - surface.position);
+        uint lightSampleCount = 1;
 
-        return 5.0f * Dot(surface.normal, l) * float3(1, 1, 1);
+        float3 lightCenter = float3(0.0f, 7.0f, 0.0f);
+        float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
+
+        RectangularAreaLight rectangleLight;
+        rectangleLight.intensity = lightIntensity;
+        rectangleLight.eX = float3(5.0f, 0.0f, 0.0f);
+        rectangleLight.eZ = float3(0.0f, 0.0f, 5.0f);
+        rectangleLight.corner = lightCenter - 0.5f * rectangleLight.eX - 0.5f * rectangleLight.eZ;
+
+        SphericalAreaLight sphereLight;
+        sphereLight.intensity = lightIntensity;
+        sphereLight.center = lightCenter;
+        sphereLight.radius = 1.9947114f; // chosen to have a surface area of 50
+
+        float3 sa = IntegrateSphereLightWithSolidAngleSampling(rtcScene, twister, surface, sphereLight, lightSampleCount);
+        return sa;
     }
 
     //==============================================================================

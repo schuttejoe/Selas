@@ -136,34 +136,12 @@ namespace Shooty
     }
 
     //==============================================================================
-    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs)
+    float3x3 MatrixTranspose(float3x3 const& mat)
     {
-        float4x4 result = {
-            {
-                lhs.r0.x * rhs.r0.x + lhs.r0.y * rhs.r1.x + lhs.r0.z * rhs.r2.x + lhs.r0.w * rhs.r3.x,
-                lhs.r0.x * rhs.r0.y + lhs.r0.y * rhs.r1.y + lhs.r0.z * rhs.r2.y + lhs.r0.w * rhs.r3.y,
-                lhs.r0.x * rhs.r0.z + lhs.r0.y * rhs.r1.z + lhs.r0.z * rhs.r2.z + lhs.r0.w * rhs.r3.z,
-                lhs.r0.x * rhs.r0.w + lhs.r0.y * rhs.r1.w + lhs.r0.z * rhs.r2.w + lhs.r0.w * rhs.r3.w
-            },
-
-            {
-                lhs.r1.x * rhs.r0.x + lhs.r1.y * rhs.r1.x + lhs.r1.z * rhs.r2.x + lhs.r1.w * rhs.r3.x,
-                lhs.r1.x * rhs.r0.y + lhs.r1.y * rhs.r1.y + lhs.r1.z * rhs.r2.y + lhs.r1.w * rhs.r3.y,
-                lhs.r1.x * rhs.r0.z + lhs.r1.y * rhs.r1.z + lhs.r1.z * rhs.r2.z + lhs.r1.w * rhs.r3.z,
-                lhs.r1.x * rhs.r0.w + lhs.r1.y * rhs.r1.w + lhs.r1.z * rhs.r2.w + lhs.r1.w * rhs.r3.w,
-            },
-            {
-                lhs.r2.x * rhs.r0.x + lhs.r2.y * rhs.r1.x + lhs.r2.z * rhs.r2.x + lhs.r2.w * rhs.r3.x,
-                lhs.r2.x * rhs.r0.y + lhs.r2.y * rhs.r1.y + lhs.r2.z * rhs.r2.y + lhs.r2.w * rhs.r3.y,
-                lhs.r2.x * rhs.r0.z + lhs.r2.y * rhs.r1.z + lhs.r2.z * rhs.r2.z + lhs.r2.w * rhs.r3.z,
-                lhs.r2.x * rhs.r0.w + lhs.r2.y * rhs.r1.w + lhs.r2.z * rhs.r2.w + lhs.r2.w * rhs.r3.w,
-            },
-            {
-                lhs.r3.x * rhs.r0.x + lhs.r3.y * rhs.r1.x + lhs.r3.z * rhs.r2.x + lhs.r3.w * rhs.r3.x,
-                lhs.r3.x * rhs.r0.y + lhs.r3.y * rhs.r1.y + lhs.r3.z * rhs.r2.y + lhs.r3.w * rhs.r3.y,
-                lhs.r3.x * rhs.r0.z + lhs.r3.y * rhs.r1.z + lhs.r3.z * rhs.r2.z + lhs.r3.w * rhs.r3.z,
-                lhs.r3.x * rhs.r0.w + lhs.r3.y * rhs.r1.w + lhs.r3.z * rhs.r2.w + lhs.r3.w * rhs.r3.w,
-            }
+        float3x3 result = {
+            float3(mat.r0.x, mat.r1.x, mat.r2.x),
+            float3(mat.r0.y, mat.r1.y, mat.r2.y),
+            float3(mat.r0.z, mat.r1.z, mat.r2.z)
         };
         return result;
     }
@@ -276,6 +254,50 @@ namespace Shooty
             );
         }
 
+        return result;
+    }
+
+    //==============================================================================
+    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs)
+    {
+        float4x4 result = {
+            {
+                lhs.r0.x * rhs.r0.x + lhs.r0.y * rhs.r1.x + lhs.r0.z * rhs.r2.x + lhs.r0.w * rhs.r3.x,
+                lhs.r0.x * rhs.r0.y + lhs.r0.y * rhs.r1.y + lhs.r0.z * rhs.r2.y + lhs.r0.w * rhs.r3.y,
+                lhs.r0.x * rhs.r0.z + lhs.r0.y * rhs.r1.z + lhs.r0.z * rhs.r2.z + lhs.r0.w * rhs.r3.z,
+                lhs.r0.x * rhs.r0.w + lhs.r0.y * rhs.r1.w + lhs.r0.z * rhs.r2.w + lhs.r0.w * rhs.r3.w
+            },
+
+            {
+                lhs.r1.x * rhs.r0.x + lhs.r1.y * rhs.r1.x + lhs.r1.z * rhs.r2.x + lhs.r1.w * rhs.r3.x,
+                lhs.r1.x * rhs.r0.y + lhs.r1.y * rhs.r1.y + lhs.r1.z * rhs.r2.y + lhs.r1.w * rhs.r3.y,
+                lhs.r1.x * rhs.r0.z + lhs.r1.y * rhs.r1.z + lhs.r1.z * rhs.r2.z + lhs.r1.w * rhs.r3.z,
+                lhs.r1.x * rhs.r0.w + lhs.r1.y * rhs.r1.w + lhs.r1.z * rhs.r2.w + lhs.r1.w * rhs.r3.w,
+            },
+            {
+                lhs.r2.x * rhs.r0.x + lhs.r2.y * rhs.r1.x + lhs.r2.z * rhs.r2.x + lhs.r2.w * rhs.r3.x,
+                lhs.r2.x * rhs.r0.y + lhs.r2.y * rhs.r1.y + lhs.r2.z * rhs.r2.y + lhs.r2.w * rhs.r3.y,
+                lhs.r2.x * rhs.r0.z + lhs.r2.y * rhs.r1.z + lhs.r2.z * rhs.r2.z + lhs.r2.w * rhs.r3.z,
+                lhs.r2.x * rhs.r0.w + lhs.r2.y * rhs.r1.w + lhs.r2.z * rhs.r2.w + lhs.r2.w * rhs.r3.w,
+            },
+            {
+                lhs.r3.x * rhs.r0.x + lhs.r3.y * rhs.r1.x + lhs.r3.z * rhs.r2.x + lhs.r3.w * rhs.r3.x,
+                lhs.r3.x * rhs.r0.y + lhs.r3.y * rhs.r1.y + lhs.r3.z * rhs.r2.y + lhs.r3.w * rhs.r3.y,
+                lhs.r3.x * rhs.r0.z + lhs.r3.y * rhs.r1.z + lhs.r3.z * rhs.r2.z + lhs.r3.w * rhs.r3.z,
+                lhs.r3.x * rhs.r0.w + lhs.r3.y * rhs.r1.w + lhs.r3.z * rhs.r2.w + lhs.r3.w * rhs.r3.w,
+            }
+        };
+        return result;
+    }
+
+    //==============================================================================
+    float3 MatrixMultiply(float3 const& vec, float3x3 const& mat)
+    {
+        float3 result = {
+            vec.x * mat.r0.x + vec.y * mat.r1.x + vec.z * mat.r2.x,
+            vec.x * mat.r0.y + vec.y * mat.r1.y + vec.z * mat.r2.y,
+            vec.x * mat.r0.z + vec.y * mat.r1.z + vec.z * mat.r2.z
+        };
         return result;
     }
 

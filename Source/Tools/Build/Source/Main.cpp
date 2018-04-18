@@ -36,11 +36,11 @@ int main(int argc, char *argv[])
 
     #define ExportScene_ 1
     #define ExportIbl_ 0
-    #define ExportTextures_ 0
+    #define ExportTextures_ 1
 
 #if ExportScene_
     ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\bunny.fbx", &importedScene)) {
+    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Scenes\\SanMiguel\\San-Miguel.obj", &importedScene)) {
         Error_("Error importing obj");
         return -1;
     }
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     }
     ShutdownImportedScene(&importedScene);
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bunny");
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_teapot");
 #endif
 
 #if ExportIbl_
@@ -70,11 +70,11 @@ int main(int argc, char *argv[])
 
 #if ExportTextures_
     TextureResourceData textureData;
-    if(!ImportTexture("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_4k.hdr", Box, &textureData)) {
+    if(!ImportTexture("D:\\Shooty\\ShootyEngine\\Content\\Textures\\CommonWhite.tga", Box, &textureData)) {
         Error_("Error importing texture");
         return -1;
     }
-    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\red_wall_4k")) {
+    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\CommonWhite")) {
         Error_("Error writing texture asset");
         return -1;
     }

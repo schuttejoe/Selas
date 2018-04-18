@@ -117,8 +117,8 @@ namespace Shooty
                 material.flags = eHasReflectance | eHasTextures;
                 material.emissiveTextureIndex = InvalidIndex32;
                 material.specularColor = float3(1, 1, 1);
-                material.roughness = 0.05f;
-                material.metalness = 1.0f;
+                material.roughness = 0.75f;
+                material.metalness = 0.0f;
                 material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTexture);
             }
         }

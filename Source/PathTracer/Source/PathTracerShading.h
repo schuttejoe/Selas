@@ -16,12 +16,27 @@ namespace Shooty
         struct MersenneTwister;
     }
 
+    struct SphericalAreaLight
+    {
+        float3 intensity;
+        float3 center;
+        float radius;
+    };
+
+    struct RectangularAreaLight
+    {
+        float3 intensity;
+        float3 corner;
+        float3 eX;
+        float3 eZ;
+    };
+
     struct Material;
     struct ImageBasedLightResourceData;
     struct SurfaceParameters;
     struct SceneResource;
 
-    float3 CalculateDirectLighting(SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface);
+    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface);
 
     void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance);
     void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance);

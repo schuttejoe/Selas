@@ -40,6 +40,12 @@ namespace Shooty
     }
 
     //==============================================================================
+    float Math::Asinf(float radians)
+    {
+        return ::asinf(radians);
+    }
+
+    //==============================================================================
     float Math::Atanf(float radians)
     {
         return ::atanf(radians);

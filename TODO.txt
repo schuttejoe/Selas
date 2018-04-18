@@ -1,16 +1,16 @@
 
 Short term goals
 ---------------------
-Area lights
+Transmissive materials
 
 Features:
 ---------
 Materials from json files? Or something I can get from substance.
-Self intersection stuff http://pbrt.org/fp-error-section.pdf
-Transmissive materials
-Do something better than sloppy biasing to prevent self-intersection. Haven't seen much research on that but maybe bias based on cos(theta)?
+Depth of field
 Switch to a more complete BRDF (Disney?)
+Vertex Connection and Merging
 Debug tech (depth, material visualizations)
+
 
 Optimizations:
 --------------

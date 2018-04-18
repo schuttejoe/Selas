@@ -35,7 +35,7 @@
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
-#define RaysPerPixel_               512
+#define RaysPerPixel_               1024
 #define MaxBounceCount_             4
 
 namespace Shooty
@@ -97,7 +97,6 @@ namespace Shooty
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResource* scene                = kernelContext->context->scene;
-        ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
 
         float3 newPosition;
         float2 baryCoords;
@@ -110,25 +109,24 @@ namespace Shooty
         if(hit) {
 
             SurfaceParameters surface;
-            CalculateSurfaceParams(scene, ray, newPosition, primId, baryCoords, surface);
+            CalculateSurfaceParams(scene, ray, newPosition, error, primId, baryCoords, surface);
 
             Lo += surface.emissive;
-            Lo += CalculateDirectLighting(scene, twister, surface);
+            Lo += CalculateDirectLighting(rtcScene, scene, twister, surface);
 
             if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
                 
                 float3 v = -ray.direction;
-                float3 wo = Normalize(MatrixMultiplyFloat3(v, surface.worldToTangent));
+                float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
                 float3 wi;
                 float3 reflectance;
                 ImportanceSampleDisneyBrdf(twister, surface, wo, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
-                    wi = MatrixMultiplyFloat3(wi, surface.tangentToWorld);
+                    wi = MatrixMultiply(wi, surface.tangentToWorld);
 
-                    float offsetDirection = Dot(wi, surface.normal) < 0.0f ? -1.0f : 1.0f;
-                    float3 newOrigin = newPosition + offsetDirection * error * surface.normal;
+                    float3 newOrigin = OffsetRayOrigin(surface, wi, 1.0f);
 
                     Ray bounceRay;
                     if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {

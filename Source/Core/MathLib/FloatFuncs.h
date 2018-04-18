@@ -190,6 +190,14 @@ namespace Shooty {
         return 1.f / Length(vec4);
     }
 
+    ForceInline_ float3 ProjectOntoV(float3 u, float3 v)
+    {
+        float d = Dot(u, v);
+        float v2 = Dot(v, v);
+
+        return (d / v2) * v;
+    }
+
     // -- both should face outward
     ForceInline_ float3 Reflect(float3 n, float3 l)
     {
@@ -258,10 +266,14 @@ namespace Shooty {
         bool SolveLinearSystem(float2x2 A, float2 B, float2& r);
     }
 
+    // 3x3 matrix functions
+    float3x3 MatrixTranspose(float3x3 const& mat);
+
     // 4x4 matrix functions
     float4x4 MatrixTranspose(float4x4 const& mat);
     float4x4 MatrixInverse(float4x4 const& mat);
     float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs);
+    float3   MatrixMultiply(float3 const& vec, float3x3 const& mat);
     float3   MatrixMultiplyFloat3(float3 const& vec, float4x4 const& mat);
     float3   MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat);
     float4   MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat);
