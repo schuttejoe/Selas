@@ -6,9 +6,10 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
-    namespace Atomic {
+namespace Shooty
+{
+    namespace Atomic
+    {
         int32 Increment32(volatile int32* dest);
         int64 Increment64(volatile int64* dest);
 
@@ -29,6 +30,5 @@ namespace Shooty {
 
         int32 CompareExchange32(volatile int32* dest, int32 exchange_with, int32 compare_to);
         int64 CompareExchange64(volatile int64* dest, int64 exchange_with, int64 compare_to);
-
     }
 }

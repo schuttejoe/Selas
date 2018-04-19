@@ -8,8 +8,8 @@
 #include <SystemLib/Memory.h>
 #include <memory.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     //==============================================================================
     CJobMgr::CJobMgr(void)
         : jobPut(0)
@@ -17,18 +17,21 @@ namespace Shooty {
         , outstandingJobCount(0)
         , terminateThreads(false)
         , jobSpinlock(nullptr)
-        , jobSemaphore(nullptr) {
+        , jobSemaphore(nullptr)
+    {
 
     }
 
     //==============================================================================
-    CJobMgr::~CJobMgr(void) {
+    CJobMgr::~CJobMgr(void)
+    {
         Assert_(jobSpinlock == nullptr);
         Assert_(jobSemaphore == nullptr);
     }
 
     //==============================================================================
-    void CJobMgr::Initialize(void) {
+    void CJobMgr::Initialize(void)
+    {
         jobSpinlock = CreateSpinLock();
         jobSemaphore = CreateSemaphore(0, MaxJobs);
 
@@ -37,12 +40,13 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CJobMgr::Shutdown(void) {
+    void CJobMgr::Shutdown(void)
+    {
         WaitAll();
 
         terminateThreads = true;
         PostSemaphore(jobSemaphore, WorkerThreadCount);
-        for (int32 scan = 0; scan < WorkerThreadCount; ++scan) {
+        for(int32 scan = 0; scan < WorkerThreadCount; ++scan) {
             ShutdownThread(workerThreads[scan]);
         }
 
@@ -54,7 +58,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CJobMgr::CreateJob(JobFunction job, void* userData, JobGroup* group) {
+    void CJobMgr::CreateJob(JobFunction job, void* userData, JobGroup* group)
+    {
         Job newJob;
         newJob.function = job;
         newJob.userData = userData;
@@ -67,7 +72,7 @@ namespace Shooty {
         jobPut = (jobPut + 1) % MaxJobs;
         allJobs[jobIndex] = newJob;
 
-        if (group) {
+        if(group) {
             Atomic::Increment32(&group->groupCount);
         }
 
@@ -78,37 +83,42 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CJobMgr::WaitForGroup(JobGroup* group) {
+    void CJobMgr::WaitForGroup(JobGroup* group)
+    {
         Assert_(group);
         volatile int32* groupCount = &group->groupCount;
-        while (*groupCount > 0) {}
+        while(*groupCount > 0) {}
     }
 
     //==============================================================================
-    void CJobMgr::WaitAll(void) {
+    void CJobMgr::WaitAll(void)
+    {
         volatile int32* outstandingJobs = &outstandingJobCount;
-        while (*outstandingJobs > 0) {}
+        while(*outstandingJobs > 0) {}
     }
 
     //==============================================================================
-    void CJobMgr::CreateWorkerThreads(void) {
+    void CJobMgr::CreateWorkerThreads(void)
+    {
         terminateThreads = false;
-        for (int32 scan = 0; scan < WorkerThreadCount; ++scan) {
+        for(int32 scan = 0; scan < WorkerThreadCount; ++scan) {
             workerThreads[scan] = CreateThread(ThreadWorkerFunction, this);
         }
     }
 
     //==============================================================================
-    void CJobMgr::ThreadWorkerFunction(void* userData) {
+    void CJobMgr::ThreadWorkerFunction(void* userData)
+    {
         CJobMgr* jobMgr = reinterpret_cast<CJobMgr*>(userData);
-        while (ExecuteJob(jobMgr)) {}
+        while(ExecuteJob(jobMgr)) {}
     }
 
     //==============================================================================
-    bool CJobMgr::ExecuteJob(CJobMgr* jobMgr) {
+    bool CJobMgr::ExecuteJob(CJobMgr* jobMgr)
+    {
         WaitForSemaphore(jobMgr->jobSemaphore, 0xFFFFFFFF);
 
-        if (jobMgr->terminateThreads) {
+        if(jobMgr->terminateThreads) {
             return false;
         }
 
@@ -123,7 +133,7 @@ namespace Shooty {
         // Execute the job
         job.function(job.userData);
 
-        if (job.group) {
+        if(job.group) {
             Atomic::Decrement32(&job.group->groupCount);
         }
 

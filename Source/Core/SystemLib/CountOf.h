@@ -4,8 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty {
-
-#define CountOf_(x) (sizeof(x) / sizeof(x[0]))
-
-} //namespace Shooty
+namespace Shooty
+{
+    #define CountOf_(x) (sizeof(x) / sizeof(x[0]))
+}

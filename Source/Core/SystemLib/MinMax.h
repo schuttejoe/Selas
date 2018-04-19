@@ -6,7 +6,6 @@
 
 namespace Shooty
 {
-
     template<typename T>
     inline T Min(const T& lhs, const T& rhs)
     {

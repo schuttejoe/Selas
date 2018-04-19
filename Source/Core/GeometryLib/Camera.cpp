@@ -34,7 +34,8 @@ namespace Shooty
         float3 dx = Normalize(px - camera->position);
         float3 dy = Normalize(py - camera->position);
 
-        // JSTODO - Should the origins be set to p, px, and py rather than camera->position for all 3? Would likely need to adjust tnear if so.
+        // JSTODO - Should the origins be set to p, px, and py rather than camera->position for all 3?
+        // -- Verify when implementing DOF.
         Ray result;
         result.origin    = camera->position;
         result.direction = d;

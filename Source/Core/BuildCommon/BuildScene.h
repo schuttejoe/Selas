@@ -6,8 +6,8 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct ImportedScene;
     struct BuiltScene;
     bool BuildScene(ImportedScene* imported, BuiltScene* built);

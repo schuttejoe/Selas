@@ -6,9 +6,9 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct ImportedMaterialData;
 
     bool ImportMaterial(const char* materialName, ImportedMaterialData* material);
-};
+}

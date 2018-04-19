@@ -7,14 +7,15 @@
 #include <MathLib/ImportanceSampling.h>
 #include <IoLib/BinarySerializer.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     //==============================================================================
-    bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath) {
+    bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath)
+    {
         BinaryWriter writer;
         ReturnFailure_(SerializerStart(&writer, filepath));
 
-        uint64 width  = data->densityfunctions.width;
+        uint64 width = data->densityfunctions.width;
         uint64 height = data->densityfunctions.height;
 
         uint marginalDensityFunctionSize = sizeof(float) * ImportanceSampling::CalculateMarginalDensityFunctionCount(width, height);

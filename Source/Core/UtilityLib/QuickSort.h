@@ -6,11 +6,12 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     template <typename Type_>
-    void QuickSort(Type_* data, uint count) {
-        if (count < 2) {
+    void QuickSort(Type_* data, uint count)
+    {
+        if(count < 2) {
             return;
         }
 
@@ -18,11 +19,11 @@ namespace Shooty {
         Type_* left = data;
         Type_* right = data + count - 1;
 
-        while (left <= right) {
-            if (*left < pivot) {
+        while(left <= right) {
+            if(*left < pivot) {
                 left++;
             }
-            else if (*right > pivot) {
+            else if(*right > pivot) {
                 right--;
             }
             else {

@@ -1,4 +1,3 @@
-::set ShootyEngine environment variable permanently. Doesn't affect current session.
+:: Set environment variable used for ProjectGen and Navigate.py. Most people probably don't want to run this
 setx ShootyEngine %~dp0%
-::set ShootyEngine environment variable for current session only.
 SET ShootyEngine=%~dp0%

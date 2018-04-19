@@ -8,15 +8,18 @@
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/CheckedCast.h>
 
-namespace Shooty {
-
-    struct ColorRGBA {
+namespace Shooty
+{
+    struct ColorRGBA
+    {
         ColorRGBA() {}
         ColorRGBA(uint32 rhs) : rgba(rhs) {}
-        ColorRGBA(uint8 r, uint8 g, uint8 b, uint8 a) {
+        ColorRGBA(uint8 r, uint8 g, uint8 b, uint8 a)
+        {
             rgba = ((uint32(a) << 24) | (uint32(b) << 16) | (uint32(g) << 8) | uint32(r));
         }
-        ColorRGBA(float4 color) {
+        ColorRGBA(float4 color)
+        {
             uint8 r = (uint8)(Saturate(color.x) * 255);
             uint8 g = (uint8)(Saturate(color.y) * 255);
             uint8 b = (uint8)(Saturate(color.z) * 255);
@@ -36,7 +39,8 @@ namespace Shooty {
     };
 
     //==============================================================================
-    inline float4 MakeColor4f(ColorRGBA color) {
+    inline float4 MakeColor4f(ColorRGBA color)
+    {
         uint32 a = color.a();
         uint32 r = color.r();
         uint32 g = color.g();
@@ -54,12 +58,14 @@ namespace Shooty {
     }
 
     //==============================================================================
-    inline float4 MakeColor4f(uint8 r, uint8 g, uint8 b, uint8 a) {
+    inline float4 MakeColor4f(uint8 r, uint8 g, uint8 b, uint8 a)
+    {
         return MakeColor4f(ColorRGBA(r, g, b, a));
     }
 
     //==============================================================================
-    inline float3 MakeColor3f(ColorRGBA color) {
+    inline float3 MakeColor3f(ColorRGBA color)
+    {
         uint32 r = color.r();
         uint32 g = color.g();
         uint32 b = color.b();
@@ -75,8 +81,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    inline float3 MakeColor3f(uint8 r, uint8 g, uint8 b) {
+    inline float3 MakeColor3f(uint8 r, uint8 g, uint8 b)
+    {
         return MakeColor3f(ColorRGBA(r, g, b, 255));
     }
-
 }

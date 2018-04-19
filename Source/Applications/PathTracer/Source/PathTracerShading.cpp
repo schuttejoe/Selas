@@ -5,7 +5,6 @@
 
 #include "PathTracerShading.h"
 #include "SurfaceParameters.h"
-#include "Brdf.h"
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>

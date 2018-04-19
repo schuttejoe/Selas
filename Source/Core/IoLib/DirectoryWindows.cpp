@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-//#if IsWindows_
+#if IsWindows_
 
 #include <IoLib/Directory.h>
 #include <StringLib/FixedString.h>
@@ -44,4 +44,4 @@ namespace Shooty
         }
     }
 }
-//#endif
+#endif

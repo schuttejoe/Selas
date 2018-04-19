@@ -7,11 +7,12 @@
 //#include <MathLib/FloatStructs.h>
 #include <systemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct float3;
 
-    namespace ImportanceSampling {
+    namespace ImportanceSampling
+    {
 
         struct IblDensityFunctions
         {

@@ -9,15 +9,18 @@
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty {
+namespace Shooty
+{
 
     //==============================================================================
-    static float CieIntensity(float3 rgb) {
+    static float CieIntensity(float3 rgb)
+    {
         return rgb.x * 0.2125f + rgb.y * 0.7154f + rgb.z * 0.0721f;
     }
 
     //==============================================================================
-    static float* CalculateIntensityMap(uint width, uint height, float3* __restrict hdr) {
+    static float* CalculateIntensityMap(uint width, uint height, float3* __restrict hdr)
+    {
 
         float* intensities = AllocArray_(float, width * height);
 
@@ -44,7 +47,7 @@ namespace Shooty {
 
         Memory::Zero(functions->marginalDensityFunction, sizeof(float) * mdfCount);
         Memory::Zero(functions->conditionalDensityFunctions, sizeof(float) * cdfCount);
-        
+
         // Calculate each of the density functions
         float marginalSum = 0.0f;
         for(uint y = 0; y < height; ++y) {
@@ -93,8 +96,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl) {
-        
+    bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl)
+    {
         uint width;
         uint height;
         uint channels;

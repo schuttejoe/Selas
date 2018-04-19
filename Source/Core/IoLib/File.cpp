@@ -9,14 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace Shooty {
-    namespace File {
-
+namespace Shooty
+{
+    namespace File
+    {
         //==============================================================================
-        bool ReadWholeFile(const char* filename, void** __restrict fileData, uint32* __restrict fileSize) {
+        bool ReadWholeFile(const char* filename, void** __restrict fileData, uint32* __restrict fileSize)
+        {
             FILE* file = nullptr;
             fopen_s(&file, filename, "rb");
-            if (file == nullptr) {
+            if(file == nullptr) {
                 return false;
             }
 
@@ -36,10 +38,11 @@ namespace Shooty {
         }
 
         //==============================================================================
-        bool WriteWholeFile(const char* filename, void* data, uint32 size) {
+        bool WriteWholeFile(const char* filename, void* data, uint32 size)
+        {
             FILE* file = nullptr;
             fopen_s(&file, filename, "wb");
-            if (file == nullptr) {
+            if(file == nullptr) {
                 return false;
             }
 
@@ -51,6 +54,5 @@ namespace Shooty {
 
             return true;
         }
-
     }
 }

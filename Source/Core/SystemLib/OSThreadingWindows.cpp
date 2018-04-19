@@ -8,7 +8,8 @@
 #include <SystemLib/Memory.h>
 #include <windows.h>
 
-namespace Shooty {
+namespace Shooty
+{
 
     //==============================================================================
     // Events
@@ -91,7 +92,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CreateSpinLock(uint8 spin[CacheLineSize_]) {
+    void CreateSpinLock(uint8 spin[CacheLineSize_])
+    {
         Memory::Zero(spin, CacheLineSize_);
     }
 
@@ -114,4 +116,4 @@ namespace Shooty {
         volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
         *atom = 0;
     }
-};
+}

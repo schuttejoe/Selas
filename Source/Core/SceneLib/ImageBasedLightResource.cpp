@@ -7,10 +7,11 @@
 #include <IoLib/File.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     //==============================================================================
-    bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource) {
+    bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)
+    {
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
@@ -20,10 +21,10 @@ namespace Shooty {
         SerializerStart(&reader, fileData, fileSize);
 
         SerializerAttach(&reader, reinterpret_cast<void**>(&resource->data), fileSize);
-        
+
         FixupPointerX64(fileData, resource->data->densityfunctions.marginalDensityFunction);
         FixupPointerX64(fileData, resource->data->densityfunctions.conditionalDensityFunctions);
-        FixupPointerX64(fileData, resource->data->hdrData);   
+        FixupPointerX64(fileData, resource->data->hdrData);
 
         SerializerEnd(&reader);
 

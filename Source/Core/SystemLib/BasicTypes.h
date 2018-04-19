@@ -14,8 +14,8 @@ typedef unsigned short     uint16;
 typedef unsigned int       uint32;
 typedef unsigned long long uint64;
 
-typedef unsigned char*  pointer;
-typedef const char*     cpointer;
+typedef unsigned char*     pointer;
+typedef const char*        cpointer;
 
 #define ForceInline_        __forceinline
 #define Unused_(x)          (void)x;

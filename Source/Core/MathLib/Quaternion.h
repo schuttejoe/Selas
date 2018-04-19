@@ -5,11 +5,12 @@
 //==============================================================================
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty {
-
-    namespace Math {
-
-        namespace Quaternion {
+namespace Shooty
+{
+    namespace Math
+    {
+        namespace Quaternion
+        {
             float4 Identity(void);
             float4 Create(float radians, const float3& axis);
             float4 Multiply(const float4& l, const float4& r);

@@ -8,9 +8,10 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-namespace Shooty {
-
-    void AssertHandler(const char* message, const char* filename, int line) {
+namespace Shooty
+{
+    void AssertHandler(const char* message, const char* filename, int line)
+    {
         (void)filename;
         (void)line;
         (void)message;
@@ -18,7 +19,6 @@ namespace Shooty {
         DebugBreak();
         //assert(0);
     }
-
 }
 
 #endif

@@ -8,7 +8,8 @@
 #include <SystemLib/Memory.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty {
+namespace Shooty
+{
 
     template <typename Type_>
     class CArray
@@ -22,15 +23,16 @@ namespace Shooty {
         void Reserve(uint32 capacity);
         void Resize(uint32 length);
 
-        const Type_* GetData(void) const { return m_data; }
-        Type_* GetData(void) { return m_data; }
+        const Type_* GetData(void) const { return _data; }
+        Type_* GetData(void) { return _data; }
 
-        inline Type_&       operator[] (uint index) { return m_data[index]; }
-        inline const Type_& operator[] (uint index) const { return m_data[index]; }
+        inline Type_&       operator[] (uint index) { return _data[index]; }
+        inline const Type_& operator[] (uint index) const { return _data[index]; }
 
-        inline uint32 Length(void) const { return m_length; }
-        inline uint32 Capacity(void) const { return m_capacity; }
-        inline uint32 DataSize(void) const { return m_length * sizeof(Type_); }
+        // -- JSTOO -- Rename to Count
+        inline uint32 Length(void) const { return _count; }
+        inline uint32 Capacity(void) const { return _capacity; }
+        inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
 
         uint32 Add(void);
         uint32 Add(const Type_& element);
@@ -44,16 +46,16 @@ namespace Shooty {
         void GrowArray(void);
 
     private:
-        Type_ * m_data;
-        uint32  m_length;
-        uint32  m_capacity;
+        Type_ * _data;
+        uint32  _count;
+        uint32  _capacity;
     };
 
     template<typename Type_>
     CArray<Type_>::CArray(void)
-        : m_data(nullptr)
-        , m_length(0)
-        , m_capacity(0)
+        : _data(nullptr)
+        , _count(0)
+        , _capacity(0)
     {
     }
 
@@ -66,93 +68,94 @@ namespace Shooty {
     template<typename Type_>
     void CArray<Type_>::Close(void)
     {
-        if(m_data) {
-            Free_(m_data);
+        if(_data) {
+            Free_(_data);
         }
 
-        m_data = nullptr;
-        m_length = 0;
-        m_capacity = 0;
+        _data = nullptr;
+        _count = 0;
+        _capacity = 0;
     }
 
     template<typename Type_>
     void CArray<Type_>::Clear(void)
     {
-        m_length = 0;
+        _count = 0;
     }
 
     template<typename Type_>
     void CArray<Type_>::Reserve(uint32 capacity)
     {
-        if(capacity > m_capacity) {
-            ReallocateArray(m_length, capacity);
+        if(capacity > _capacity) {
+            ReallocateArray(_count, capacity);
         }
     }
 
     template<typename Type_>
     void CArray<Type_>::Resize(uint32 length)
     {
-        if(length > m_capacity) {
+        if(length > _capacity) {
             ReallocateArray(length, length);
         }
         else {
-            m_length = length;
+            _count = length;
         }
     }
 
     template<typename Type_>
     uint32 CArray<Type_>::Add(void)
     {
-        if(m_length == m_capacity) {
+        if(_count == _capacity) {
             GrowArray();
         }
 
-        Assert_(m_length < m_capacity);
-        return m_length++;
+        Assert_(_count < _capacity);
+        return _count++;
     }
 
     template<typename Type_>
     uint32 CArray<Type_>::Add(const Type_& element)
     {
-        if(m_length == m_capacity) {
+        if(_count == _capacity) {
             GrowArray();
         }
 
-        Assert_(m_length < m_capacity);
-        m_data[m_length] = element;
-        return m_length++;
+        Assert_(_count < _capacity);
+        _data[_count] = element;
+        return _count++;
     }
 
     template<typename Type_>
-    void CArray<Type_>::Append(const CArray<Type_>& addend) {
-        uint32 newLength = m_length + addend.Length();
+    void CArray<Type_>::Append(const CArray<Type_>& addend)
+    {
+        uint32 newLength = _count + addend.Length();
 
-        if (m_capacity < newLength)
-            ReallocateArray(m_length, newLength);
+        if(_capacity < newLength)
+            ReallocateArray(_count, newLength);
 
-        Memory::Copy(static_cast<Type_*>(m_data) + m_length, addend.GetData(), addend.DataSize());
-        m_length = newLength;
+        Memory::Copy(static_cast<Type_*>(_data) + _count, addend.GetData(), addend.DataSize());
+        _count = newLength;
     }
 
     template<typename Type_>
     bool CArray<Type_>::Remove(const Type_& item)
     {
         uint32 index = 0;
-        for(; index < m_length; ++index) {
-            if(m_data[index] == item) {
+        for(; index < _count; ++index) {
+            if(_data[index] == item) {
                 break;
             }
         }
 
-        if(index == m_length) {
+        if(index == _count) {
             return false;
         }
 
-        for(; index < m_length; ++index) {
-            m_data[index] = m_data[index + 1];
+        for(; index < _count; ++index) {
+            _data[index] = _data[index + 1];
         }
 
-        --m_length;
+        --_count;
 
         return true;
     }
@@ -161,10 +164,10 @@ namespace Shooty {
     void CArray<Type_>::RemoveFast(uint index)
     {
         Assert_(index >= 0);
-        Assert_(index < m_length);
+        Assert_(index < _count);
 
-        m_data[index] = m_data[m_length - 1];
-        m_length--;
+        _data[index] = _data[_count - 1];
+        _count--;
     }
 
     template<typename Type_>
@@ -172,32 +175,32 @@ namespace Shooty {
     {
         Type_* newList = AllocArray_(Type_, newCapacity);
 
-        if(m_data) {
-            uint32 lengthToCopy = (m_length < newLength) ? m_length : newLength;
+        if(_data) {
+            uint32 lengthToCopy = (_count < newLength) ? _count : newLength;
             if(lengthToCopy > 0) {
-                Memory::Copy(newList, m_data, lengthToCopy * sizeof(Type_));
+                Memory::Copy(newList, _data, lengthToCopy * sizeof(Type_));
             }
 
-            Free_(m_data);
+            Free_(_data);
         }
 
-        m_data = newList;
-        m_length = newLength;
-        m_capacity = newCapacity;
+        _data = newList;
+        _count = newLength;
+        _capacity = newCapacity;
     }
 
     template<typename Type_>
     void CArray<Type_>::GrowArray(void)
     {
-        // Idea from BHG code; seems very sensible. Updated ranges though
-        if(m_capacity < 64) {
-            ReallocateArray(m_length, m_capacity + 16);
+        // Idea from old BHG code; seems very sensible.
+        if(_capacity < 64) {
+            ReallocateArray(_count, _capacity + 16);
         }
-        else if(m_capacity < 256) {
-            ReallocateArray(m_length, m_capacity + 32);
+        else if(_capacity < 256) {
+            ReallocateArray(_count, _capacity + 32);
         }
         else {
-            ReallocateArray(m_length, m_capacity + 128);
+            ReallocateArray(_count, _capacity + 128);
         }
     }
 }

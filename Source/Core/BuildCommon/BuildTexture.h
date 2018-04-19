@@ -19,4 +19,4 @@ namespace Shooty
     };
 
     bool ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture);
-};
+}

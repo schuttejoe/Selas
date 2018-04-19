@@ -9,7 +9,6 @@
 
 namespace Shooty
 {
-
     namespace StringUtil
     {
         char Lowercase(char c);
@@ -42,5 +41,4 @@ namespace Shooty
 
         void RemoveExtension(char* str);
     }
-
 }

@@ -7,6 +7,11 @@
 #include <MathLib/Trigonometric.h>
 #include <SystemLib/MinMax.h>
 
+// -- Taken from:
+// https://www.solidangle.com/research/egsr2013_spherical_rectangle.pdf
+// -- See also: :P
+// https://schuttejoe.github.io/post/arealightsampling/
+
 namespace Shooty
 {
     void InitializeRectangleLightSampler(float3 s, float3 eX, float3 eY, float3 o, RectangleLightSampler& sampler)

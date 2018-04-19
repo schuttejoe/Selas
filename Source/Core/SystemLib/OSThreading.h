@@ -6,9 +6,10 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
+namespace Shooty
+{
 
-#define CacheLineSize_ 64
+    #define CacheLineSize_ 64
 
     // Events
     void*    CreateEvent(bool manual_reset, bool initialState);

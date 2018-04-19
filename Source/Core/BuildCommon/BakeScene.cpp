@@ -17,7 +17,7 @@ namespace Shooty
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
     {
         uint32 materialCount = sceneData.materials.Length();
-        uint32 textureCount  = sceneData.textures.Length();
+        uint32 textureCount = sceneData.textures.Length();
 
         SerializerWrite(writer, &textureCount, sizeof(textureCount));
         SerializerWrite(writer, &materialCount, sizeof(materialCount));

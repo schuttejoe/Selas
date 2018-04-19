@@ -6,9 +6,9 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct ImageBasedLightResourceData;
 
     bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl);
-};
+}

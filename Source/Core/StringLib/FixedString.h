@@ -6,10 +6,11 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty {
-
+namespace Shooty
+{
     template <int T>
-    struct FixedString {
+    struct FixedString
+    {
         char str[T];
 
         char* Ascii(void) { return &str[0]; }

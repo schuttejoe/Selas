@@ -4,10 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty {
+// JSTODO - Rename this file or split it into more than one.
 
-    namespace Math {
-
+namespace Shooty
+{
+    namespace Math
+    {
         const float Pi_ = 3.141592653589793f;
         const float TwoPi_ = Pi_ * 2.0f;
         const float PiSquared_ = Pi_ * Pi_;
@@ -33,7 +35,7 @@ namespace Shooty {
         float Square(float x);
         float Floor(float x);
         float Ceil(float x);
-        
+
         bool IsInf(float x);
         bool IsNaN(float x);
     }

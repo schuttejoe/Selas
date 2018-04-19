@@ -15,14 +15,16 @@
 
 // -- allocation tracking
 #define EnableManualAllocationTracking_ Debug_ && 1
-#define AllocationTrackingIncrement_ 4096
-#define EnableVerboseLogging_           0
-//#define BreakOnAllocation_ 327
+#define AllocationTrackingIncrement_           4096
+#define EnableVerboseLogging_                     0
+//#define BreakOnAllocation_                      327
 
-namespace Shooty {
+namespace Shooty
+{
 
     #if EnableManualAllocationTracking_
-    struct Allocation {
+    struct Allocation
+    {
         void*       address;
         const char* name;
         const char* file;
@@ -31,7 +33,8 @@ namespace Shooty {
         uint64      size;
     };
 
-    class CAllocationTracking {
+    class CAllocationTracking
+    {
     private:
         uint64 index;
         uint   size;
@@ -50,7 +53,8 @@ namespace Shooty {
     };
 
     //==============================================================================
-    CAllocationTracking::CAllocationTracking() {
+    CAllocationTracking::CAllocationTracking()
+    {
         size = AllocationTrackingIncrement_;
         used = 0;
         allocations = new Allocation[size];
@@ -62,12 +66,13 @@ namespace Shooty {
     }
 
     //==============================================================================
-    CAllocationTracking::~CAllocationTracking() {
+    CAllocationTracking::~CAllocationTracking()
+    {
         char logstring[2048];
 
-        for (uint scan = 0; scan < used; ++scan) {
+        for(uint scan = 0; scan < used; ++scan) {
             // -- log each leaked allocation
-            if (allocations[scan].name != nullptr) {
+            if(allocations[scan].name != nullptr) {
                 sprintf_s(logstring, 2048, "Index (%llu) - Name (%s) - Memory leak (%llu bytes) on line (%d) of file: %s\n", allocations[scan].index, allocations[scan].name, allocations[scan].size, allocations[scan].line, allocations[scan].file);
             }
             else {
@@ -82,10 +87,11 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void CAllocationTracking::AddAllocation(void* address, uint64 allocationSize, const char* name, const char* file, int line) {
+    void CAllocationTracking::AddAllocation(void* address, uint64 allocationSize, const char* name, const char* file, int line)
+    {
         EnterSpinLock(spinLock);
 
-        if (used == size) {
+        if(used == size) {
             size += AllocationTrackingIncrement_;
 
             Allocation* newarray = new Allocation[size];
@@ -96,9 +102,9 @@ namespace Shooty {
         }
 
         #ifdef BreakOnAllocation_
-            if (BreakOnAllocation_ == index) {
-                DebugBreak();
-            }
+        if(BreakOnAllocation_ == index) {
+            DebugBreak();
+        }
         #endif
 
         allocations[used].address = address;
@@ -112,22 +118,23 @@ namespace Shooty {
         allocatedMemory += allocationSize;
 
         #if EnableVerboseLogging_
-            char logstring[2048];
-            sprintf_s(logstring, 2048, "Allocation (%llu): %s - Total Allocated %llu\n", allocationSize, name, allocatedMemory);
-            OutputDebugString(logstring);
+        char logstring[2048];
+        sprintf_s(logstring, 2048, "Allocation (%llu): %s - Total Allocated %llu\n", allocationSize, name, allocatedMemory);
+        OutputDebugString(logstring);
         #endif
 
         LeaveSpinLock(spinLock);
     }
 
     //==============================================================================
-    void CAllocationTracking::RemoveAllocation(void* address) {
+    void CAllocationTracking::RemoveAllocation(void* address)
+    {
         EnterSpinLock(spinLock);
 
         bool found = false;
 
-        for (uint scan = 0; scan < used; ++scan) {
-            if (allocations[scan].address == address) {
+        for(uint scan = 0; scan < used; ++scan) {
+            if(allocations[scan].address == address) {
                 allocatedMemory -= allocations[scan].size;
 
                 #if EnableVerboseLogging_
@@ -158,23 +165,25 @@ namespace Shooty {
     #endif
 
     //==============================================================================
-    void* ShootyAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line) {
+    void* ShootyAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line)
+    {
 
         void* address = _aligned_malloc(size, alignment);
 
         #if EnableManualAllocationTracking_
-            tracker.AddAllocation(address, size, name, file, line);
+        tracker.AddAllocation(address, size, name, file, line);
         #endif
 
         return address;
     }
 
     //==============================================================================
-    void* ShootyMalloc(size_t size, const char* name, const char* file, int line) {
+    void* ShootyMalloc(size_t size, const char* name, const char* file, int line)
+    {
         void* address = malloc(size);
 
         #if EnableManualAllocationTracking_
-            tracker.AddAllocation(address, size, name, file, line);
+        tracker.AddAllocation(address, size, name, file, line);
         #endif
 
         return address;
@@ -184,7 +193,7 @@ namespace Shooty {
     void* ShootyRealloc(void* address, size_t size, const char* name, const char* file, int line)
     {
         #if EnableManualAllocationTracking_
-            tracker.RemoveAllocation(address);
+        tracker.RemoveAllocation(address);
         #endif
 
         address = realloc(address, size);
@@ -197,24 +206,25 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void ShootyAlignedFree(void* address) {
+    void ShootyAlignedFree(void* address)
+    {
 
         #if EnableManualAllocationTracking_
-            tracker.RemoveAllocation(address);
+        tracker.RemoveAllocation(address);
         #endif
 
         _aligned_free(address);
     }
 
     //==============================================================================
-    void ShootyFree(void* address) {
+    void ShootyFree(void* address)
+    {
         #if EnableManualAllocationTracking_
-            tracker.RemoveAllocation(address);
+        tracker.RemoveAllocation(address);
         #endif
 
         free(address);
     }
-
 }
 
 #endif

@@ -6,11 +6,10 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct ImageBasedLightResourceData;
 
     //==============================================================================
     bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath);
-
-};
+}

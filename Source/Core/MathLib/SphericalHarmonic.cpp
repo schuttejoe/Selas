@@ -5,18 +5,23 @@
 #include <MathLib/SphericalHarmonic.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty {
-    namespace Math {
-        namespace SH9 {
+namespace Shooty
+{
+    namespace Math
+    {
+        namespace SH9
+        {
             //==============================================================================
-            void Zero(SphericalHarmonic9* sh) {
+            void Zero(SphericalHarmonic9* sh)
+            {
                 Memory::Set(sh->coefficients, 0, sizeof(sh->coefficients));
             }
 
             //==============================================================================
-            SphericalHarmonic9 Add(const SphericalHarmonic9& left, const SphericalHarmonic9& right) {
+            SphericalHarmonic9 Add(const SphericalHarmonic9& left, const SphericalHarmonic9& right)
+            {
                 SphericalHarmonic9 res;
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     res.coefficients[scan] = left.coefficients[scan] + right.coefficients[scan];
                 }
 
@@ -24,9 +29,10 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9 Subtract(const SphericalHarmonic9& left, const SphericalHarmonic9& right) {
+            SphericalHarmonic9 Subtract(const SphericalHarmonic9& left, const SphericalHarmonic9& right)
+            {
                 SphericalHarmonic9 res;
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     res.coefficients[scan] = left.coefficients[scan] - right.coefficients[scan];
                 }
 
@@ -34,9 +40,10 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9 Scale(const SphericalHarmonic9& left, float scale) {
+            SphericalHarmonic9 Scale(const SphericalHarmonic9& left, float scale)
+            {
                 SphericalHarmonic9 res;
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     res.coefficients[scan] = left.coefficients[scan] * scale;
                 }
 
@@ -44,9 +51,10 @@ namespace Shooty {
             }
 
             //==============================================================================
-            float Dot(const SphericalHarmonic9& left, const SphericalHarmonic9& right) {
+            float Dot(const SphericalHarmonic9& left, const SphericalHarmonic9& right)
+            {
                 float sum = 0.0f;
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     sum += left.coefficients[scan] * right.coefficients[scan];
                 }
 
@@ -54,7 +62,8 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9 EvaluateBasis(const float3& v) {
+            SphericalHarmonic9 EvaluateBasis(const float3& v)
+            {
                 SphericalHarmonic9 res;
 
                 // -- band 0
@@ -83,9 +92,10 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9 Project(const float3& v, float intensity) {
+            SphericalHarmonic9 Project(const float3& v, float intensity)
+            {
                 SphericalHarmonic9 res = EvaluateBasis(v);
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     res.coefficients[scan] = res.coefficients[scan] * intensity;
                 }
 
@@ -93,14 +103,16 @@ namespace Shooty {
             }
 
             //==============================================================================
-            void Zero(SphericalHarmonic9Color* sh) {
+            void Zero(SphericalHarmonic9Color* sh)
+            {
                 Zero(&sh->red);
                 Zero(&sh->green);
                 Zero(&sh->blue);
             }
 
             //==============================================================================
-            SphericalHarmonic9Color Add(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right) {
+            SphericalHarmonic9Color Add(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right)
+            {
                 SphericalHarmonic9Color color;
                 color.red = Add(left.red, right.red);
                 color.green = Add(left.green, right.green);
@@ -110,7 +122,8 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9Color Subtract(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right) {
+            SphericalHarmonic9Color Subtract(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right)
+            {
                 SphericalHarmonic9Color color;
                 color.red = Subtract(left.red, right.red);
                 color.green = Subtract(left.green, right.green);
@@ -120,7 +133,8 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9Color Scale(const SphericalHarmonic9Color& left, float scale) {
+            SphericalHarmonic9Color Scale(const SphericalHarmonic9Color& left, float scale)
+            {
                 SphericalHarmonic9Color color;
                 color.red = Scale(left.red, scale);
                 color.green = Scale(left.green, scale);
@@ -130,7 +144,8 @@ namespace Shooty {
             }
 
             //==============================================================================
-            float3 Dot(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right) {
+            float3 Dot(const SphericalHarmonic9Color& left, const SphericalHarmonic9Color& right)
+            {
                 float3 sum;
                 sum.x = Dot(left.red, right.red);
                 sum.y = Dot(left.green, right.green);
@@ -140,12 +155,13 @@ namespace Shooty {
             }
 
             //==============================================================================
-            SphericalHarmonic9Color Project(const float3& v, const float3& intensity) {
+            SphericalHarmonic9Color Project(const float3& v, const float3& intensity)
+            {
                 SphericalHarmonic9 sh = EvaluateBasis(v);
 
                 SphericalHarmonic9Color res;
                 Zero(&res);
-                for (uint scan = 0; scan < 9; ++scan) {
+                for(uint scan = 0; scan < 9; ++scan) {
                     res.red.coefficients[scan] = sh.coefficients[scan] * intensity.x;
                     res.green.coefficients[scan] = sh.coefficients[scan] * intensity.y;
                     res.blue.coefficients[scan] = sh.coefficients[scan] * intensity.z;

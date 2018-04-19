@@ -9,8 +9,8 @@
 #include <SystemLib/MemoryAllocation.h>
 
 
-namespace Shooty {
-
+namespace Shooty
+{
     bool ImportMaterial(const char* materialName, ImportedMaterialData* material)
     {
         // -- This is all hacks until I figure out where I want to get real materials. Export from substance designer?

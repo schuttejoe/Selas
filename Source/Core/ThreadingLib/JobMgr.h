@@ -9,8 +9,8 @@
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     //==============================================================================
     // Forward declaration
     //==============================================================================
@@ -20,23 +20,27 @@ namespace Shooty {
     // CJobMgr
     //==============================================================================
 
-    enum {
+    enum
+    {
         WorkerThreadCount = 7,
         MaxJobs = 16 * 1024
     };
 
-    struct JobGroup {
+    struct JobGroup
+    {
         int32 groupCount;
         JobGroup() : groupCount(0) {}
     };
 
-    struct Job {
+    struct Job
+    {
         JobFunction  function;
         void*        userData;
         JobGroup*    group;
     };
 
-    class CJobMgr {
+    class CJobMgr
+    {
     public:
         CJobMgr(void);
         ~CJobMgr(void);

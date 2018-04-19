@@ -2,9 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty {
-
-    int ContainersWouldLikeToBeALibrary(int hi) {
+namespace Shooty
+{
+    int ContainersWouldLikeToBeALibrary(int hi)
+    {
         return hi;
     }
 }

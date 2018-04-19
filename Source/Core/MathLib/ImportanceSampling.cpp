@@ -55,7 +55,7 @@ namespace Shooty
         //==============================================================================
         float IblPdf(IblDensityFunctions* distributions, float3 w)
         {
-            int32 width  = (int32)distributions->width;
+            int32 width = (int32)distributions->width;
             int32 height = (int32)distributions->height;
             float widthf = (float)width;
             float heightf = (float)height;
@@ -117,7 +117,7 @@ namespace Shooty
             float sqrtdenom = (dotNH * dotNH) * (a2 - 1) + 1;
 
             return a2 / (Math::Pi_ * sqrtdenom * sqrtdenom);
-            
+
         }
 
         //==============================================================================
@@ -135,7 +135,7 @@ namespace Shooty
         {
             // -- Stretch the view vector so we are sampling as though roughness==1
             float3 v = Normalize(float3(wo.x * roughness, wo.y, wo.z * roughness));
-            
+
             // -- Build an orthonormal basis with v, t1, and t2
             float3 t1 = (v.y < 0.9999f) ? Normalize(Cross(v, float3::YAxis_)) : float3::XAxis_;
             float3 t2 = Cross(t1, v);

@@ -58,7 +58,7 @@ namespace Shooty
     static void ExtractMaterials(const aiScene* aiscene, ImportedScene* scene)
     {
         uint32 materialCount = aiscene->mNumMaterials;
-        
+
         scene->materials.Resize(materialCount);
         for(uint scan = 0; scan < materialCount; ++scan) {
             aiMaterial* material = aiscene->mMaterials[scan];
@@ -204,7 +204,7 @@ namespace Shooty
         uint mesh_index = 0;
         ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
         ReturnFailure_(ExtractCamera(aiscene, scene));
-        
+
         // aiscene is cleaned up by the importer's destructor
         return true;
     }

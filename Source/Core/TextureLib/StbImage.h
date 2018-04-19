@@ -6,9 +6,10 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
-    enum StbImageFormats {
+namespace Shooty
+{
+    enum StbImageFormats
+    {
         PNG,
         BMP,
         TGA,

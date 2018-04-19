@@ -8,14 +8,16 @@
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
-    struct ImageBasedLightResourceData {
+namespace Shooty
+{
+    struct ImageBasedLightResourceData
+    {
         ImportanceSampling::IblDensityFunctions densityfunctions;
         float3* hdrData;
     };
 
-    struct ImageBasedLightResource {
+    struct ImageBasedLightResource
+    {
         ImageBasedLightResourceData* data;
     };
 

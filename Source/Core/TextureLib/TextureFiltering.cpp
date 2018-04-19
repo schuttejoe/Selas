@@ -13,12 +13,10 @@
 
 namespace Shooty
 {
-    // JSTODO - Credit to pbrt
+    const uint EwaLutSize = 128;
+    static float EWAFilterLut[EwaLutSize];
 
-	const uint EwaLutSize = 128;
-	static float EWAFilterLut[EwaLutSize];
-
-	//==============================================================================
+    //==============================================================================
     namespace TextureFiltering
     {
         //==============================================================================
@@ -84,7 +82,7 @@ namespace Shooty
 
             float3* mip = &texture->mipmaps[mipOffset];
 
-            float s = st.x * mipWidth  - 0.5f;
+            float s = st.x * mipWidth - 0.5f;
             float t = st.y * mipHeight - 0.5f;
 
             int32 s0 = (int32)Math::Floor(s);
@@ -100,10 +98,13 @@ namespace Shooty
         //==============================================================================
         static float3 EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1)
         {
+            // Credit goes to pbrt for the EWA implementation
+            // https://github.com/mmp/pbrt-v3
+
             WrapMode wrapMode = WrapMode::Repeat;
 
             if(reqLevel >= (int32)texture->mipCount) {
-                uint64 mipOffset = texture->mipOffsets[texture->mipCount-1];
+                uint64 mipOffset = texture->mipOffsets[texture->mipCount - 1];
                 float3* mip = &texture->mipmaps[mipOffset];
                 return Sample(mip, wrapMode, 1, 1, 0, 0);
             }
@@ -112,7 +113,7 @@ namespace Shooty
             uint32 mipWidth = texture->mipWidths[reqLevel];
             uint32 mipHeight = texture->mipHeights[reqLevel];
             float3* mip = &texture->mipmaps[mipOffset];
-            
+
             // Convert EWA coordinates to appropriate scale for level
             st.x = st.x * mipWidth - 0.5f;
             st.y = st.y * mipHeight - 0.5f;
@@ -164,7 +165,8 @@ namespace Shooty
         //==============================================================================
         float3 EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
         {
-            // This was entirely copied from PBRT so 100% credit to them.
+            // Credit goes to pbrt for the EWA implementation
+            // https://github.com/mmp/pbrt-v3
 
             // Compute ellipse minor and major axes
             if(LengthSquared(dst0) < LengthSquared(dst1)) {
@@ -184,7 +186,7 @@ namespace Shooty
                 dst1 = dst1 * scale;
                 minorLength *= scale;
             }
-            if (minorLength == 0) 
+            if(minorLength == 0)
                 return Triangle(texture, 0, st);
 
             // Choose level of detail for EWA lookup and perform EWA filtering

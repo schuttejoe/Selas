@@ -6,10 +6,11 @@
 #include <SystemLib/JsAssert.h>
 #include <stdio.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     //==============================================================================
-    bool SerializerStart(BinaryWriter* serializer, const char* filename) {
+    bool SerializerStart(BinaryWriter* serializer, const char* filename)
+    {
         serializer->file = nullptr;
         serializer->rawData.Close();
         serializer->pointers.Close();
@@ -17,7 +18,7 @@ namespace Shooty {
 
         FILE* file = nullptr;
         fopen_s(&file, filename, "wb");
-        if (file == nullptr) {
+        if(file == nullptr) {
             return false;
         }
 
@@ -29,14 +30,15 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool SerializerEnd(BinaryWriter* serializer) {
+    bool SerializerEnd(BinaryWriter* serializer)
+    {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
         Assert_(serializer->rawData.Length() + serializer->pointerData.Length() != 0); // Don't make zero-sized files
 
         // Fixup all of the pointers to their actual offsets
         uint64 pointer_data_offset = serializer->rawData.Length();
-        for (uint scan = 0, count = serializer->pointers.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = serializer->pointers.Length(); scan < count; ++scan) {
             uint64 offset = pointer_data_offset + serializer->pointers[scan].pointerDataOffset;
 
             uint64* ptr = reinterpret_cast<uint64*>(&serializer->rawData[serializer->pointers[scan].pointerOffset]);
@@ -54,12 +56,13 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool SerializerWrite(BinaryWriter* serializer, const void* data, uint size) {
+    bool SerializerWrite(BinaryWriter* serializer, const void* data, uint size)
+    {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
 
         const uint8* cdata = static_cast<const uint8*>(data);
-        for (uint scan = 0; scan < size; ++scan) {
+        for(uint scan = 0; scan < size; ++scan) {
             serializer->rawData.Add(cdata[scan]);
         }
 
@@ -67,12 +70,13 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size) {
+    bool SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size)
+    {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
 
         const uint8* cdata = static_cast<const uint8*>(data);
-        for (uint scan = 0; scan < size; ++scan) {
+        for(uint scan = 0; scan < size; ++scan) {
             serializer->pointerData.Add(cdata[scan]);
         }
 
@@ -80,7 +84,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool SerializerWritePointerOffsetX64(BinaryWriter* serializer) {
+    bool SerializerWritePointerOffsetX64(BinaryWriter* serializer)
+    {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
 
@@ -94,7 +99,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void SerializerStart(BinaryReader* serializer, void* data, uint32 size) {
+    void SerializerStart(BinaryReader* serializer, void* data, uint32 size)
+    {
         Assert_(serializer);
 
         serializer->data = data;
@@ -103,7 +109,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    bool SerializerEnd(BinaryReader* serializer) {
+    bool SerializerEnd(BinaryReader* serializer)
+    {
         serializer->data = nullptr;
         serializer->size = 0;
         serializer->offset = 0;
@@ -112,7 +119,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void SerializerRead(BinaryReader* serializer, void* data, uint32 size) {
+    void SerializerRead(BinaryReader* serializer, void* data, uint32 size)
+    {
         Assert_(serializer);
         Assert_(serializer->offset + size <= serializer->size);
 
@@ -123,7 +131,8 @@ namespace Shooty {
     }
 
     //==============================================================================
-    void SerializerAttach(BinaryReader* serializer, void** data, uint32 size) {
+    void SerializerAttach(BinaryReader* serializer, void** data, uint32 size)
+    {
         Assert_(serializer);
         Assert_(serializer->offset + size <= serializer->size);
 
@@ -132,5 +141,4 @@ namespace Shooty {
 
         serializer->offset += size;
     }
-
 }

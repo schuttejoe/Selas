@@ -6,14 +6,14 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
+namespace Shooty
+{
     struct float2
     {
         float x, y;
 
         ForceInline_ float2() {}
-        ForceInline_ float2(float x_, float y_) : x(x_), y(y_) { }
+        ForceInline_ float2(float x_, float y_) : x(x_), y(y_) {}
 
         static const float2 Zero_;
         static const float2 XAxis_;
@@ -25,7 +25,7 @@ namespace Shooty {
         float x, y, z;
 
         ForceInline_ float3() {}
-        ForceInline_ float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) { }
+        ForceInline_ float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
         static const float3 Zero_;
         static const float3 XAxis_;
@@ -37,8 +37,8 @@ namespace Shooty {
     {
         float x, y, z, w;
         ForceInline_ float4() {}
-        ForceInline_ float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) { }
-        ForceInline_ float4(float3 xyz, float w_) : x(xyz.x), y(xyz.y), z(xyz.z), w(w_) { }
+        ForceInline_ float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
+        ForceInline_ float4(float3 xyz, float w_) : x(xyz.x), y(xyz.y), z(xyz.z), w(w_) {}
 
         ForceInline_ float3 XYZ() { return float3(x, y, z); }
 
@@ -100,4 +100,3 @@ namespace Shooty {
         return result;
     }
 }
-

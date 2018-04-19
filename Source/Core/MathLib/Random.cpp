@@ -17,7 +17,6 @@ namespace Shooty
 {
     namespace Random
     {
-
         //==============================================================================
         struct MersenneTwisterData
         {

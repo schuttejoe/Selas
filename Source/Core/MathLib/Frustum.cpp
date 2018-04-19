@@ -6,17 +6,20 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty {
-    namespace Math {
-
+namespace Shooty
+{
+    namespace Math
+    {
         //==============================================================================
-        static float4 NormalizePlane(float4 plane) {
-            float oo_length = 1.0f / Math::Sqrtf(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
-            return oo_length * plane;
+        static float4 NormalizePlane(float4 plane)
+        {
+            float ooLength = 1.0f / Math::Sqrtf(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
+            return ooLength * plane;
         }
 
         //==============================================================================
-        void CalculateFrustumPlanes(const float4x4& projection, float4* planes) {
+        void CalculateFrustumPlanes(const float4x4& projection, float4* planes)
+        {
             float4 top_plane;
             top_plane.x = projection.r0.w - projection.r0.y;
             top_plane.y = projection.r1.w - projection.r1.y;
@@ -59,6 +62,5 @@ namespace Shooty {
             far_plane.w = projection.r3.w - projection.r3.z;
             planes[5] = NormalizePlane(far_plane);
         }
-
     }
 }

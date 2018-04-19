@@ -11,8 +11,10 @@
 
 #include <math.h>
 
-namespace Shooty {
-    namespace Math {
+namespace Shooty
+{
+    namespace Math
+    {
 
         // -- Cubemap projection assume d3d face ordering
         // D3DCUBEMAP_FACE_POSITIVE_X   = 0
@@ -127,7 +129,7 @@ namespace Shooty {
         }
 
         //==============================================================================
-        float3 SphericalToCartesian(float theta, float phi) 
+        float3 SphericalToCartesian(float theta, float phi)
         {
             float sintheta = Math::Sinf(theta);
             float costheta = Math::Cosf(theta);
@@ -173,6 +175,5 @@ namespace Shooty {
 
             return dtheta * (dphi * sinTheta);
         }
-
     }
 }

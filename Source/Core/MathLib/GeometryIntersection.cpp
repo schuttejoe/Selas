@@ -13,7 +13,6 @@ namespace Shooty
 {
     namespace Intersection
     {
-
         //==============================================================================
         void RaySphereNearest(float3 o, float3 d, float3 center, float r, float3& p)
         {
@@ -180,6 +179,5 @@ namespace Shooty
             // They hit... but not yet. Not now. They wait, silently, for the opportune moment to strike.
             return false;
         }
-
-    } //namespace Intersection
+    }
 }

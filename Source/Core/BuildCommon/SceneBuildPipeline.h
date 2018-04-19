@@ -17,7 +17,7 @@ namespace Shooty
     //==============================================================================
     // -- Things that are embedded into the scene
     struct ImportedMaterialData
-    {      
+    {
         FixedString256 emissiveTexture;
         FixedString256 albedoTexture;
     };

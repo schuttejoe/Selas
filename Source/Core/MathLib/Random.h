@@ -7,10 +7,10 @@
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty {
-
-    namespace Random {
-
+namespace Shooty
+{
+    namespace Random
+    {
         struct MersenneTwisterData;
         struct MersenneTwister
         {
@@ -25,5 +25,5 @@ namespace Shooty {
 
         uint  RandUint(uint max);
         float RandFloat0_1(void); // [0.0f, 1.0f]
-    };
+    }
 }
