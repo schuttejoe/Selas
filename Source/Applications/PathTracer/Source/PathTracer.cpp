@@ -35,7 +35,7 @@
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
-#define RaysPerPixel_               1024
+#define RaysPerPixel_               16
 #define MaxBounceCount_             4
 
 namespace Shooty

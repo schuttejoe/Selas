@@ -29,14 +29,8 @@ typedef const char*     cpointer;
 #define FloatInfinityBits_         0x7F800000
 #define FloatNegativeInfinityBits_ 0xFF800000
 
-namespace Shooty {
-
-    #if Is64Bit_
-        typedef uint64             uint;
-        typedef int64              sint;
-    #else
-        typedef uint32             uint;
-        typedef int32              sint;
-    #endif
-
+namespace Shooty
+{
+    typedef uint64  uint;
+    typedef int64   sint;
 }

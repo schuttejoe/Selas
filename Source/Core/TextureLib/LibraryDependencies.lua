@@ -1,0 +1,2 @@
+
+includedirs { MiddlewareDir .. "stb" }
