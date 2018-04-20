@@ -35,7 +35,7 @@ namespace Shooty
         uint32         materialIndex;
     };
 
-    struct ImportedScene
+    struct ImportedModel
     {
         CArray<ImportedMesh*> meshes;
         CArray<FixedString256> materials;

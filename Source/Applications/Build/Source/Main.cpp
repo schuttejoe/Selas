@@ -5,7 +5,7 @@
 // -- Build
 #include <BuildCommon/BuildImageBasedLight.h>
 #include <BuildCommon/BakeImageBasedLight.h>
-#include <BuildCommon/ImportScene.h>
+#include <BuildCommon/ImportModel.h>
 #include <BuildCommon/BuildScene.h>
 #include <BuildCommon/BakeScene.h>
 #include <BuildCommon/BuildTexture.h>
@@ -39,18 +39,18 @@ int main(int argc, char *argv[])
     #define ExportTextures_ 0
 
 #if ExportScene_
-    ImportedScene importedScene;
-    if (!ImportScene("D:\\Shooty\\ShootyEngine\\Content\\Scenes\\bathroom\\scene.json", &importedScene)) {
+    ImportedModel importedModel;
+    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Scenes\\bathroom\\scene.json", &importedModel)) {
         Error_("Error importing scene.");
         return -1;
     }
 
     BuiltScene builtScene;
-    if (!BuildScene(&importedScene, &builtScene)) {
+    if (!BuildScene(&importedModel, &builtScene)) {
         Error_("Error building imported scene");
         return -1;
     }
-    ShutdownImportedScene(&importedScene);
+    ShutdownImportedModel(&importedModel);
 
     BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bathroom");
 #endif

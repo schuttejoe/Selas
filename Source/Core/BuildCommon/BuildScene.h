@@ -8,7 +8,8 @@
 
 namespace Shooty
 {
-    struct ImportedScene;
+    struct ImportedModel;
+
     struct BuiltScene;
-    bool BuildScene(ImportedScene* imported, BuiltScene* built);
+    bool BuildScene(ImportedModel* imported, BuiltScene* built);
 }

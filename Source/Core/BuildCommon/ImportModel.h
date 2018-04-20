@@ -9,6 +9,6 @@
 
 namespace Shooty
 {
-    bool ImportScene(const char* filename, ImportedScene* scene);
-    void ShutdownImportedScene(ImportedScene* scene);
+    bool ImportModel(const char* filename, ImportedModel* scene);
+    void ShutdownImportedModel(ImportedModel* scene);
 }

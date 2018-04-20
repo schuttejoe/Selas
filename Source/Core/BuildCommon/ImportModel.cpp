@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/ImportScene.h>
+#include <BuildCommon/ImportModel.h>
 #include <MathLib/FloatFuncs.h>
 #include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -55,7 +55,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void ExtractMaterials(const aiScene* aiscene, ImportedScene* scene)
+    static void ExtractMaterials(const aiScene* aiscene, ImportedModel* scene)
     {
         uint32 materialCount = aiscene->mNumMaterials;
 
@@ -70,7 +70,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedScene* scene, uint& meshIndex)
+    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* scene, uint& meshIndex)
     {
         for(uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
             const struct aiMesh* aimesh = aiscene->mMeshes[node->mMeshes[meshscan]];
@@ -146,7 +146,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool ExtractCamera(const aiScene* aiscene, ImportedScene* scene)
+    static bool ExtractCamera(const aiScene* aiscene, ImportedModel* scene)
     {
         // -- prepare defaults
         scene->camera.position = float3(0.0f, 0.0f, 5.0f);
@@ -171,7 +171,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool ImportScene(const char* filename, ImportedScene* scene)
+    bool ImportModel(const char* filename, ImportedModel* scene)
     {
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
@@ -210,7 +210,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ShutdownImportedScene(ImportedScene* scene)
+    void ShutdownImportedModel(ImportedModel* scene)
     {
         for(uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
             Delete_(scene->meshes[scan]);

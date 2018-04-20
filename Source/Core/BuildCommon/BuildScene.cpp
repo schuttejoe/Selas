@@ -27,7 +27,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void BuildMeshes(ImportedScene* imported, BuiltScene* built)
+    static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
     {
         uint32 totalIndexCount = 0;
         uint32 totalVertexCount = 0;
@@ -97,7 +97,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool BuildMaterials(ImportedScene* imported, BuiltScene* built)
+    static bool BuildMaterials(ImportedModel* imported, BuiltScene* built)
     {
         built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
@@ -127,7 +127,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool BuildScene(ImportedScene* imported, BuiltScene* built)
+    bool BuildScene(ImportedModel* imported, BuiltScene* built)
     {
         ReturnFailure_(BuildMaterials(imported, built));
 
