@@ -11,7 +11,8 @@ namespace Shooty
     //==============================================================================
     namespace File
     {
-        bool ReadWholeFile(const char* filename, void** fileData, uint32* fileSize);
-        bool WriteWholeFile(const char* filename, void* data, uint32 size);
+        bool ReadWholeFile(cpointer filepath, void** fileData, uint32* fileSize);
+        bool ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize);
+        bool WriteWholeFile(cpointer filepath, void* data, uint32 size);
     };
 }
