@@ -34,11 +34,11 @@ int main(int argc, char *argv[])
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\");
     Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
-    #define ExportScene_ 1
+    #define ExportModel_ 0
     #define ExportIbl_ 0
     #define ExportTextures_ 0
 
-#if ExportScene_
+#if ExportModel_
     ImportedModel importedModel;
     if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Scenes\\bathroom\\scene.json", &importedModel)) {
         Error_("Error importing scene.");
