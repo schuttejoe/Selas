@@ -24,7 +24,7 @@ namespace Shooty
         //==============================================================================
         int32 Length(const char* text)
         {
-            Assert_(text != NULL);
+            Assert_(text != nullptr);
             return (int32)strlen(text);
         }
 
@@ -41,6 +41,32 @@ namespace Shooty
         }
 
         //==============================================================================
+        int32 FindLastIndexOfAny(const char* text, const char* searchCharacters)
+        {
+            if(text == nullptr || searchCharacters == nullptr) {
+                return -1;
+            }
+
+            int32 len = Length(text);
+
+            for(int32 textIndex = len - 1; textIndex >= 0; --textIndex) {
+                for(int32 searchIndex = 0; searchCharacters[searchIndex]; ++searchIndex) {
+                    if(text[textIndex] == searchCharacters[searchIndex]) {
+                        return textIndex;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        //==============================================================================
+        cpointer FindSubString(cpointer text, char const* searchText)
+        {
+            return strstr(text, searchText);
+        }
+
+        //==============================================================================
         char* FindSubString(char* text, char const* searchText)
         {
             return strstr(text, searchText);
@@ -50,7 +76,7 @@ namespace Shooty
         int32 FindIndexOf(char const* text, char searchChar)
         {
             char const* location = strchr(text, searchChar);
-            if(location == NULL) {
+            if(location == nullptr) {
                 return -1;
             }
 
@@ -67,7 +93,7 @@ namespace Shooty
         int32 FindIndexOf(char const* text, char const* searchText, int32 offset)
         {
             char const* location = strstr(text + offset, searchText);
-            if(location == NULL) {
+            if(location == nullptr) {
                 return -1;
             }
 
@@ -158,11 +184,41 @@ namespace Shooty
         void RemoveExtension(char* str)
         {
             char* last = FindLastChar(str, '.');
-            if(last == NULL) {
+            if(last == nullptr) {
                 return;
             }
 
             *last = 0;
         }
+
+        //=================================================================================================
+        void GetFolderPath(const char* inpath, char* outDirectory, uint32 maxLength)
+        {
+            int32 found = FindLastIndexOfAny(inpath, ".");
+            if(found == -1) {
+                Copy(outDirectory, maxLength, inpath);
+                return;
+            }
+
+            const char* searchCharacters = "/\\";
+            int last = StringUtil::FindLastIndexOfAny(inpath, searchCharacters) + 1;
+            StringUtil::CopyN(outDirectory, maxLength, inpath, last);
+        }
+
+        //=================================================================================================
+        bool GetExtension(cpointer path, char* extension, uint32 maxLength)
+        {
+            int32 index = FindLastIndexOfAny(path, ".");
+            if(index == -1) {
+                return false;
+            }
+
+            cpointer addr = path + index + 1;
+            int32 length = Length(addr);
+
+            StringUtil::CopyN(extension, maxLength, addr, length);
+            return true;
+        }
+
     }
 }

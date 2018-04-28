@@ -21,8 +21,12 @@ namespace Shooty
 
         void InitializeEWAFilterWeights();
 
-        float3 Point(TextureResourceData* texture, float2 st);
-        float3 Triangle(TextureResourceData* texture, int32 level, float2 st);
-        float3 EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
+        float PointFloat(TextureResourceData* texture, float2 st);
+        float TriangleFloat(TextureResourceData* texture, int32 level, float2 st);
+        float EWAFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
+
+        float3 PointFloat3(TextureResourceData* texture, float2 st);
+        float3 TriangleFloat3(TextureResourceData* texture, int32 level, float2 st);
+        float3 EWAFloat3(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
     }
 }

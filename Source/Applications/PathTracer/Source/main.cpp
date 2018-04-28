@@ -72,7 +72,7 @@ int main()
     }
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_1k", &iblResouce) == false) {
+    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_4k", &iblResouce) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -102,7 +102,7 @@ int main()
     PathTraceImage(context, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
-    StbImageWrite("D:\\temp\\test.hdr", width, height, HDR, imageData);
+    StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);
     Free_(imageData);
 
     FixedString64 buildlog;

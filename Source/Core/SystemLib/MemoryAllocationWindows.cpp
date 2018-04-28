@@ -193,7 +193,8 @@ namespace Shooty
     void* ShootyRealloc(void* address, size_t size, const char* name, const char* file, int line)
     {
         #if EnableManualAllocationTracking_
-        tracker.RemoveAllocation(address);
+            if(address)
+                tracker.RemoveAllocation(address);
         #endif
 
         address = realloc(address, size);
@@ -208,9 +209,9 @@ namespace Shooty
     //==============================================================================
     void ShootyAlignedFree(void* address)
     {
-
         #if EnableManualAllocationTracking_
-        tracker.RemoveAllocation(address);
+        if(address)
+            tracker.RemoveAllocation(address);
         #endif
 
         _aligned_free(address);
@@ -220,7 +221,8 @@ namespace Shooty
     void ShootyFree(void* address)
     {
         #if EnableManualAllocationTracking_
-        tracker.RemoveAllocation(address);
+        if(address)
+            tracker.RemoveAllocation(address);
         #endif
 
         free(address);

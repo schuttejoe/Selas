@@ -11,12 +11,14 @@ namespace Shooty
 {
     namespace StringUtil
     {
+        // JSTODO - Unify parameter ordering
         char Lowercase(char c);
         int32 Length(char const* text);
 
         char* FindChar(char* text, char searchChar);
         char* FindLastChar(char* text, char searchChar);
 
+        cpointer FindSubString(cpointer text, char const* searchString);
         char* FindSubString(char* text, char const* searchString);
 
         int32 FindIndexOf(char const* text, char searchChar);
@@ -39,6 +41,10 @@ namespace Shooty
         int32 ToInt32(char const* text);
         float ToFloat(char const* text);
 
+        // -- file name utilities
         void RemoveExtension(char* str);
+        void GetFolderPath(const char* inpath, char* outDirectory, uint32 maxLength);
+        bool GetExtension(cpointer path, char* extension, uint32 maxLength);
+
     }
 }

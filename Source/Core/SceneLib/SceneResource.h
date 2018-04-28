@@ -39,13 +39,27 @@ namespace Shooty
 
     struct Material
     {
-        float3 specularColor;
-        float  roughness;
+        Material()
+            : emissiveTextureIndex(InvalidIndex32)
+            , albedoTextureIndex(InvalidIndex32)
+            , roughnessTextureIndex(InvalidIndex32)
+            , heightTextureIndex(InvalidIndex32)
+            , normalTextureIndex(InvalidIndex32)
+            , specularTextureIndex(InvalidIndex32)
+            , metalness(1.0f)
+            , flags(0)
+        {
+        }
 
-        float  metalness;
-        uint32 flags;
         uint32 emissiveTextureIndex;
         uint32 albedoTextureIndex;
+        uint32 roughnessTextureIndex;
+        uint32 heightTextureIndex;
+        uint32 normalTextureIndex;
+        uint32 specularTextureIndex;
+        float  metalness;
+        uint32 flags;
+
     };
 
     struct VertexAuxiliaryData

@@ -3,14 +3,17 @@
 //==============================================================================
 
 #include <IoLib/BinarySerializer.h>
+#include <IoLib/Directory.h>
 #include <SystemLib/JsAssert.h>
 #include <stdio.h>
 
 namespace Shooty
 {
     //==============================================================================
-    bool SerializerStart(BinaryWriter* serializer, const char* filename)
+    bool SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea, uint32 sizeb)
     {
+        Directory::EnsureDirectoryExists(filename);
+
         serializer->file = nullptr;
         serializer->rawData.Close();
         serializer->pointers.Close();
@@ -24,8 +27,15 @@ namespace Shooty
 
         serializer->file = static_cast<void*>(file);
 
-        serializer->rawData.Reserve(8 * 1024 * 1024);
-        serializer->pointerData.Reserve(128 * 1024 * 1024);
+        if(sizea != 0) {
+            serializer->rawData.Reserve(sizea);
+        }
+        if(sizeb != 0) {
+            serializer->pointerData.Reserve(sizeb);
+        }
+        else if(sizea != 0) {
+            serializer->pointerData.Reserve(sizea);
+        }
         return true;
     }
 

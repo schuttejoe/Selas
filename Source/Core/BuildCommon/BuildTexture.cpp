@@ -6,6 +6,7 @@
 #include <TextureLib/StbImage.h>
 #include <TextureLib/TextureResource.h>
 #include <UtilityLib/Color.h>
+#include <StringLib/FixedString.h>
 #include <StringLib/StringUtil.h>
 #include <MathLib/ColorSpace.h>
 #include <MathLib/FloatFuncs.h>
@@ -15,8 +16,12 @@
 #include <SystemLib/Memory.h>
 #include <SystemLib/MinMax.h>
 
+#include <stdio.h>
+
 namespace Shooty
 {
+    cpointer TextureBaseDirectory = "D:\\Shooty\\ShootyEngine\\Content\\Textures\\";
+
     //==============================================================================
     static void Uint32ToLinearFloat3(bool isLinear, uint width, uint height, uint32* rawData, float3* output)
     {
@@ -26,6 +31,33 @@ namespace Shooty
             uint32 sample = rawData[scan];
 
             float3 linear = isLinear ? MakeColor3f(sample) : Math::SrgbToLinearPrecise(MakeColor3f(sample));
+            output[scan] = linear;
+        }
+    }
+
+    //==============================================================================
+    static void Uint8ToLinearFloat(bool isLinear, uint width, uint height, uint8* rawData, float* output)
+    {
+        uint count = width * height;
+
+        for(uint scan = 0; scan < count; ++scan) {
+            uint8 sample = rawData[scan];
+            float samplef = sample / 255.0f;
+
+            float linear = isLinear ? samplef : Math::SrgbToLinearPrecise(samplef);
+            output[scan] = linear;
+        }
+    }
+
+    //==============================================================================
+    static void Uint24ToLinearFloat(bool isLinear, uint width, uint height, uint8* rawData, float* output)
+    {
+        uint count = width * height;
+
+        for(uint scan = 0; scan < count; ++scan) {
+            uint8 r = rawData[3 * scan + 0];
+
+            float linear = isLinear ? r : Math::SrgbToLinearPrecise(r);
             output[scan] = linear;
         }
     }
@@ -60,11 +92,39 @@ namespace Shooty
     }
 
     //==============================================================================
+    static bool LoadLinearFloatData(const char* filepath, float*& output, uint& width, uint& height)
+    {
+        uint channels;
+        void* rawData;
+        ReturnFailure_(StbImageRead(filepath, 1, width, height, channels, rawData));
+
+        uint count = width * height;
+        output = AllocArray_(float, count);
+
+        if(channels == 1) {
+            Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
+        }
+        else if(channels == 3) {
+            // -- stb reports the original but will successfully convert to 1 channel in that case.
+            // -- verified for jpg at least
+            Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
+        }
+        else {
+            Free_(rawData);
+            return false;
+        }
+
+        Free_(rawData);
+
+        return true;
+    }
+
+    //==============================================================================
     static bool LoadLinearFloat3Data(const char* filepath, float3*& output, uint& width, uint& height)
     {
         uint channels;
         void* rawData;
-        ReturnFailure_(StbImageRead(filepath, width, height, channels, rawData));
+        ReturnFailure_(StbImageRead(filepath, 3, width, height, channels, rawData));
 
         uint count = width * height;
         output = AllocArray_(float3, count);
@@ -101,7 +161,8 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void BoxFilterMip(float3* srcMip, uint srcWidth, uint srcHeight, float3* dstMip, uint dstWidth, uint dstHeight)
+    template <typename Type_>
+    static void BoxFilterMip(Type_* srcMip, uint srcWidth, uint srcHeight, Type_* dstMip, uint dstWidth, uint dstHeight)
     {
         if(srcWidth == 1) {
             for(uint y = 0; y < dstHeight; ++y) {
@@ -130,8 +191,9 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool GenerateMipMaps(TextureMipFilters prefilter, float3* linear, uint width, uint height,
-                                uint64* mipOffsets, uint32* mipWidths, uint32* mipHeights, float3*& mipmaps, uint32& mipCount, uint32& dataSize)
+    template <typename Type_>
+    static bool GenerateMipMaps(TextureMipFilters prefilter, Type_* linear, uint width, uint height,
+                                uint64* mipOffsets, uint32* mipWidths, uint32* mipHeights, Type_*& mipmaps, uint32& mipCount, uint32& dataSize)
     {
         AssertMsg_(prefilter == Box, "Only Box filter is currently implemented");
 
@@ -153,18 +215,18 @@ namespace Shooty
             return false;
         }
 
-        mipmaps = AllocArray_(float3, totalTexelCount);
-        dataSize = (uint32)(sizeof(float3) * totalTexelCount);
+        mipmaps = AllocArray_(Type_, totalTexelCount);
+        dataSize = (uint32)(sizeof(Type_) * totalTexelCount);
 
         // -- copy top level
-        Memory::Copy(mipmaps, linear, sizeof(float3)*width*height);
+        Memory::Copy(mipmaps, linear, sizeof(Type_)*width*height);
 
         mipWidths[0] = (uint32)width;
         mipHeights[0] = (uint32)height;
         mipOffsets[0] = 0;
 
         // -- Filter remaining mips
-        uint offset = 0;
+        uint indexOffset = 0;
         for(uint scan = 1; scan < mipCount; ++scan) {
 
             uint srcWidth  = Max<uint>(width >> (scan-1), 1);
@@ -177,31 +239,99 @@ namespace Shooty
 
             switch(prefilter) {
             case Box:
-                BoxFilterMip(mipmaps + offset, srcWidth, srcHeight, mipmaps + offset + srcTexelCount, dstWidth, dstHeight);
+                BoxFilterMip(mipmaps + indexOffset, srcWidth, srcHeight, mipmaps + indexOffset + srcTexelCount, dstWidth, dstHeight);
             };
 
-            offset += srcTexelCount;
+            indexOffset += srcTexelCount;
             mipWidths[scan] = (uint32)dstWidth;
             mipHeights[scan] = (uint32)dstHeight;
-            mipOffsets[scan] = offset;            
+            mipOffsets[scan] = sizeof(Type_) * indexOffset;
         }
 
         return true;
     }
 
-    //==============================================================================
-    bool ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture)
+    enum MaterialTextureTypes
     {
-        float3* linear = nullptr;
-        uint width;
-        uint height;
-        ReturnFailure_(LoadLinearFloat3Data(filepath, linear, width, height));
+        AO,
+        Albedo,
+        Height,
+        Normal,
+        Roughness,
+        ReflectanceAtR0,
 
-        texture->dataSize = 0;
-        bool success = GenerateMipMaps(prefilter, linear, width, height,
-                                       texture->mipOffsets, texture->mipWidths, texture->mipHeights, texture->mipmaps, texture->mipCount, texture->dataSize);
-        Free_(linear);
+        Unknown
+    };
 
-        return success;
+    //==============================================================================
+    static MaterialTextureTypes DetermineMaterialType(cpointer textureName)
+    {
+        if(StringUtil::FindSubString(textureName, "_AO")) {
+            return AO;
+        }
+        if(StringUtil::FindSubString(textureName, "_Albedo")) {
+            return Albedo;
+        }
+        if(StringUtil::FindSubString(textureName, "_Height")) {
+            return Height;
+        }
+        if(StringUtil::FindSubString(textureName, "_Normal")) {
+            return Normal;
+        }
+        if(StringUtil::FindSubString(textureName, "_Roughness")) {
+            return Roughness;
+        }
+        if(StringUtil::FindSubString(textureName, "_Specular")) {
+            return ReflectanceAtR0;
+        }
+
+        return Unknown;
+    }
+
+    //==============================================================================
+    bool ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
+    {
+        FixedString512 filepath;
+        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
+
+        //LoadLinearFloaData
+        FixedString32 extension;
+        StringUtil::GetExtension(filepath.Ascii(), extension.Ascii(), (uint32)extension.Capcaity());
+
+        MaterialTextureTypes type = DetermineMaterialType(textureName);
+        Assert_(type != Unknown);
+
+        bool result;
+        if(type == AO || type == Height || type == Roughness) {
+            float* linear = nullptr;
+            uint width;
+            uint height;
+            ReturnFailure_(LoadLinearFloatData(filepath.Ascii(), linear, width, height));
+
+            float* textureData;
+            texture->dataSize = 0;
+            result = GenerateMipMaps<float>(prefilter, linear, width, height,
+                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+            texture->texture = reinterpret_cast<uint8*>(textureData);
+            texture->type = TextureResourceData::Float;
+            Free_(linear);
+        }
+        else if (type == Albedo || type == ReflectanceAtR0 || type == Normal) {
+            float3* linear = nullptr;
+            uint width;
+            uint height;
+            ReturnFailure_(LoadLinearFloat3Data(filepath.Ascii(), linear, width, height));
+
+            float3* textureData;
+            texture->dataSize = 0;
+            result = GenerateMipMaps<float3>(prefilter, linear, width, height,
+                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+            texture->texture = reinterpret_cast<uint8*>(textureData);
+            texture->type = TextureResourceData::Float3;
+            Free_(linear);
+        }
+
+
+        return result;
     }
 }

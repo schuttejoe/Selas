@@ -10,5 +10,5 @@ namespace Shooty
 {
     struct ImportedMaterialData;
 
-    bool ImportMaterial(const char* materialName, ImportedMaterialData* material);
+    bool ImportMaterial(cpointer materialName, ImportedMaterialData* material);
 }

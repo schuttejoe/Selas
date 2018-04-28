@@ -16,10 +16,13 @@ namespace Shooty
     namespace Directory
     {
         //==============================================================================
-        void CreateDirectoryTree(const char* path)
+        void EnsureDirectoryExists(const char* path)
         {
+            FixedString512 folderName;
+            StringUtil::GetFolderPath(path, folderName.Ascii(), (uint32)folderName.Capcaity());
+
             FixedString512 tempName;
-            tempName.Copy(path);
+            StringUtil::Copy(tempName.Ascii(), (uint32)tempName.Capcaity(), folderName.Ascii());
 
             char* current = tempName.Ascii();
             while(current != nullptr) {
@@ -40,7 +43,7 @@ namespace Shooty
                 *current = '/';
             }
 
-            ::CreateDirectoryA(path, nullptr);
+            ::CreateDirectoryA(folderName.Ascii(), nullptr);
         }
     }
 }

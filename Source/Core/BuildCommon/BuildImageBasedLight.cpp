@@ -102,7 +102,7 @@ namespace Shooty
         uint height;
         uint channels;
         void* raw;
-        if(StbImageRead(filename, width, height, channels, raw) == false)
+        if(StbImageRead(filename, 3, width, height, channels, raw) == false)
             return false;
 
         ibl->hdrData = reinterpret_cast<float3*>(raw);

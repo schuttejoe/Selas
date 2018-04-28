@@ -30,18 +30,17 @@ using namespace Shooty;
 //=================================================================================================
 int main(int argc, char *argv[])
 {
-    Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\");
-    Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\");
-    Directory::CreateDirectoryTree("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
 
-    #define ExportModel_ 0
+    #define ExportModel_ 1
     #define ExportIbl_ 0
-    #define ExportTextures_ 0
 
 #if ExportModel_
     ImportedModel importedModel;
-    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Scenes\\bathroom\\scene.json", &importedModel)) {
-        Error_("Error importing scene.");
+    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\plane_with_teapot.fbx", &importedModel)) {
+        Error_("Error importing model.");
         return -1;
     }
 
@@ -52,36 +51,38 @@ int main(int argc, char *argv[])
     }
     ShutdownImportedModel(&importedModel);
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\bathroom");
+    for(uint scan = 0, count = builtScene.textures.Length(); scan < count; ++scan) {
+        TextureResourceData textureData;
+        cpointer textureName = builtScene.textures[scan].Ascii();
+
+        if(!ImportTexture(textureName, Box, &textureData)) {
+            Error_("Error importing texture");
+            return -1;
+        }
+
+        if(!BakeTexture(&textureData, textureName)) {
+            Error_("Error writing texture asset");
+            return -1;
+        }
+
+        Free_(textureData.texture);
+    }
+
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_teapot");
 #endif
 
 #if ExportIbl_
     ImageBasedLightResourceData iblData;
-    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_1k.hdr", &iblData)) {
+    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\red_wall_4k.hdr", &iblData)) {
         Error_("Error importing hdr");
         return -1;
     }
 
-    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_1k");
+    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_4k");
     SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);
-#endif
-
-#if ExportTextures_
-    TextureResourceData textureData;
-    if(!ImportTexture("D:\\Shooty\\ShootyEngine\\Content\\Textures\\CommonWhite.tga", Box, &textureData)) {
-        Error_("Error importing texture");
-        return -1;
-    }
-    if(!BakeTexture(&textureData, "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\CommonWhite")) {
-        Error_("Error writing texture asset");
-        return -1;
-    }
-
-    Free_(textureData.mipmaps);
-
-#endif
+    #endif
 
     return 0;
 }

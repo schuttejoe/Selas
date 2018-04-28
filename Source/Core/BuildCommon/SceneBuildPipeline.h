@@ -15,11 +15,14 @@ namespace Shooty
     #pragma warning(default : 4820)
 
     //==============================================================================
-    // -- Things that are embedded into the scene
     struct ImportedMaterialData
     {
-        FixedString256 emissiveTexture;
-        FixedString256 albedoTexture;
+        FixedString256 emissive;
+        FixedString256 albedo;
+        FixedString256 height;
+        FixedString256 normal;
+        FixedString256 roughness;
+        FixedString256 specular;
     };
 
     //== Import ====================================================================

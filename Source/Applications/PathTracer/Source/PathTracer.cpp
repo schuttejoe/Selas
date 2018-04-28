@@ -35,7 +35,7 @@
 #include <embree3/rtcore_ray.h>
 
 #define EnableMultiThreading_       1
-#define RaysPerPixel_               16
+#define RaysPerPixel_               256
 #define MaxBounceCount_             4
 
 namespace Shooty
@@ -111,20 +111,19 @@ namespace Shooty
             SurfaceParameters surface;
             CalculateSurfaceParams(scene, ray, newPosition, error, primId, baryCoords, surface);
 
+            float3 v = -ray.direction;
+            float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
+
             Lo += surface.emissive;
-            Lo += CalculateDirectLighting(rtcScene, scene, twister, surface);
+            Lo += CalculateDirectLighting(rtcScene, scene, twister, surface, v);
 
             if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
-                
-                float3 v = -ray.direction;
-                float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
-
                 float3 wi;
                 float3 reflectance;
                 ImportanceSampleDisneyBrdf(twister, surface, wo, wi, reflectance);
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
-                    wi = MatrixMultiply(wi, surface.tangentToWorld);
+                    wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
 
                     float3 newOrigin = OffsetRayOrigin(surface, wi, 1.0f);
 
@@ -139,6 +138,9 @@ namespace Shooty
                     Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
                 }
             }
+        }
+        else {
+            Lo += SampleIbl(kernelContext->context->ibl, ray.direction);
         }
 
         return Lo;

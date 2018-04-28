@@ -34,7 +34,7 @@ namespace Shooty
     };
 
     // Write interface
-    bool SerializerStart(BinaryWriter* serializer, const char* filename);
+    bool SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea = 0, uint32 sizeb = 0);
     bool SerializerEnd(BinaryWriter* serializer);
     bool SerializerWrite(BinaryWriter* serializer, const void* data, uint size);
 

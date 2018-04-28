@@ -14,19 +14,42 @@
 namespace Shooty
 {
     //==============================================================================
-    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials)
+    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float3 defaultValue)
     {
         if(textureIndex == InvalidIndex32)
-            return float3::Zero_;
+            return defaultValue;
 
         TextureResource* textures = scene->textures;
 
         float3 sample;
         if(hasDifferentials) {
-            sample = TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
         }
         else {
-            sample = TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs);
+            sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+        }
+
+        if(sRGB) {
+            sample = Math::SrgbToLinearPrecise(sample);
+        }
+
+        return sample;
+    }
+
+    //==============================================================================
+    static float SampleTextureFloat(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    {
+        if(textureIndex == InvalidIndex32)
+            return defaultValue;
+
+        TextureResource* textures = scene->textures;
+
+        float sample;
+        if(hasDifferentials) {
+            sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        }
+        else {
+            sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
         }
 
         if(sRGB) {
@@ -89,8 +112,6 @@ namespace Shooty
         surface.error         = error;
         surface.materialFlags = material->flags;
         surface.metalness     = material->metalness;
-        surface.specularColor = material->specularColor;
-        surface.roughness     = material->roughness;
 
         bool canUseDifferentials = (material->flags & eHasTextures) && ray.hasDifferentials;
         bool preserveDifferentials = (material->flags | ePreserveRayDifferentials) && ray.hasDifferentials;
@@ -128,8 +149,10 @@ namespace Shooty
         }
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials);
-        surface.albedo   = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials);
+        surface.emissive      = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials, float3::Zero_);
+        surface.albedo        = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials, float3::Zero_);
+        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, ray.hasDifferentials, surface.albedo);
+        surface.roughness     = SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, ray.hasDifferentials, 1.0f);
     }
 
     //==============================================================================

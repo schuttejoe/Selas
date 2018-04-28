@@ -9,6 +9,6 @@ namespace Shooty
     //==============================================================================
     namespace Directory
     {
-        void CreateDirectoryTree(const char* path);
+        void EnsureDirectoryExists(const char* path);
     }
 }

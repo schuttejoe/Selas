@@ -20,7 +20,7 @@
 namespace Shooty
 {
     //==============================================================================
-    bool StbImageRead(cpointer filepath, uint& width, uint& height, uint& channels, void*& rgba)
+    bool StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba)
     {
         int32 w_;
         int32 h_;
@@ -28,9 +28,9 @@ namespace Shooty
 
         void* raw = nullptr;
         if(StringUtil::EndsWithIgnoreCase(filepath, "hdr"))
-            raw = (void*)stbi_loadf(filepath, &w_, &h_, &c_, 0);
+            raw = (void*)stbi_loadf(filepath, &w_, &h_, &c_, (int)requestedChannels);
         else
-            raw = (void*)stbi_load(filepath, &w_, &h_, &c_, 0);
+            raw = (void*)stbi_load(filepath, &w_, &h_, &c_, (int)requestedChannels);
 
         if(raw == nullptr)
             return false;
@@ -44,25 +44,24 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool StbImageWrite(cpointer filepath, uint width, uint height, StbImageFormats format, void* rgba)
+    bool StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba)
     {
-
         int32 ret = 0;
         switch(format) {
         case PNG:
-            ret = stbi_write_png(filepath, (int)width, (int)height, 4, rgba, (int)(sizeof(uint32) * width));
+            ret = stbi_write_png(filepath, (int)width, (int)height, (int)channels, rgba, (int)(sizeof(uint32) * width));
             break;
         case BMP:
-            ret = stbi_write_bmp(filepath, (int)width, (int)height, 4, rgba);
+            ret = stbi_write_bmp(filepath, (int)width, (int)height, (int)channels, rgba);
             break;
         case TGA:
-            ret = stbi_write_tga(filepath, (int)width, (int)height, 4, rgba);
+            ret = stbi_write_tga(filepath, (int)width, (int)height, (int)channels, rgba);
             break;
         case HDR:
-            ret = stbi_write_hdr(filepath, (int)width, (int)height, 3, (float*)rgba);
+            ret = stbi_write_hdr(filepath, (int)width, (int)height, (int)channels, (float*)rgba);
             break;
         case JPG:
-            ret = stbi_write_jpg(filepath, (int)width, (int)height, 4, rgba, 50);
+            ret = stbi_write_jpg(filepath, (int)width, (int)height, (int)channels, rgba, 50);
             break;
         };
 

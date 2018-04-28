@@ -11,6 +11,13 @@ namespace Shooty
 {
     struct TextureResourceData
     {
+        enum TextureDataType
+        {
+            // -- Convert to something more like d3d formats?
+            Float,
+            Float3
+        };
+
         static const uint MaxMipCount = 16;
 
         uint32 mipCount;
@@ -20,8 +27,10 @@ namespace Shooty
         uint32 mipHeights[MaxMipCount];
         uint64 mipOffsets[MaxMipCount];
 
-        // -- 0 is most detailed level
-        float3* mipmaps;
+        TextureDataType type;
+        uint32 pad;
+
+        uint8* texture;
     };
 
     struct TextureResource
@@ -31,5 +40,5 @@ namespace Shooty
 
     bool ReadTextureResource(cpointer filepath, TextureResource* texture);
     void ShutdownTextureResource(TextureResource* texture);
-    void DebugWriteTextureMips(TextureResource* texture, cpointer folder);
+    void DebugWriteTextureMips(TextureResource* texture, cpointer folder, cpointer name);
 }

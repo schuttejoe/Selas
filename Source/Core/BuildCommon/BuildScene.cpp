@@ -4,7 +4,7 @@
 
 #include <BuildCommon/BuildScene.h>
 #include <BuildCommon/SceneBuildPipeline.h>
-#include <BuildCommon/BuildMaterial.h>
+#include <BuildCommon/ImportMaterial.h>
 #include <SystemLib/CheckedCast.h>
 #include <SystemLib/MinMax.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -97,7 +97,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool BuildMaterials(ImportedModel* imported, BuiltScene* built)
+    static bool ImportMaterials(ImportedModel* imported, BuiltScene* built)
     {
         built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
@@ -105,21 +105,33 @@ namespace Shooty
             ReturnFailure_(ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData));
 
             Material& material = built->materials[scan];
+            material = Material();
 
-            if(StringUtil::Length(importedMaterialData.emissiveTexture.Ascii())) {
-                material.flags =  eHasTextures;
-                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTexture);
-                material.albedoTextureIndex = InvalidIndex32;
-                material.specularColor = float3(1, 1, 1);
-                material.roughness = 0.5f;
+            if(StringUtil::Length(importedMaterialData.emissive.Ascii())) {
+                material.flags |= eHasTextures;
+                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissive);
+            }
+            if(StringUtil::Length(importedMaterialData.albedo.Ascii())) {
+                material.flags |= eHasReflectance | eHasTextures;
+                material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedo);
+                material.metalness = 0.1f;
+            }
+            if(StringUtil::Length(importedMaterialData.height.Ascii())) {
+                material.flags |= eHasTextures;
+                material.heightTextureIndex = AddTexture(built, importedMaterialData.height);
+            }
+            if(StringUtil::Length(importedMaterialData.roughness.Ascii())) {
+                material.flags |= eHasReflectance | eHasTextures;
+                material.roughnessTextureIndex = AddTexture(built, importedMaterialData.roughness);
+            }
+            if(StringUtil::Length(importedMaterialData.normal.Ascii())) {
+                material.flags |= eHasTextures;
+                material.normalTextureIndex = AddTexture(built, importedMaterialData.normal);
+            }
+            if(StringUtil::Length(importedMaterialData.specular.Ascii())) {
+                material.flags |= eHasTextures | ePreserveRayDifferentials;
+                material.specularTextureIndex = AddTexture(built, importedMaterialData.specular);
                 material.metalness = 1.0f;
-            } else {
-                material.flags = eHasReflectance | eHasTextures;
-                material.emissiveTextureIndex = InvalidIndex32;
-                material.specularColor = float3(1, 1, 1);
-                material.roughness = 0.75f;
-                material.metalness = 0.0f;
-                material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTexture);
             }
         }
 
@@ -129,7 +141,7 @@ namespace Shooty
     //==============================================================================
     bool BuildScene(ImportedModel* imported, BuiltScene* built)
     {
-        ReturnFailure_(BuildMaterials(imported, built));
+        ReturnFailure_(ImportMaterials(imported, built));
 
         BuildMeshes(imported, built);
 

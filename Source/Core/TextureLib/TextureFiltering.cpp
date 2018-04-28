@@ -30,7 +30,8 @@ namespace Shooty
         }
 
         //==============================================================================
-        float3 Sample(float3* mip, WrapMode wrapMode, uint32 w, uint32 h, int32 s, int32 t)
+        template <typename Type_>
+        static Type_ Sample(Type_* mip, WrapMode wrapMode, uint32 w, uint32 h, int32 s, int32 t)
         {
             switch(wrapMode) {
             case WrapMode::Clamp:
@@ -49,28 +50,30 @@ namespace Shooty
         }
 
         //==============================================================================
-        float3 Point(TextureResourceData* texture, float2 st)
+        template <typename Type_>
+        static void Point(TextureResourceData* texture, float2 st, Type_& result)
         {
             uint level = 0;
 
             WrapMode wrapMode = WrapMode::Repeat;
 
             uint64 mipOffset = texture->mipOffsets[level];
-            uint32 mipWidth = texture->mipWidths[level];
+            uint32 mipWidth  = texture->mipWidths[level];
             uint32 mipHeight = texture->mipHeights[level];
 
-            float3* mip = &texture->mipmaps[mipOffset];
+            Type_* mip = reinterpret_cast<Type_*>(&texture->texture[mipOffset]);
 
             float s = st.x * mipWidth;
             float t = st.y * mipHeight;
             int32 s0 = (int32)Math::Floor(s);
             int32 t0 = (int32)Math::Floor(t);
 
-            return Sample(mip, wrapMode, mipWidth, mipHeight, s0, t0);
+            result = Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0, t0);
         }
 
         //==============================================================================
-        float3 Triangle(TextureResourceData* texture, int32 level, float2 st)
+        template <typename Type_>
+        void Triangle(TextureResourceData* texture, int32 level, float2 st, Type_& result)
         {
             level = Min<uint32>(level, texture->mipCount - 1);
 
@@ -80,7 +83,7 @@ namespace Shooty
             uint32 mipWidth = texture->mipWidths[level];
             uint32 mipHeight = texture->mipHeights[level];
 
-            float3* mip = &texture->mipmaps[mipOffset];
+            Type_* mip = reinterpret_cast<Type_*>(&texture->texture[mipOffset]);
 
             float s = st.x * mipWidth - 0.5f;
             float t = st.y * mipHeight - 0.5f;
@@ -89,14 +92,15 @@ namespace Shooty
             int32 t0 = (int32)Math::Floor(t);
             float ds = s - s0;
             float dt = t - t0;
-            return (1 - ds) * (1 - dt) * Sample(mip, wrapMode, mipWidth, mipHeight, s0, t0) +
-                   (1 - ds) *      dt  * Sample(mip, wrapMode, mipWidth, mipHeight, s0, t0 + 1) +
-                        ds  * (1 - dt) * Sample(mip, wrapMode, mipWidth, mipHeight, s0 + 1, t0) +
-                        ds  *      dt  * Sample(mip, wrapMode, mipWidth, mipHeight, s0 + 1, t0 + 1);
+            result = (1 - ds) * (1 - dt) * Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0, t0) +
+                     (1 - ds) *      dt  * Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0, t0 + 1) +
+                          ds  * (1 - dt) * Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0 + 1, t0) +
+                          ds  *      dt  * Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0 + 1, t0 + 1);
         }
 
         //==============================================================================
-        static float3 EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1)
+        template <typename Type_>
+        static void EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
             // Credit goes to pbrt for the EWA implementation
             // https://github.com/mmp/pbrt-v3
@@ -105,14 +109,15 @@ namespace Shooty
 
             if(reqLevel >= (int32)texture->mipCount) {
                 uint64 mipOffset = texture->mipOffsets[texture->mipCount - 1];
-                float3* mip = &texture->mipmaps[mipOffset];
-                return Sample(mip, wrapMode, 1, 1, 0, 0);
+                Type_* mip = reinterpret_cast<Type_*>(&texture->texture[mipOffset]);
+                result = Sample<Type_>(mip, wrapMode, 1, 1, 0, 0);
+                return;
             }
 
             uint64 mipOffset = texture->mipOffsets[reqLevel];
             uint32 mipWidth = texture->mipWidths[reqLevel];
             uint32 mipHeight = texture->mipHeights[reqLevel];
-            float3* mip = &texture->mipmaps[mipOffset];
+            Type_* mip = reinterpret_cast<Type_*>(&texture->texture[mipOffset]);
 
             // Convert EWA coordinates to appropriate scale for level
             st.x = st.x * mipWidth - 0.5f;
@@ -142,7 +147,7 @@ namespace Shooty
             int32 t1 = (int32)Math::Floor(st.y + 2 * invDet * vSqrt);
 
             // Scan over ellipse bound and compute quadratic equation
-            float3 sum = float3::Zero_;
+            Type_ sum = Type_(0.0f);
             float sumWts = 0;
             for(int32 it = t0; it <= t1; ++it) {
                 float tt = it - st.y;
@@ -153,17 +158,18 @@ namespace Shooty
                     if(r2 < 1) {
                         int32 index = Min<int32>((int32)(r2 * EwaLutSize), EwaLutSize - 1);
                         float weight = EWAFilterLut[index];
-                        sum += Sample(mip, wrapMode, mipWidth, mipHeight, is, it) * weight;
+                        sum += Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, is, it) * weight;
                         sumWts += weight;
                     }
                 }
             }
 
-            return sum * (1.0f / sumWts);
+            result = sum * (1.0f / sumWts);
         }
 
         //==============================================================================
-        float3 EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
+        template <typename Type_>
+        static void EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
             // Credit goes to pbrt for the EWA implementation
             // https://github.com/mmp/pbrt-v3
@@ -186,14 +192,80 @@ namespace Shooty
                 dst1 = dst1 * scale;
                 minorLength *= scale;
             }
-            if(minorLength == 0)
-                return Triangle(texture, 0, st);
+            if(minorLength == 0) {
+                Triangle<Type_>(texture, 0, st, result);
+                return;
+            }
 
             // Choose level of detail for EWA lookup and perform EWA filtering
             float lod = Max<float>(0.0f, texture->mipCount - 1.0f + Math::Log2(minorLength));
             float ilod = Math::Floor(lod);
 
-            return Lerp(EWA(texture, (int32)ilod, st, dst0, dst1), EWA(texture, (int32)ilod + 1, st, dst0, dst1), lod - ilod);
+            Type_ r0;
+            EWA<Type_>(texture, (int32)ilod, st, dst0, dst1, r0);
+            Type_ r1;
+            EWA<Type_>(texture, (int32)ilod + 1, st, dst0, dst1, r1);
+            result = Lerp(r0, r1, lod - ilod);
+        }
+
+        //==============================================================================
+        float PointFloat(TextureResourceData* texture, float2 st)
+        {
+            Assert_(texture->type == TextureResourceData::Float);
+
+            float result;
+            Point(texture, st, result);
+            return result;
+        }
+
+        //==============================================================================
+        float TriangleFloat(TextureResourceData* texture, int32 level, float2 st)
+        {
+            Assert_(texture->type == TextureResourceData::Float);
+
+            float result;
+            Triangle(texture, level, st, result);
+            return result;
+        }
+
+        //==============================================================================
+        float EWAFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
+        {
+            Assert_(texture->type == TextureResourceData::Float);
+
+            float result;
+            EWA(texture, st, dst0, dst1, result);
+            return result;
+        }
+
+        //==============================================================================
+        float3 PointFloat3(TextureResourceData* texture, float2 st)
+        {
+            Assert_(texture->type == TextureResourceData::Float3);
+
+            float3 result;
+            Point(texture, st, result);
+            return result;
+        }
+
+        //==============================================================================
+        float3 TriangleFloat3(TextureResourceData* texture, int32 level, float2 st)
+        {
+            Assert_(texture->type == TextureResourceData::Float3);
+
+            float3 result;
+            Triangle(texture, level, st, result);
+            return result;
+        }
+
+        //==============================================================================
+        float3 EWAFloat3(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
+        {
+            Assert_(texture->type == TextureResourceData::Float3);
+
+            float3 result;
+            EWA(texture, st, dst0, dst1, result);
+            return result;
         }
     }
 }

@@ -1,16 +1,15 @@
 
 Short term goals
 ---------------------
-Cleanup source
+Convert lumberyard bistro textures to .tif
+Create materials for all lumberyard bistro assets
+Setup brdf for bistro assets
 
 Features:
 ---------
-Materials from json files? Or something I can get from substance.
-Switch to a more complete BRDF (Disney?)
 Transmissive materials
 Vertex Connection and Merging
 Depth of field
-
 Debug tech (depth, material visualizations)
 
 

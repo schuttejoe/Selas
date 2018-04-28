@@ -8,18 +8,29 @@
 #include <StringLib/StringUtil.h>
 #include <IoLib/BinarySerializer.h>
 #include <IoLib/File.h>
+#include <IoLib/Directory.h>
 #include <SystemLib/BasicTypes.h>
 
 #include <stdio.h>
 
 namespace Shooty
 {
+    // JSTODO - Said it before but... Environment.h/cpp
+    cpointer TextureAssetDirectory = "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\";
+
     //==============================================================================
-    bool ReadTextureResource(cpointer filepath, TextureResource* texture)
+    bool ReadTextureResource(cpointer textureName, TextureResource* texture)
     {
+        FixedString256 typelessName;
+        typelessName.Copy(textureName);
+        StringUtil::RemoveExtension(typelessName.Ascii());
+
+        FixedString512 filepath;
+        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        ReturnFailure_(File::ReadWholeFile(filepath, &fileData, &fileSize));
+        ReturnFailure_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);
@@ -27,7 +38,7 @@ namespace Shooty
         SerializerAttach(&reader, reinterpret_cast<void**>(&texture->data), fileSize);
         SerializerEnd(&reader);
 
-        FixupPointerX64(fileData, texture->data->mipmaps);
+        FixupPointerX64(fileData, texture->data->texture);
         return true;
     }
 
@@ -40,20 +51,34 @@ namespace Shooty
     //==============================================================================
     static void DebugWriteTextureMip(TextureResource* texture, uint level, cpointer filepath)
     {
+        uint channels;
+        switch(texture->data->type) {
+            case TextureResourceData::Float:
+                channels = 1;
+                break;
+            case TextureResourceData::Float3:
+                channels = 3;
+                break;
+            default:
+                Assert_(false);
+                channels = 1;
+        }
+
         uint64 mipOffset = texture->data->mipOffsets[level];
         uint32 mipWidth  = texture->data->mipWidths[level];
         uint32 mipHeight = texture->data->mipHeights[level];
-        float3* mip      = &texture->data->mipmaps[mipOffset];
-
-        StbImageWrite(filepath, mipWidth, mipHeight, HDR, (void*)mip);
+        void*  mip       = &texture->data->texture[mipOffset];
+        StbImageWrite(filepath, mipWidth, mipHeight, channels, HDR, (void*)mip);
     }
 
     //==============================================================================
-    void DebugWriteTextureMips(TextureResource* texture, cpointer folder)
+    void DebugWriteTextureMips(TextureResource* texture, cpointer folder, cpointer name)
     {
         for(uint scan = 0, count = texture->data->mipCount; scan < count; ++scan) {
             FixedString256 path;
-            sprintf_s(path.Ascii(), path.Capcaity(), "%s/mip_%llu.hdr", folder, scan);
+            sprintf_s(path.Ascii(), path.Capcaity(), "%s/%s_mip_%llu.hdr", folder, name, scan);
+
+            Directory::EnsureDirectoryExists(path.Ascii());
 
             DebugWriteTextureMip(texture, scan, path.Ascii());
         }

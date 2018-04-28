@@ -68,11 +68,14 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
+    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
     {
         float theta;
         float phi;
         Math::NormalizedCartesianToSpherical(wi, theta, phi);
+        
+        // -- remap from [-pi,pi] to [0, 2pi]
+        phi += Math::Pi_;
 
         uint x = (uint)((phi / Math::TwoPi_) * ibl->densityfunctions.width - 0.5f);
         uint y = (uint)((theta / Math::Pi_) * ibl->densityfunctions.height - 0.5f);
@@ -185,6 +188,42 @@ namespace Shooty
         float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
 
         return 2.0f * dotNL * dotNV / (denomA + denomB);
+    }
+
+    //==============================================================================
+    static float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi)
+    {
+        float3 wm = Normalize(wo + wi);
+
+        float a = surface.roughness;
+        float a2 = a * a;
+        float dotLH = Dot(wi, wm);
+        float dotNH = Dot(surface.normal, wm);
+        float dotNL = Dot(surface.normal, wi);
+        float dotNV = Dot(surface.normal, wo);
+        if(dotNL <= 0.0f || dotNV <= 0.0f || dotNH <= 0.0f) {
+            return float3::Zero_;
+        }
+
+        float3 F = SchlickFresnel(surface.specularColor, dotLH);
+
+        float G1 = SmithGGXMasking(wi, wo, wm, a2);
+        float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
+
+        float denomPart = (dotNH * dotNH) * (a2 - 1) + 1;
+        float D = a2 / (Math::Pi_ * denomPart * denomPart);
+
+        // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
+        // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
+        float rr = 0.5f + 2.0f * dotNL * dotNL * a;
+        float fl = SchlickFresnel(dotNL);
+        float fv = SchlickFresnel(dotNV);
+
+        float3 fLambert = Math::OOPi_ * surface.albedo;
+        float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
+        float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
+
+        return surface.metalness * F * (G2 / G1) * D + (1.0f - surface.metalness) * diffuse;
     }
 
     //==============================================================================
@@ -307,7 +346,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
+    static float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v, SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -340,8 +379,6 @@ namespace Shooty
             float3 xp;
             Intersection::RaySphereNearest(surface.position, nwp, c, r, xp);
 
-            float test = Length(xp - c);
-
             float distSquared = LengthSquared(xp - surface.position);
             float dist = Math::Sqrtf(distSquared);
 
@@ -349,7 +386,8 @@ namespace Shooty
             if(dotNL > 0.0f && OcclusionRay(rtcScene, surface, nwp, dist)) {
                 // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
                 float pdf_xp = 1.0f / (Math::TwoPi_ * (1.0f - q));
-                Lo += dotNL * (1.0f / pdf_xp) * L;
+                float3 bsdf = CalculateDisneyBsdf(surface, v, nwp);
+                Lo += bsdf * (1.0f / pdf_xp) * L;
             }
         }
 
@@ -357,14 +395,14 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface)
+    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v)
     {
         // -- JSTODO - find light sources that can effect this point
 
         uint lightSampleCount = 1;
 
-        float3 lightCenter = float3(0.0f, 7.0f, 0.0f);
-        float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
+        float3 lightCenter = float3(0.0f, 10.0f, 0.0f);
+        float3 lightIntensity = float3(10.0f, 10.0f, 10.0f);
 
         RectangularAreaLight rectangleLight;
         rectangleLight.intensity = lightIntensity;
@@ -377,7 +415,7 @@ namespace Shooty
         sphereLight.center = lightCenter;
         sphereLight.radius = 1.9947114f; // chosen to have a surface area of 50
 
-        float3 sa = IntegrateSphereLightWithSolidAngleSampling(rtcScene, twister, surface, sphereLight, lightSampleCount);
+        float3 sa = IntegrateSphereLightWithSolidAngleSampling(rtcScene, twister, surface, v, sphereLight, lightSampleCount);
         return sa;
     }
 
@@ -431,11 +469,11 @@ namespace Shooty
 
             // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
             // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
-            float dotHL = BsdfNDot(wi);
-            float dotHV = BsdfNDot(wo);
-            float rr = 0.5f + 2.0f * dotHL * dotHL * a;
-            float fl = SchlickFresnel(dotHL);
-            float fv = SchlickFresnel(dotHV);
+            float dotNL = BsdfNDot(wi);
+            float dotNV = BsdfNDot(wo);
+            float rr = 0.5f + 2.0f * dotNL * dotNL * a;
+            float fl = SchlickFresnel(dotNL);
+            float fv = SchlickFresnel(dotNV);
             
             float3 fLambert = Math::OOPi_ * surface.albedo;
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
