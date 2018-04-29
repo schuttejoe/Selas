@@ -23,6 +23,8 @@ namespace Shooty
         FixedString256 normal;
         FixedString256 roughness;
         FixedString256 specular;
+        FixedString256 metalness;
+        float metalnessScale;
     };
 
     //== Import ====================================================================

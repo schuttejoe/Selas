@@ -34,9 +34,18 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-#define EnableMultiThreading_       1
-#define RaysPerPixel_               256
-#define MaxBounceCount_             4
+#define SampleSpecificTexel_    0
+#define SpecificTexelX_         190
+#define SpecificTexelY_         264
+
+#if SampleSpecificTexel_
+#define EnableMultiThreading_   0
+#define RaysPerPixel_           1
+#else
+#define EnableMultiThreading_   1
+#define RaysPerPixel_           256
+#endif
+#define MaxBounceCount_         4
 
 namespace Shooty
 {
@@ -129,7 +138,7 @@ namespace Shooty
 
                     Ray bounceRay;
                     if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.normal, wo, wi, surface.differentials, error, FloatMax_);
+                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.geometricNormal, wo, wi, surface.differentials, error, FloatMax_);
                     }
                     else {
                         bounceRay = MakeRay(newOrigin, wi, error, FloatMax_);
@@ -172,9 +181,13 @@ namespace Shooty
 
         for(uint dy = 0; dy < blockDimensions; ++dy) {
             for(uint dx = 0; dx < blockDimensions; ++dx) {
-                uint x = bx * blockDimensions + dx;
-                uint y = by * blockDimensions + dy;
-
+                #if SampleSpecificTexel_
+                    uint x = SpecificTexelX_;
+                    uint y = SpecificTexelY_;
+                #else
+                    uint x = bx * blockDimensions + dx;
+                    uint y = by * blockDimensions + dy;
+                #endif
                 float3 color = float3::Zero_;
                 for(uint scan = 0; scan < raysPerPixel; ++scan) {
                     float3 sample = CastPrimaryRay(kernelContext, twister, x, y);

@@ -120,7 +120,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static bool LoadLinearFloat3Data(const char* filepath, float3*& output, uint& width, uint& height)
+    static bool LoadLinearFloat3Data(const char* filepath, bool isSrcSrgb, float3*& output, uint& width, uint& height)
     {
         uint channels;
         void* rawData;
@@ -135,7 +135,7 @@ namespace Shooty
                 Memory::Copy(output, rawData, sizeof(float3)*width*height);
             }
             else if(channels == 4) {
-                Float4ToLinearFloat3(true, width, height, (float4*)rawData, output);
+                Float4ToLinearFloat3(false, width, height, (float4*)rawData, output);
             }
             else {
                 Free_(rawData);
@@ -144,10 +144,10 @@ namespace Shooty
         }
         else {
             if(channels == 3) {
-                Uint24ToLinearFloat3(false, width, height, (uint8*)rawData, output);
+                Uint24ToLinearFloat3(!isSrcSrgb, width, height, (uint8*)rawData, output);
             }
             else if(channels == 4) {
-                Uint32ToLinearFloat3(false, width, height, (uint32*)rawData, output);
+                Uint32ToLinearFloat3(!isSrcSrgb, width, height, (uint32*)rawData, output);
             }
             else {
                 Free_(rawData);
@@ -259,6 +259,7 @@ namespace Shooty
         Normal,
         Roughness,
         ReflectanceAtR0,
+        Metalness,
 
         Unknown
     };
@@ -284,6 +285,9 @@ namespace Shooty
         if(StringUtil::FindSubString(textureName, "_Specular")) {
             return ReflectanceAtR0;
         }
+        if(StringUtil::FindSubString(textureName, "_Metalness")) {
+            return Metalness;
+        }
 
         return Unknown;
     }
@@ -302,7 +306,7 @@ namespace Shooty
         Assert_(type != Unknown);
 
         bool result;
-        if(type == AO || type == Height || type == Roughness) {
+        if(type == AO || type == Height || type == Roughness || type == Metalness) {
             float* linear = nullptr;
             uint width;
             uint height;
@@ -317,10 +321,13 @@ namespace Shooty
             Free_(linear);
         }
         else if (type == Albedo || type == ReflectanceAtR0 || type == Normal) {
+
+            bool isSrcSrgb = type == Normal ? false : true;
+
             float3* linear = nullptr;
             uint width;
             uint height;
-            ReturnFailure_(LoadLinearFloat3Data(filepath.Ascii(), linear, width, height));
+            ReturnFailure_(LoadLinearFloat3Data(filepath.Ascii(), isSrcSrgb, linear, width, height));
 
             float3* textureData;
             texture->dataSize = 0;

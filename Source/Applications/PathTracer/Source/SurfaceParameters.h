@@ -16,7 +16,8 @@ namespace Shooty
     struct SurfaceParameters
     {
         float3 position;
-        float3 normal;
+        float3 perturbedNormal;
+        float3 geometricNormal;
         float error;
 
         float3x3 worldToTangent;

@@ -107,6 +107,8 @@ namespace Shooty
             Material& material = built->materials[scan];
             material = Material();
 
+            material.metalness = importedMaterialData.metalnessScale;
+
             if(StringUtil::Length(importedMaterialData.emissive.Ascii())) {
                 material.flags |= eHasTextures;
                 material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissive);
@@ -131,7 +133,10 @@ namespace Shooty
             if(StringUtil::Length(importedMaterialData.specular.Ascii())) {
                 material.flags |= eHasTextures | ePreserveRayDifferentials;
                 material.specularTextureIndex = AddTexture(built, importedMaterialData.specular);
-                material.metalness = 1.0f;
+            }
+            if(StringUtil::Length(importedMaterialData.metalness.Ascii())) {
+                material.flags |= eHasTextures | ePreserveRayDifferentials;
+                material.metalnessTextureIndex = AddTexture(built, importedMaterialData.metalness);
             }
         }
 

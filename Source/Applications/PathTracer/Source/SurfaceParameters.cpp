@@ -14,6 +14,25 @@
 namespace Shooty
 {
     //==============================================================================
+    static float3 SampleTextureNormal(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool hasDifferentials)
+    {
+        if(textureIndex == InvalidIndex32)
+            return float3::ZAxis_;
+
+        TextureResource* textures = scene->textures;
+
+        float3 sample;
+        if(hasDifferentials) {
+            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        }
+        else {
+            sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+        }
+
+        return 2.0f * sample - 1.0f;
+    }
+
+    //==============================================================================
     static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float3 defaultValue)
     {
         if(textureIndex == InvalidIndex32)
@@ -107,11 +126,10 @@ namespace Shooty
         surface.tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
 
-        surface.normal        = n;
-        surface.position      = position;
-        surface.error         = error;
-        surface.materialFlags = material->flags;
-        surface.metalness     = material->metalness;
+        surface.geometricNormal = n;
+        surface.position        = position;
+        surface.error           = error;
+        surface.materialFlags   = material->flags;
 
         bool canUseDifferentials = (material->flags & eHasTextures) && ray.hasDifferentials;
         bool preserveDifferentials = (material->flags | ePreserveRayDifferentials) && ray.hasDifferentials;
@@ -145,21 +163,26 @@ namespace Shooty
         }
 
         if(canUseDifferentials) {
-            CalculateSurfaceDifferentials(ray, surface.normal, position, surface.dpdu, surface.dpdv, surface.differentials);
+            CalculateSurfaceDifferentials(ray, surface.geometricNormal, position, surface.dpdu, surface.dpdv, surface.differentials);
         }
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.emissive      = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials, float3::Zero_);
-        surface.albedo        = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials, float3::Zero_);
+        surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials, float3::Zero_);
+        surface.albedo = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials, float3::Zero_);
         surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, ray.hasDifferentials, surface.albedo);
-        surface.roughness     = SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, ray.hasDifferentials, 1.0f);
+        surface.roughness = SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, ray.hasDifferentials, 1.0f);
+        surface.metalness = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, ray.hasDifferentials, 1.0f);
+
+        float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
+        float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, ray.hasDifferentials);
+        surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
     }
 
     //==============================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale)
     {
-        float offsetDirection = Dot(direction, surface.normal) < 0.0f ? -1.0f : 1.0f;
-        float3 offset = offsetDirection * surface.error * biasScale * surface.normal;
+        float offsetDirection = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
+        float3 offset = offsetDirection * surface.error * biasScale * surface.geometricNormal;
         return surface.position + offset;
     }
 }

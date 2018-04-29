@@ -46,7 +46,8 @@ namespace Shooty
             , heightTextureIndex(InvalidIndex32)
             , normalTextureIndex(InvalidIndex32)
             , specularTextureIndex(InvalidIndex32)
-            , metalness(1.0f)
+            , metalnessTextureIndex(InvalidIndex32)
+            , metalness(0.0f)
             , flags(0)
         {
         }
@@ -57,6 +58,7 @@ namespace Shooty
         uint32 heightTextureIndex;
         uint32 normalTextureIndex;
         uint32 specularTextureIndex;
+        uint32 metalnessTextureIndex;
         float  metalness;
         uint32 flags;
 

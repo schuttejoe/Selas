@@ -29,6 +29,9 @@ namespace Shooty
         Json::ReadFixedString(document, "normal", material->normal);
         Json::ReadFixedString(document, "roughness", material->roughness);
         Json::ReadFixedString(document, "specular", material->specular);
+        Json::ReadFixedString(document, "metalness", material->metalness);
+
+        Json::ReadFloat(document, "MetalnessScale", material->metalnessScale, 1.0f);
 
         return true;
     }

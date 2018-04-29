@@ -198,10 +198,10 @@ namespace Shooty
         float a = surface.roughness;
         float a2 = a * a;
         float dotLH = Dot(wi, wm);
-        float dotNH = Dot(surface.normal, wm);
-        float dotNL = Dot(surface.normal, wi);
-        float dotNV = Dot(surface.normal, wo);
-        if(dotNL <= 0.0f || dotNV <= 0.0f || dotNH <= 0.0f) {
+        float dotNH = Dot(surface.perturbedNormal, wm);
+        float dotNL = Dot(surface.perturbedNormal, wi);
+        float dotNV = Dot(surface.perturbedNormal, wo);
+        if(dotNL <= 0.0f || dotNH <= 0.0f) {
             return float3::Zero_;
         }
 
@@ -238,7 +238,7 @@ namespace Shooty
 
         float3 lightFacing = Normalize(Cross(eX, eZ));
 
-        if(Dot(-lightFacing, surface.normal) <= 0.0f) {
+        if(Dot(-lightFacing, surface.perturbedNormal) <= 0.0f) {
             return float3::Zero_;
         }
 
@@ -257,7 +257,7 @@ namespace Shooty
             float dist = Math::Sqrtf(distSquared);
             float3 l = (1.0f / dist) * ul;
 
-            float dotNL = Saturate(Dot(surface.normal, l));
+            float dotNL = Saturate(Dot(surface.perturbedNormal, l));
             float dotSL = Saturate(Dot(lightFacing, -l));
 
             if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
@@ -295,7 +295,7 @@ namespace Shooty
             float dist = Math::Sqrtf(distSquared);
             float3 l = (1.0f / dist) * ul;
 
-            float dotNL = Saturate(Dot(surface.normal, l));
+            float dotNL = Saturate(Dot(surface.perturbedNormal, l));
             float dotSL = Saturate(Dot(lightFacing, -l));
 
             if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
@@ -335,7 +335,7 @@ namespace Shooty
             w = (1.0f / dist) * w;
 
             float dotSL = Dot(sn, -w);
-            float dotNL = Dot(surface.normal, w);
+            float dotNL = Dot(surface.perturbedNormal, w);
 
             if(dotSL > 0.0f && dotNL > 0.0f && OcclusionRay(rtcScene, surface, w, dist)) {
                 Lo += L * dotNL * dotSL * (1.0f / distSquared);
@@ -346,7 +346,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    static float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v, SphericalAreaLight light, uint lightSampleCount)
+    static float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -358,7 +358,6 @@ namespace Shooty
 
         float q = Math::Sqrtf(1.0f - (r / distanceToCenter) * (r / distanceToCenter));
 
-        float3 n = surface.normal;
         float3 v, u;
         MakeOrthogonalCoordinateSystem(w, &v, &u);        
 
@@ -382,11 +381,11 @@ namespace Shooty
             float distSquared = LengthSquared(xp - surface.position);
             float dist = Math::Sqrtf(distSquared);
 
-            float dotNL = Saturate(Dot(nwp, surface.normal));
+            float dotNL = Saturate(Dot(nwp, surface.perturbedNormal));
             if(dotNL > 0.0f && OcclusionRay(rtcScene, surface, nwp, dist)) {
                 // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
                 float pdf_xp = 1.0f / (Math::TwoPi_ * (1.0f - q));
-                float3 bsdf = CalculateDisneyBsdf(surface, v, nwp);
+                float3 bsdf = CalculateDisneyBsdf(surface, view, nwp);
                 Lo += bsdf * (1.0f / pdf_xp) * L;
             }
         }
@@ -402,7 +401,7 @@ namespace Shooty
         uint lightSampleCount = 1;
 
         float3 lightCenter = float3(0.0f, 10.0f, 0.0f);
-        float3 lightIntensity = float3(10.0f, 10.0f, 10.0f);
+        float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
 
         RectangularAreaLight rectangleLight;
         rectangleLight.intensity = lightIntensity;
