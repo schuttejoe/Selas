@@ -17,6 +17,8 @@ namespace Shooty
     //==============================================================================
     struct ImportedMaterialData
     {
+        FixedString256 shaderName;
+
         FixedString256 emissive;
         FixedString256 albedo;
         FixedString256 height;
@@ -25,6 +27,7 @@ namespace Shooty
         FixedString256 specular;
         FixedString256 metalness;
         float metalnessScale;
+        float ior;
     };
 
     //== Import ====================================================================

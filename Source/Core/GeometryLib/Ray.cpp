@@ -8,7 +8,7 @@
 namespace Shooty
 {
     //==============================================================================
-    Ray MakeRay(float3 origin, float3 direction, float near, float far)
+    Ray MakeRay(float3 origin, float3 direction, float near, float far, float ior)
     {
         Ray ray;
         ray.origin           = origin;
@@ -20,6 +20,7 @@ namespace Shooty
         ray.tnear            = near;
         ray.tfar             = far;
         ray.hasDifferentials = false;
+        ray.mediumIOR        = ior;
 
         return ray;
     }

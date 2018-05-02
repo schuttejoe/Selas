@@ -35,8 +35,8 @@
 #include <embree3/rtcore_ray.h>
 
 #define SampleSpecificTexel_    0
-#define SpecificTexelX_         190
-#define SpecificTexelY_         264
+#define SpecificTexelX_         639
+#define SpecificTexelY_         507
 
 #if SampleSpecificTexel_
 #define EnableMultiThreading_   0
@@ -45,7 +45,7 @@
 #define EnableMultiThreading_   1
 #define RaysPerPixel_           256
 #endif
-#define MaxBounceCount_         4
+#define MaxBounceCount_         10
 
 namespace Shooty
 {
@@ -95,7 +95,8 @@ namespace Shooty
         baryCoords = { rayhit.hit.u, rayhit.hit.v };
         primId = rayhit.hit.primID;
 
-        error = 32.0f * 1.19209e-07f * Max(Max(Math::Absf(position.x), Math::Absf(position.y)), Max(Math::Absf(position.z), rayhit.ray.tfar));
+        const float kErr = 32.0f * 1.19209e-07f;
+        error = kErr * Max(Max(Math::Absf(position.x), Math::Absf(position.y)), Max(Math::Absf(position.z), rayhit.ray.tfar));
 
         return true;
     }
@@ -118,18 +119,31 @@ namespace Shooty
         if(hit) {
 
             SurfaceParameters surface;
-            CalculateSurfaceParams(scene, ray, newPosition, error, primId, baryCoords, surface);
+            if(CalculateSurfaceParams(scene, ray, newPosition, error, primId, baryCoords, surface) == false) {
+                return float3::Zero_;
+            }
 
             float3 v = -ray.direction;
             float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
             Lo += surface.emissive;
-            Lo += CalculateDirectLighting(rtcScene, scene, twister, surface, v);
+            //Lo += CalculateDirectLighting(rtcScene, scene, twister, surface, v);
 
             if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
                 float3 wi;
                 float3 reflectance;
-                ImportanceSampleDisneyBrdf(twister, surface, wo, wi, reflectance);
+                float ior = ray.mediumIOR;
+
+                if(surface.shader == eDisney) {
+                    ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
+                }
+                else if(surface.shader == eTransparentGgx) {
+                    ImportanceSampleDisneyBrdfTransparent(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
+                }
+                else {
+                    return float3(100.0f, 0.0f, 0.0f);
+                }
+
                 if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
 
                     wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
@@ -138,10 +152,10 @@ namespace Shooty
 
                     Ray bounceRay;
                     if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.geometricNormal, wo, wi, surface.differentials, error, FloatMax_);
+                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.geometricNormal, wo, wi, surface.differentials, error, FloatMax_, ior);
                     }
                     else {
-                        bounceRay = MakeRay(newOrigin, wi, error, FloatMax_);
+                        bounceRay = MakeRay(newOrigin, wi, error, FloatMax_, ior);
                     }
 
                     Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);

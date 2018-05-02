@@ -20,8 +20,9 @@ namespace Shooty
 
         float tnear;
         float tfar;
+        float mediumIOR;
         bool hasDifferentials;
     };
 
-    Ray MakeRay(float3 origin, float3 direction, float near, float far);
+    Ray MakeRay(float3 origin, float3 direction, float near, float far, float ior);
 }

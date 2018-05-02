@@ -25,16 +25,20 @@ namespace Shooty
         float  zfar;
     };
 
-    struct MaterialData
+    enum eMaterialShader
     {
-        FixedString256 emissiveTexture;
+        eDisney,
+        eTransparentGgx,
+
+        eShaderCount
     };
 
     enum eMaterialFlags
     {
         ePreserveRayDifferentials = 1 << 0,
         eHasReflectance           = 1 << 1,
-        eHasTextures              = 1 << 2
+        eHasTextures              = 1 << 2,
+        eTransparent              = 1 << 3
     };
 
     struct Material
@@ -49,6 +53,7 @@ namespace Shooty
             , metalnessTextureIndex(InvalidIndex32)
             , metalness(0.0f)
             , flags(0)
+            , shader(eDisney)
         {
         }
 
@@ -60,8 +65,9 @@ namespace Shooty
         uint32 specularTextureIndex;
         uint32 metalnessTextureIndex;
         float  metalness;
+        float  ior;
         uint32 flags;
-
+        eMaterialShader shader;
     };
 
     struct VertexAuxiliaryData

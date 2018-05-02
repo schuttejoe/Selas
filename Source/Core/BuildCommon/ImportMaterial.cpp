@@ -23,6 +23,8 @@ namespace Shooty
         rapidjson::Document document;
         ReturnFailure_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
+        Json::ReadFixedString(document, "shaderName", material->shaderName);
+
         Json::ReadFixedString(document, "emissive", material->emissive);
         Json::ReadFixedString(document, "albedo", material->albedo);
         Json::ReadFixedString(document, "height", material->height);
@@ -32,6 +34,7 @@ namespace Shooty
         Json::ReadFixedString(document, "metalness", material->metalness);
 
         Json::ReadFloat(document, "MetalnessScale", material->metalnessScale, 1.0f);
+        Json::ReadFloat(document, "ior", material->ior, 1.0f);
 
         return true;
     }

@@ -62,7 +62,7 @@ int main()
     uint32 meshHandle = -1;
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_teapot", &sceneResource) == false) {
+    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_sphere", &sceneResource) == false) {
         retvalue = -1;
         goto cleanup;
     }

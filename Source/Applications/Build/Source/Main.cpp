@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
 #if ExportModel_
     ImportedModel importedModel;
-    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\plane_with_teapot.fbx", &importedModel)) {
+    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel)) {
         Error_("Error importing model.");
         return -1;
     }
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         Free_(textureData.texture);
     }
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_teapot");
+    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_sphere");
 #endif
 
 #if ExportIbl_

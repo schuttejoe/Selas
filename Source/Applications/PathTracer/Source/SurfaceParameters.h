@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SceneLib/SceneResource.h>
 #include <GeometryLib/SurfaceDifferentials.h>
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
@@ -27,17 +28,19 @@ namespace Shooty
         float3 dpdu, dpdv;
 
         // -- material layer info
+        eMaterialShader shader;
         float3 emissive;
         uint32 materialFlags;
         float3 albedo;
         float  metalness;
         float3 specularColor;
         float  roughness;
+        float  ior;
 
         // -- uv differentials.
         SurfaceDifferentials differentials;
     };
 
-    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
 }

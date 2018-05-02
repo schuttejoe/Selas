@@ -5,14 +5,37 @@
 #include <BuildCommon/BuildScene.h>
 #include <BuildCommon/SceneBuildPipeline.h>
 #include <BuildCommon/ImportMaterial.h>
+#include <UtilityLib/Color.h>
+#include <MathLib/FloatFuncs.h>
 #include <SystemLib/CheckedCast.h>
 #include <SystemLib/MinMax.h>
 #include <SystemLib/MemoryAllocation.h>
-#include <MathLib/FloatFuncs.h>
-#include <UtilityLib/Color.h>
+#include <SystemLib/CountOf.h>
 
 namespace Shooty
 {
+    //==============================================================================
+    static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader, uint32& shaderFlags)
+    {
+        static const char* shaderNames[] = {
+            "Disney",
+            "TransparentGGX"
+        };
+        static_assert(CountOf_(shaderNames) == eShaderCount, "Missing shader name");
+
+        shaderFlags = 0;
+        shader = eDisney;
+        for(uint scan = 0; scan < eShaderCount; ++scan) {
+            if(StringUtil::EqualsIgnoreCase(shaderNames[scan], material.shaderName.Ascii())) {
+                shader = (eMaterialShader)scan;
+            }
+        }
+
+        if(shader == eTransparentGgx) {
+            shaderFlags |= eTransparent;
+        }
+    }
+
     //==============================================================================
     static void AppendAndOffsetIndices(const CArray<uint32>& addend, uint32 offset, CArray <uint32>& indices)
     {
@@ -107,7 +130,12 @@ namespace Shooty
             Material& material = built->materials[scan];
             material = Material();
 
+            uint32 shaderFlags = 0;
+            DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
+
+            material.flags |= shaderFlags;
             material.metalness = importedMaterialData.metalnessScale;
+            material.ior = importedMaterialData.ior;
 
             if(StringUtil::Length(importedMaterialData.emissive.Ascii())) {
                 material.flags |= eHasTextures;

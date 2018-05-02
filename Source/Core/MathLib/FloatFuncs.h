@@ -7,6 +7,7 @@
 #include <MathLib/FloatStructs.h>
 #include <MathLib/Trigonometric.h>
 #include <SystemLib/BasicTypes.h>
+#include <SystemLib/JsAssert.h>
 
 namespace Shooty
 {
@@ -235,6 +236,21 @@ namespace Shooty
     ForceInline_ float3 Reflect(float3 n, float3 l)
     {
         return 2.0f * Dot(n, l) * n - l;
+    }
+
+    ForceInline_ bool Transmit(float3 wm, float3 wi, float ni, float no, float3& wo)
+    {
+        float c = Dot(wi, wm);
+
+        float n = ni / no;
+
+        float root = 1.0f - n * n * (1.0f - c * c);
+        float root2 = 1.0f + n * (c * c - 1.0f);
+        if(root < 0)
+            return false;
+
+        wo = (n * c - Math::Sqrtf(root)) * wm - n * wi;
+        return true;
     }
 
     ForceInline_ float Lerp(float a, float b, float t)

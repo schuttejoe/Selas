@@ -160,7 +160,7 @@ namespace Shooty
         if(aiscene->mNumCameras > 0) {
 
             scene->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
-            scene->camera.lookAt = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
+            scene->camera.lookAt = scene->camera.position + AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
             scene->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
             scene->camera.fov = aiscene->mCameras[0]->mHorizontalFOV;
             scene->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;

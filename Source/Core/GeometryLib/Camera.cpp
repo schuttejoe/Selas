@@ -41,6 +41,7 @@ namespace Shooty
         result.direction = d;
         result.tnear     = camera->znear;
         result.tfar      = camera->zfar;
+        result.mediumIOR = 1.0f;
 
         result.rxOrigin    = camera->position;
         result.rxDirection = dx;

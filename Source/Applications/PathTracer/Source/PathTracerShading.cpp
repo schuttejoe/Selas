@@ -169,8 +169,8 @@ namespace Shooty
     //==============================================================================
     static float SmithGGXMasking(float3 wi, float3 wo, float3 wm, float a2)
     {
-        float dotNL = BsdfNDot(wi);
-        float dotNV = BsdfNDot(wo);
+        float dotNL = Math::Absf(BsdfNDot(wi));
+        float dotNV = Math::Absf(BsdfNDot(wo));
         float denomC = Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV) + dotNV;
 
         return 2.0f * dotNV / denomC;
@@ -181,8 +181,8 @@ namespace Shooty
     {
         // non height-correlated masking function
         // https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
-        float dotNL = BsdfNDot(wi);
-        float dotNV = BsdfNDot(wo);
+        float dotNL = Math::Absf(BsdfNDot(wi));
+        float dotNV = Math::Absf(BsdfNDot(wo));
 
         float denomA = dotNV * Math::Sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
         float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
@@ -400,7 +400,7 @@ namespace Shooty
 
         uint lightSampleCount = 1;
 
-        float3 lightCenter = float3(0.0f, 10.0f, 0.0f);
+        float3 lightCenter = float3(0.0f, 20.0f, 0.0f);
         float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
 
         RectangularAreaLight rectangleLight;
@@ -444,8 +444,10 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance)
+    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
     {
+        ior = currentIor;
+
         float a = surface.roughness;
         float a2 = a * a;
 
@@ -454,11 +456,9 @@ namespace Shooty
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
         wi = Reflect(wm, wo);
-        wi = Normalize(wi);
-
-        reflectance = float3::Zero_;
-
         if(BsdfNDot(wi) > 0.0f) {
+            wi = Normalize(wi);
+
             float3 F = SchlickFresnel(surface.specularColor, Dot(wi, wm));
             float G1 = SmithGGXMasking(wi, wo, wm, a2);
             float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
@@ -473,12 +473,62 @@ namespace Shooty
             float rr = 0.5f + 2.0f * dotNL * dotNL * a;
             float fl = SchlickFresnel(dotNL);
             float fv = SchlickFresnel(dotNV);
-            
+
             float3 fLambert = Math::OOPi_ * surface.albedo;
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
             reflectance = reflectance + (1.0f - surface.metalness) * diffuse;
         }
+        else {
+            reflectance = float3::Zero_;
+        }
+    }
+
+    static float FresnelDialectric(float cosThetaI, float ni, float nt)
+    {
+        float sinThetaI = Math::Sqrtf(Max<float>(0, 1.0f - cosThetaI * cosThetaI));
+        float sinThetaT = (ni / nt) * sinThetaI;
+
+        if(sinThetaT >= 1.0f)
+            return 1.0f;
+
+        float cosThetaT = Math::Sqrtf(Max<float>(0, 1.0f - sinThetaT * sinThetaT));
+        float Rparl = ((nt * cosThetaI) - (ni * cosThetaT)) /
+                      ((nt * cosThetaI) + (ni * cosThetaT));
+        float Rperp = ((ni * cosThetaI) - (nt * cosThetaT)) /
+                      ((ni * cosThetaI) + (nt * cosThetaT));
+        return (Rparl * Rparl + Rperp * Rperp) / 2;
+    }
+
+    //==============================================================================
+    void ImportanceSampleDisneyBrdfTransparent(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    {
+        float a = surface.roughness;
+        float a2 = a * a;
+
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+        float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
+
+        float t = Random::MersenneTwisterFloat(twister);
+
+        float transmissionFresnel = FresnelDialectric(Dot(wo, wm), currentIor, surface.ior);
+        bool reflect = t < transmissionFresnel;
+        if(!reflect) {
+            reflect = !Transmit(wm, wo, currentIor, surface.ior, wi);
+            ior = surface.ior;
+        }
+        if(reflect) {
+            wi = Reflect(wm, wo);
+            ior = currentIor;
+        }
+        
+        wi = Normalize(wi);
+
+        float G1 = SmithGGXMasking(wi, wo, wm, a2);
+        float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
+
+        reflectance = (G2 / G1);
     }
 }

@@ -41,12 +41,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(hasDifferentials) {
-            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        }
-        else {
+        //if(hasDifferentials) {
+        //    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        //}
+        //else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        }
+        //}
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -79,7 +79,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface)
+    bool CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface)
     {
         uint32 i0 = scene->data->indices[3 * primitiveId + 0];
         uint32 i1 = scene->data->indices[3 * primitiveId + 1];
@@ -115,11 +115,9 @@ namespace Shooty
         float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
         float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
 
-        // -- adjust tangent frame to ensure it's facing in the direction the ray came from
-        if(Dot(n, -ray.direction) < 0.0f) {
-            t = -t;
-            b = -b;
-            n = -n;
+        if(Dot(n, -ray.direction) < 0.0f && ((material->flags & eTransparent) == 0)) {
+            // -- we've hit inside of a non-transparent object. This is probably caused by floating point precision issues.
+            return false;
         }
 
         // -- Calculate tangent space transforms
@@ -130,9 +128,9 @@ namespace Shooty
         surface.position        = position;
         surface.error           = error;
         surface.materialFlags   = material->flags;
-
+        
         bool canUseDifferentials = (material->flags & eHasTextures) && ray.hasDifferentials;
-        bool preserveDifferentials = (material->flags | ePreserveRayDifferentials) && ray.hasDifferentials;
+        bool preserveDifferentials = (material->flags & ePreserveRayDifferentials) && ray.hasDifferentials;
         
         if (canUseDifferentials || preserveDifferentials)  {
             // Compute deltas for triangle partial derivatives
@@ -173,9 +171,14 @@ namespace Shooty
         surface.roughness = SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, ray.hasDifferentials, 1.0f);
         surface.metalness = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, ray.hasDifferentials, 1.0f);
 
+        surface.shader = material->shader;
+        surface.ior = material->ior;
+
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, ray.hasDifferentials);
         surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
+
+        return true;
     }
 
     //==============================================================================
