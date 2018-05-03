@@ -72,7 +72,7 @@ int main()
     }
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\red_wall_4k", &iblResouce) == false) {
+    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k.bin", &iblResouce) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -84,8 +84,8 @@ int main()
     float buildms = SystemTime::ElapsedMs(timer);
 
     //sceneResource.data->camera.fov = 0.7f;
-    //uint width = 128;
-    //uint height = 128;
+    //uint width = 256;
+    //uint height = 256;
     uint width = 1280;
     uint height = 720;
 

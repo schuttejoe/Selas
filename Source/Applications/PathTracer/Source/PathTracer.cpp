@@ -107,6 +107,7 @@ namespace Shooty
         const RayCastCameraSettings& camera = kernelContext->camera;
         RTCScene rtcScene                   = kernelContext->context->rtcScene;
         SceneResource* scene                = kernelContext->context->scene;
+        ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
 
         float3 newPosition;
         float2 baryCoords;
@@ -135,10 +136,11 @@ namespace Shooty
                 float ior = ray.mediumIOR;
 
                 if(surface.shader == eDisney) {
-                    ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
+                    ImportanceSampleIbl(rtcScene, ibl, twister, surface, v, wo, ior, wi, reflectance, ior);
+                    //ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
                 }
                 else if(surface.shader == eTransparentGgx) {
-                    ImportanceSampleDisneyBrdfTransparent(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
+                    ImportanceSampleTransparent(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
                 }
                 else {
                     return float3(100.0f, 0.0f, 0.0f);

@@ -54,95 +54,26 @@ namespace Shooty
         return (ray.tfar >= 0.0f);
     }
 
-    //------------------------------------------------------------------------------
-    static float Attenuation(float distance)
-    {
-        const float lightRange = 1000.0f;
-        const float virtualRadius = 1.0f; // fake light is fake
-
-        float linear = 2.0f / virtualRadius;
-        float quadratic = 1.0f / (virtualRadius * virtualRadius);
-        float shift = 1.0f / (1.0f + lightRange * (linear + lightRange * quadratic));
-
-        return Saturate((1.0f / (1.0f + distance * (linear + distance * quadratic))) - shift);
-    }
-
     //==============================================================================
     float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
     {
+        int32 width = (int32)ibl->densityfunctions.width;
+        int32 height = (int32)ibl->densityfunctions.height;
+        float widthf = (float)width;
+        float heightf = (float)height;
+
         float theta;
         float phi;
         Math::NormalizedCartesianToSpherical(wi, theta, phi);
-        
-        // -- remap from [-pi,pi] to [0, 2pi]
+
+        // -- remap from [-pi, pi] to [0, 2pi]
         phi += Math::Pi_;
 
-        uint x = (uint)((phi / Math::TwoPi_) * ibl->densityfunctions.width - 0.5f);
-        uint y = (uint)((theta / Math::Pi_) * ibl->densityfunctions.height - 0.5f);
-        Assert_(x < ibl->densityfunctions.width);
-        Assert_(y < ibl->densityfunctions.height);
+        int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
+        int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
+        
         return ibl->hdrData[y * ibl->densityfunctions.width + x];
     }
-
-    ////==============================================================================
-    //void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, float3 p, float3 n, float3 v, Material* material,
-    //                         float3& wi, float3& reflectance)
-    //{
-    //    reflectance = float3::Zero_;
-    //    const float bias = 0.0001f;
-
-    //    float r0 = Random::MersenneTwisterFloat(twister);
-    //    float r1 = Random::MersenneTwisterFloat(twister);
-
-    //    float theta;
-    //    float phi;
-    //    uint x;
-    //    uint y;
-    //    float iblPdf;
-    //    ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
-
-    //    wi = Math::SphericalToCartesian(theta, phi);
-    //    if(Dot(wi, n) > 0.0f) {
-    //        if(OcclusionRay(rtcScene, p + bias * n, wi, 0, FloatMax_)) {
-    //            float3 sample = ibl->hdrData[y * ibl->densityfunctions.width + x];
-    //            reflectance = sample * GgxBrdf(n, wi, v, material->albedo, material->specularColor, material->roughness) * (1.0f / iblPdf);
-    //        }
-    //    }
-    //}
-
-    ////==============================================================================
-    //void ImportanceSampleGgxD(Random::MersenneTwister* twister, float3 wg, float3 v, Material* material, float3& wi, float3& reflectance)
-    //{
-    //    // -- build tangent space transforms // -- JSTODO - get tangent space from mesh
-    //    float4 toLocal = ToTangentSpaceQuaternion(wg);
-    //    float4 toWorld = Math::Quaternion::Invert(toLocal);
-
-    //    float3 wo = Math::Quaternion::Rotate(toLocal, v);
-
-    //    float theta;
-    //    float phi;
-    //    float r0 = Random::MersenneTwisterFloat(twister);
-    //    float r1 = Random::MersenneTwisterFloat(twister);
-    //    ImportanceSampling::GgxD(material->roughness, r0, r1, theta, phi);
-
-    //    float3 wm = Math::SphericalToCartesian(theta, phi);
-    //    wi = Reflect(wm, wo);
-
-    //    if(BsdfNDot(wi) > 0.0f && Dot(wi, wm) > 0.0f) {
-    //        float a = material->roughness;
-    //        float a2 = a * a;
-
-    //        float3 F = SchlickFresnel(material->specularColor, Dot(wi, wm));
-    //        float G = SmithGGXMaskingShading(wi, wo, wm, a2);
-    //        float weight = Math::Absf(Dot(wo, wm)) / (BsdfNDot(wo) * BsdfNDot(wm));
-
-    //        reflectance = F * G * weight;
-    //        wi = Math::Quaternion::Rotate(toWorld, wi);    
-    //    }
-    //    else {
-    //        reflectance = float3::Zero_;
-    //    }
-    //}
 
     // ================================================================================================
     // Fresnel
@@ -444,6 +375,51 @@ namespace Shooty
     }
 
     //==============================================================================
+    float GgxVndfPdf(float roughness, float3 wo, float3 wm, float3 wi)
+    {
+        float a2 = roughness * roughness;
+
+        float dotLH = Math::Absf(Dot(wi, wm));
+        float dotLN = Math::Absf(BsdfNDot(wi));
+        float dotNH = Math::Absf(BsdfNDot(wm));
+        float G1 = SmithGGXMasking(wi, wo, wm, a2);
+        float D = ImportanceSampling::GgxDPdf(roughness, dotNH);
+
+        return G1 * dotLH * D / dotLN;
+    }
+
+    //==============================================================================
+    void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    {
+        reflectance = float3::Zero_;
+        ior = currentIor;
+
+        float r0 = Random::MersenneTwisterFloat(twister);
+        float r1 = Random::MersenneTwisterFloat(twister);
+
+        float theta;
+        float phi;
+        uint x;
+        uint y;
+        float iblPdf;
+        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
+        float3 worldWi = Math::SphericalToCartesian(theta, phi);
+
+        if(Dot(worldWi, surface.geometricNormal) < 0.0f) {
+            return;
+        }
+
+        float thetaTest;
+        float phiTest;
+        Math::NormalizedCartesianToSpherical(worldWi, thetaTest, phiTest);
+
+        wi = MatrixMultiply(worldWi, surface.worldToTangent);
+        if(BsdfNDot(wi) > 0.0f) {
+            reflectance = CalculateDisneyBsdf(surface, view, worldWi) * (1.0f / iblPdf);
+        }
+    }
+
+    //==============================================================================
     void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
     {
         ior = currentIor;
@@ -502,7 +478,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleDisneyBrdfTransparent(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    void ImportanceSampleTransparent(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
     {
         float a = surface.roughness;
         float a2 = a * a;

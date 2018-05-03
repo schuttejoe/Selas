@@ -64,6 +64,9 @@ namespace Shooty
             float phi;
             Math::NormalizedCartesianToSpherical(w, theta, phi);
 
+            // -- remap from [-pi, pi] to [0, 2pi]
+            phi += Math::Pi_;
+
             int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
             int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
 
@@ -93,14 +96,14 @@ namespace Shooty
             // -- theta represents the vertical position on the sphere and varies between 0 and pi
             theta = (y + 0.5f) * Math::Pi_ / heightf;
 
-            // -- phi represents the horizontal position on the sphere and varies between 0 and 2pi
-            phi = (x + 0.5f) * Math::TwoPi_ / widthf;
+            // -- phi represents the horizontal position on the sphere and varies between -pi and pi
+            phi = (x + 0.5f) * Math::TwoPi_ / widthf - Math::Pi_;
 
             // convert from texture space to spherical with the inverse of the Jacobian
-            float jacobian = (widthf * heightf) / Math::TwoPi_;
+            float invJacobian = (widthf * heightf) / Math::TwoPi_;
 
             // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-            pdf = Math::Sinf(theta) * mdf * cdf * jacobian;
+            pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
         }
 
         //==============================================================================
