@@ -1,28 +1,23 @@
 
+Obviously there's an infinite list of things that can be done here. This is just what seems interesting to me atm.
+
 Short term goals
 ---------------------
-Convert lumberyard bistro textures to .tif
-Create materials for all lumberyard bistro assets
-Setup brdf for bistro assets
+Ray tracer kernel context needs to be per thread.
+Ray batching and sorting
+Shading point batching and sorting
 
 Features:
 ---------
-Transmissive materials
 Vertex Connection and Merging
 Depth of field
-Debug tech (depth, material visualizations)
-
 
 Optimizations:
 --------------
-Deferred path tracing
 Russian Roulette path termination
-Texture cache
-Texture layout swizzling
 
 Engine:
 -------
-Ray tracer kernel context needs to be per thread. Then I can queue up subsequent rays rather than returning wi for evaluation.
 Serialization system
 Dependency system in Build
 Error system
