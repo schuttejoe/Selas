@@ -22,12 +22,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(hasDifferentials) {
-            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        }
-        else {
+        //if(hasDifferentials) {
+        //    //sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        //}
+        //else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        }
+        //}
 
         return 2.0f * sample - 1.0f;
     }
@@ -64,12 +64,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float sample;
-        if(hasDifferentials) {
-            sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        }
-        else {
+        //if(hasDifferentials) {
+        //    //sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        //}
+        //else {
             sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
-        }
+        //}
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
