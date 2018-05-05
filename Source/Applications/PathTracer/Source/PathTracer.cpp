@@ -6,6 +6,7 @@
 #include "PathTracer.h"
 #include "PathTracerShading.h"
 #include "SurfaceParameters.h"
+#include "IntegratorContexts.h"
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
@@ -35,37 +36,43 @@
 #include <embree3/rtcore_ray.h>
 
 #define SampleSpecificTexel_    0
-#define SpecificTexelX_         639
-#define SpecificTexelY_         507
+#define SpecificTexelX_         400
+#define SpecificTexelY_         550
 
 #if SampleSpecificTexel_
 #define EnableMultiThreading_   0
 #define RaysPerPixel_           1
 #else
 #define EnableMultiThreading_   1
-#define RaysPerPixel_           256
+#define RaysPerPixel_           128
 #endif
 #define MaxBounceCount_         10
 
 namespace Shooty
 {
-    struct PathTracerKernelContext
+    //==============================================================================
+    struct PathTracerContext
     {
-        const SceneContext* context;
+        const SceneContext* sceneData;
         RayCastCameraSettings camera;
         uint blockDimensions;
         uint blockCountX;
         uint blockCountY;
         uint blockCount;
+        uint width;
+        uint height;
         volatile int64* consumedBlocks;
         volatile int64* completedBlocks;
+        volatile int64* kernelSeedAtomic;
 
         float3* imageData;
     };
 
+
+
     //==============================================================================
     static bool RayPick(const RTCScene& rtcScene, const SceneResourceData* scene, const Ray& ray,
-                        float3& position, float2& baryCoords, int32& primId, float& error)
+                        HitParameters& hit)
     {
 
         RTCIntersectContext context;
@@ -89,109 +96,118 @@ namespace Shooty
         if(rayhit.hit.geomID == -1)
             return false;
 
-        position.x = rayhit.ray.org_x + rayhit.ray.tfar * ray.direction.x;
-        position.y = rayhit.ray.org_y + rayhit.ray.tfar * ray.direction.y;
-        position.z = rayhit.ray.org_z + rayhit.ray.tfar * ray.direction.z;
-        baryCoords = { rayhit.hit.u, rayhit.hit.v };
-        primId = rayhit.hit.primID;
+        hit.position.x = rayhit.ray.org_x + rayhit.ray.tfar * ray.direction.x;
+        hit.position.y = rayhit.ray.org_y + rayhit.ray.tfar * ray.direction.y;
+        hit.position.z = rayhit.ray.org_z + rayhit.ray.tfar * ray.direction.z;
+        hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
+        hit.primId = rayhit.hit.primID;
 
         const float kErr = 32.0f * 1.19209e-07f;
-        error = kErr * Max(Max(Math::Absf(position.x), Math::Absf(position.y)), Max(Math::Absf(position.z), rayhit.ray.tfar));
+        hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
+
+        hit.rxOrigin      = ray.rxOrigin;
+        hit.rxDirection   = ray.rxDirection;
+        hit.ryOrigin      = ray.ryOrigin;
+        hit.ryDirection   = ray.ryDirection;
+        hit.viewDirection = -ray.direction;
+        hit.ior           = ray.mediumIOR;
 
         return true;
     }
 
     //==============================================================================
-    static float3 CastIncoherentRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, const Ray& ray, uint bounceCount)
+    static Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi)
     {
-        const RayCastCameraSettings& camera = kernelContext->camera;
-        RTCScene rtcScene                   = kernelContext->context->rtcScene;
-        SceneResource* scene                = kernelContext->context->scene;
-        ImageBasedLightResourceData* ibl    = kernelContext->context->ibl;
+        float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
 
-        float3 newPosition;
-        float2 baryCoords;
-        int32 primId;
-        float error;
-        bool hit = RayPick(rtcScene, scene->data, ray, newPosition, baryCoords, primId, error);
+        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+
+        Ray bounceRay;
+        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
+            bounceRay = MakeDifferentialRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, wo, wi, surface.differentials, surface.error, FloatMax_, surface.ior);
+        }
+        else {
+            bounceRay = MakeRay(offsetOrigin, wi, surface.error, FloatMax_, surface.ior);
+        }
+
+        return bounceRay;
+    }
+
+    //==============================================================================
+    static float3 CastSingleRay(KernelContext* context, const Ray& ray, uint bounceCount)
+    {
+        if(bounceCount == MaxBounceCount_) {
+            return float3::Zero_;
+        }
+
+        RTCScene rtcScene                   = context->sceneData->rtcScene;
+        SceneResource* scene                = context->sceneData->scene;
+        ImageBasedLightResourceData* ibl    = context->sceneData->ibl;
+
+        HitParameters hit;
+        bool rayCastHit = RayPick(rtcScene, scene->data, ray, hit);
 
         float3 Lo = float3::Zero_;
 
-        if(hit) {
+        if(rayCastHit) {
 
             SurfaceParameters surface;
-            if(CalculateSurfaceParams(scene, ray, newPosition, error, primId, baryCoords, surface) == false) {
+            if(CalculateSurfaceParams(context, &hit, surface) == false) {
                 return float3::Zero_;
             }
 
-            float3 v = -ray.direction;
+            float3 v = hit.viewDirection;
             float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
             Lo += surface.emissive;
-            //Lo += CalculateDirectLighting(rtcScene, scene, twister, surface, v);
+            Lo += CalculateDirectLighting(rtcScene, scene, context->twister, surface, v);
 
-            if(bounceCount < MaxBounceCount_ && surface.materialFlags & eHasReflectance) {
-                float3 wi;
-                float3 reflectance;
-                float ior = ray.mediumIOR;
+            float3 wi;
+            float3 reflectance;
+            float ior = hit.ior;
 
-                if(surface.shader == eDisney) {
-                    ImportanceSampleIbl(rtcScene, ibl, twister, surface, v, wo, ior, wi, reflectance, ior);
-                    //ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
-                }
-                else if(surface.shader == eTransparentGgx) {
-                    ImportanceSampleTransparent(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
-                }
-                else {
-                    return float3(100.0f, 0.0f, 0.0f);
-                }
-
-                if(Dot(reflectance, float3(1, 1, 1)) > 0.0f) {
-
-                    wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-
-                    float3 newOrigin = OffsetRayOrigin(surface, wi, 1.0f);
-
-                    Ray bounceRay;
-                    if((surface.materialFlags & ePreserveRayDifferentials) && ray.hasDifferentials) {
-                        bounceRay = MakeDifferentialRay(ray.rxDirection, ray.ryDirection, newOrigin, surface.geometricNormal, wo, wi, surface.differentials, error, FloatMax_, ior);
-                    }
-                    else {
-                        bounceRay = MakeRay(newOrigin, wi, error, FloatMax_, ior);
-                    }
-
-                    Lo += reflectance * CastIncoherentRay(kernelContext, twister, bounceRay, bounceCount + 1);
-                }
+            if(surface.shader == eDisney) {
+                ImportanceSampleIbl(rtcScene, ibl, context->twister, surface, v, wo, ior, wi, reflectance, ior);
+                //ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
             }
+            else if(surface.shader == eTransparentGgx) {
+                ImportanceSampleTransparent(context->twister, surface, wo, hit.ior, wi, reflectance, ior);
+            }
+            else {
+                return float3(100.0f, 0.0f, 0.0f);
+            }
+
+            wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+
+            Ray bounceRay = CreateBounceRay(surface, v, wi);
+
+            Lo += reflectance * CastSingleRay(context, bounceRay, bounceCount + 1);
         }
         else {
-            Lo += SampleIbl(kernelContext->context->ibl, ray.direction);
+            Lo += SampleIbl(ibl, ray.direction);
         }
 
         return Lo;
     }
 
     //==============================================================================
-    static float3 CastPrimaryRay(PathTracerKernelContext* kernelContext, Random::MersenneTwister* twister, uint x, uint y)
+    static float3 CastPrimaryRay(KernelContext* context, uint x, uint y)
     {
-        const RayCastCameraSettings& camera = kernelContext->camera;
-        Ray ray = JitteredCameraRay(&camera, twister, (float)x, (float)y);
-        return CastIncoherentRay(kernelContext, twister, ray, 0);
+        Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
+        return CastSingleRay(context, ray, 0);
     }
 
     //==============================================================================
-    static void RayCastImageBlock(PathTracerKernelContext* kernelContext, uint blockIndex, Random::MersenneTwister* twister)
+    static void RayCastImageBlock(const PathTracerContext* integratorContext, KernelContext* kernelContext, uint blockIndex, Random::MersenneTwister* twister)
     {
-        RTCScene rtcScene                = kernelContext->context->rtcScene;
-        ImageBasedLightResourceData* ibl = kernelContext->context->ibl;
-        uint width                       = kernelContext->context->width;
-        uint height                      = kernelContext->context->height;
+        uint width = integratorContext->width;
+        uint height = integratorContext->height;
 
-        const RayCastCameraSettings& camera = kernelContext->camera;
-        uint blockDimensions = kernelContext->blockDimensions;
+        const RayCastCameraSettings& camera = integratorContext->camera;
+        uint blockDimensions = integratorContext->blockDimensions;
 
-        uint by = blockIndex / kernelContext->blockCountX;
-        uint bx = blockIndex % kernelContext->blockCountX;
+        uint by = blockIndex / integratorContext->blockCountX;
+        uint bx = blockIndex % integratorContext->blockCountX;
 
         const uint raysPerPixel = RaysPerPixel_;
 
@@ -204,13 +220,14 @@ namespace Shooty
                     uint x = bx * blockDimensions + dx;
                     uint y = by * blockDimensions + dy;
                 #endif
+
                 float3 color = float3::Zero_;
                 for(uint scan = 0; scan < raysPerPixel; ++scan) {
-                    float3 sample = CastPrimaryRay(kernelContext, twister, x, y);
+                    float3 sample = CastPrimaryRay(kernelContext, x, y);
                     color += sample;
                 }
                 color = (1.0f / raysPerPixel) * color;
-                kernelContext->imageData[y * width + x] = color;
+                integratorContext->imageData[y * width + x] = color;
             }
         }
     }
@@ -218,19 +235,26 @@ namespace Shooty
     //==============================================================================
     static void PathTracerKernel(void* userData)
     {
-        PathTracerKernelContext* kernelContext = static_cast<PathTracerKernelContext*>(userData);
+        PathTracerContext* integratorContext = static_cast<PathTracerContext*>(userData);
+
+        int64 seed = Atomic::Increment64(integratorContext->kernelSeedAtomic);
 
         Random::MersenneTwister twister;
-        Random::MersenneTwisterInitialize(&twister, 0);
+        Random::MersenneTwisterInitialize(&twister, (uint32)seed);
+
+        KernelContext kernelContext;
+        kernelContext.sceneData = integratorContext->sceneData;
+        kernelContext.camera    = &integratorContext->camera;
+        kernelContext.twister   = &twister;
 
         do {
-            uint64 blockIndex = (uint64)Atomic::Increment64(kernelContext->consumedBlocks) - 1;
-            if(blockIndex >= kernelContext->blockCount)
+            uint64 blockIndex = (uint64)Atomic::Increment64(integratorContext->consumedBlocks) - 1;
+            if(blockIndex >= integratorContext->blockCount)
                 break;
 
-            RayCastImageBlock(kernelContext, (uint)blockIndex, &twister);
+            RayCastImageBlock(integratorContext, &kernelContext, (uint)blockIndex, &twister);
 
-            Atomic::Increment64(kernelContext->completedBlocks);
+            Atomic::Increment64(integratorContext->completedBlocks);
         }
         while(true);
 
@@ -238,12 +262,10 @@ namespace Shooty
     }
 
     //==============================================================================
-    void PathTraceImage(const SceneContext& context, float3* imageData)
+    void PathTraceImage(const SceneContext& context, uint width, uint height, float3* imageData)
     {
         SceneResource* scene         = context.scene;
         SceneResourceData* sceneData = scene->data;
-        uint width                   = context.width;
-        uint height                  = context.height;
 
         uint blockDimensions = 16;
         AssertMsg_(blockDimensions % 16 == 0, "Naive block splitting is temp so I'm ignoring obvious edge cases for now");
@@ -262,25 +284,29 @@ namespace Shooty
 
         RayCastCameraSettings camera;
         camera.invViewProjection = MatrixInverse(viewProj);
-        camera.viewportWidth  = (float)width;
-        camera.viewportHeight = (float)height;
-        camera.position = sceneData->camera.position;
-        camera.znear = sceneData->camera.znear;
-        camera.zfar = sceneData->camera.zfar;
+        camera.viewportWidth     = (float)width;
+        camera.viewportHeight    = (float)height;
+        camera.position          = sceneData->camera.position;
+        camera.znear             = sceneData->camera.znear;
+        camera.zfar              = sceneData->camera.zfar;
 
         int64 consumedBlocks = 0;
         int64 completedBlocks = 0;
+        int64 kernelSeedAtomic = 0;
 
-        PathTracerKernelContext kernelContext;
-        kernelContext.context         = &context;
-        kernelContext.camera          = camera;
-        kernelContext.blockDimensions = blockDimensions;
-        kernelContext.blockCountX     = blockCountX;
-        kernelContext.blockCountY     = blockCountY;
-        kernelContext.blockCount      = blockCount;
-        kernelContext.imageData       = imageData;
-        kernelContext.consumedBlocks  = &consumedBlocks;
-        kernelContext.completedBlocks = &completedBlocks;
+        PathTracerContext integratorContext;
+        integratorContext.sceneData         = &context;
+        integratorContext.camera            = camera;
+        integratorContext.blockDimensions   = blockDimensions;
+        integratorContext.blockCountX       = blockCountX;
+        integratorContext.blockCountY       = blockCountY;
+        integratorContext.blockCount        = blockCount;
+        integratorContext.imageData         = imageData;
+        integratorContext.width             = width;
+        integratorContext.height            = height;
+        integratorContext.consumedBlocks    = &consumedBlocks;
+        integratorContext.completedBlocks   = &completedBlocks;
+        integratorContext.kernelSeedAtomic  = &kernelSeedAtomic;
 
         #if EnableMultiThreading_ 
             const uint threadCount = 7;
@@ -288,16 +314,16 @@ namespace Shooty
 
             // -- fork threads
             for(uint scan = 0; scan < threadCount; ++scan) {
-                threadHandles[scan] = CreateThread(PathTracerKernel, &kernelContext);
+                threadHandles[scan] = CreateThread(PathTracerKernel, &integratorContext);
             }
         #endif
 
         // -- do work on the main thread too
-        PathTracerKernel(&kernelContext);
+        PathTracerKernel(&integratorContext);
 
         #if EnableMultiThreading_ 
             // -- wait for any other threads to finish
-            while(*kernelContext.completedBlocks != blockCount);
+            while(*integratorContext.completedBlocks != blockCount);
 
             for(uint scan = 0; scan < threadCount; ++scan) {
                 ShutdownThread(threadHandles[scan]);

@@ -8,23 +8,8 @@
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-struct RTCSceneTy;
-typedef struct RTCSceneTy* RTCScene;
-
 namespace Shooty
 {
-    struct SceneResource;
-    struct ImageBasedLightResourceData;
-    struct TextureResourceData;
-
-    struct SceneContext
-    {
-        RTCScene rtcScene;
-        SceneResource* scene;
-        ImageBasedLightResourceData* ibl;
-        uint width;
-        uint height;
-    };  
-
-    void PathTraceImage(const SceneContext& context, float3* imageData);
+    struct SceneContext;
+    void PathTraceImage(const SceneContext& context, uint width, uint height, float3* imageData);
 }

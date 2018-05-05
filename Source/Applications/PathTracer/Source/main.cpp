@@ -4,6 +4,7 @@
 //==============================================================================
 
 #include "PathTracer.h"
+#include "IntegratorContexts.h"
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
@@ -95,11 +96,9 @@ int main()
     context.rtcScene = rtcScene;
     context.scene = &sceneResource;
     context.ibl = iblResouce.data;
-    context.width = width;
-    context.height = height;
 
     SystemTime::GetCycleCounter(&timer);
-    PathTraceImage(context, imageData);
+    PathTraceImage(context, width, height, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);

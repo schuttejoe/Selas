@@ -19,14 +19,17 @@ namespace Shooty
     {
         FixedString256 shaderName;
 
-        FixedString256 emissive;
-        FixedString256 albedo;
-        FixedString256 height;
-        FixedString256 normal;
-        FixedString256 roughness;
-        FixedString256 specular;
-        FixedString256 metalness;
-        float metalnessScale;
+        FixedString256 emissiveTextureName;
+        FixedString256 albedoTextureName;
+        FixedString256 heightTextureName;
+        FixedString256 normalTextureName;
+        FixedString256 roughnessTextureName;
+        FixedString256 specularTextureName;
+        FixedString256 metalnessTextureName;
+
+        float roughness;
+        float albedo;
+        float metalness;
         float ior;
     };
 

@@ -36,9 +36,8 @@ namespace Shooty
     enum eMaterialFlags
     {
         ePreserveRayDifferentials = 1 << 0,
-        eHasReflectance           = 1 << 1,
-        eHasTextures              = 1 << 2,
-        eTransparent              = 1 << 3
+        eHasTextures              = 1 << 1,
+        eTransparent              = 1 << 2
     };
 
     struct Material
@@ -51,6 +50,8 @@ namespace Shooty
             , normalTextureIndex(InvalidIndex32)
             , specularTextureIndex(InvalidIndex32)
             , metalnessTextureIndex(InvalidIndex32)
+            , roughness(0.0f)
+            , albedo(0.0f)
             , metalness(0.0f)
             , flags(0)
             , shader(eDisney)
@@ -64,6 +65,8 @@ namespace Shooty
         uint32 normalTextureIndex;
         uint32 specularTextureIndex;
         uint32 metalnessTextureIndex;
+        float  roughness;
+        float  albedo;
         float  metalness;
         float  ior;
         uint32 flags;

@@ -134,37 +134,38 @@ namespace Shooty
             DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
 
             material.flags |= shaderFlags;
-            material.metalness = importedMaterialData.metalnessScale;
+            material.metalness = importedMaterialData.metalness;
+            material.roughness = importedMaterialData.roughness;
+            material.albedo    = importedMaterialData.albedo;
             material.ior = importedMaterialData.ior;
 
-            if(StringUtil::Length(importedMaterialData.emissive.Ascii())) {
+            if(StringUtil::Length(importedMaterialData.emissiveTextureName.Ascii())) {
                 material.flags |= eHasTextures;
-                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissive);
+                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTextureName);
             }
-            if(StringUtil::Length(importedMaterialData.albedo.Ascii())) {
-                material.flags |= eHasReflectance | eHasTextures;
-                material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedo);
-                material.metalness = 0.1f;
-            }
-            if(StringUtil::Length(importedMaterialData.height.Ascii())) {
+            if(StringUtil::Length(importedMaterialData.albedoTextureName.Ascii())) {
                 material.flags |= eHasTextures;
-                material.heightTextureIndex = AddTexture(built, importedMaterialData.height);
+                material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTextureName);
             }
-            if(StringUtil::Length(importedMaterialData.roughness.Ascii())) {
-                material.flags |= eHasReflectance | eHasTextures;
-                material.roughnessTextureIndex = AddTexture(built, importedMaterialData.roughness);
-            }
-            if(StringUtil::Length(importedMaterialData.normal.Ascii())) {
+            if(StringUtil::Length(importedMaterialData.heightTextureName.Ascii())) {
                 material.flags |= eHasTextures;
-                material.normalTextureIndex = AddTexture(built, importedMaterialData.normal);
+                material.heightTextureIndex = AddTexture(built, importedMaterialData.heightTextureName);
             }
-            if(StringUtil::Length(importedMaterialData.specular.Ascii())) {
+            if(StringUtil::Length(importedMaterialData.roughnessTextureName.Ascii())) {
+                material.flags |= eHasTextures;
+                material.roughnessTextureIndex = AddTexture(built, importedMaterialData.roughnessTextureName);
+            }
+            if(StringUtil::Length(importedMaterialData.normalTextureName.Ascii())) {
+                material.flags |= eHasTextures;
+                material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTextureName);
+            }
+            if(StringUtil::Length(importedMaterialData.specularTextureName.Ascii())) {
                 material.flags |= eHasTextures | ePreserveRayDifferentials;
-                material.specularTextureIndex = AddTexture(built, importedMaterialData.specular);
+                material.specularTextureIndex = AddTexture(built, importedMaterialData.specularTextureName);
             }
-            if(StringUtil::Length(importedMaterialData.metalness.Ascii())) {
+            if(StringUtil::Length(importedMaterialData.metalnessTextureName.Ascii())) {
                 material.flags |= eHasTextures | ePreserveRayDifferentials;
-                material.metalnessTextureIndex = AddTexture(built, importedMaterialData.metalness);
+                material.metalnessTextureIndex = AddTexture(built, importedMaterialData.metalnessTextureName);
             }
         }
 

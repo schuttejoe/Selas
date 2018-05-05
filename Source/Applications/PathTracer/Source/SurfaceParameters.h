@@ -11,6 +11,8 @@
 
 namespace Shooty
 {
+    struct KernelContext;
+    struct HitParameters;
     struct SceneResource;
     struct Material;
 
@@ -37,10 +39,16 @@ namespace Shooty
         float  roughness;
         float  ior;
 
+        // -- surface hit info
+        float3 rxOrigin;
+        float3 rxDirection;
+        float3 ryOrigin;
+        float3 ryDirection;
+
         // -- uv differentials.
         SurfaceDifferentials differentials;
     };
 
-    bool CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* hit, SurfaceParameters& surface);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
 }

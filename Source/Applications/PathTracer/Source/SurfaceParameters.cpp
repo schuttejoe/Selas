@@ -3,6 +3,8 @@
 //==============================================================================
 
 #include "SurfaceParameters.h"
+#include "IntegratorContexts.h"
+
 #include <TextureLib/TextureFiltering.h>
 #include <TextureLib/TextureResource.h>
 #include <SceneLib/SceneResource.h>
@@ -10,6 +12,8 @@
 #include <GeometryLib/CoordinateSystem.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/ColorSpace.h>
+
+#define EnableEWA_ false
 
 namespace Shooty
 {
@@ -22,12 +26,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        //if(hasDifferentials) {
-        //    //sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        //}
-        //else {
+        if(EnableEWA_ && hasDifferentials) {
+            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        }
+        else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        //}
+        }
 
         return 2.0f * sample - 1.0f;
     }
@@ -41,12 +45,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        //if(hasDifferentials) {
-        //    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        //}
-        //else {
+        if(EnableEWA_ && hasDifferentials) {
+            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        }
+        else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        //}
+        }
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -64,12 +68,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float sample;
-        //if(hasDifferentials) {
-        //    //sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-        //}
-        //else {
+        if(EnableEWA_ && hasDifferentials) {
+            sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        }
+        else {
             sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
-        //}
+        }
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -79,8 +83,70 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool CalculateSurfaceParams(const SceneResource* scene, const Ray& ray, float3 position, float error, uint32 primitiveId, float2 barycentric, SurfaceParameters& surface)
+    static void CalculateSurfaceDifferentials(const HitParameters* __restrict hit, float3 n, float3 dpdu, float3 dpdv, SurfaceDifferentials& outputs)
     {
+        {
+            // -- See section 10.1.1 of PBRT 2nd edition
+
+            float d = Dot(n, hit->position);
+            float tx = -(Dot(n, hit->rxOrigin) - d) / Dot(n, hit->rxDirection);
+            if(Math::IsInf(tx) || Math::IsNaN(tx))
+                goto fail;
+            float3 px = hit->rxOrigin + tx * hit->rxDirection;
+
+            float ty = -(Dot(n, hit->ryOrigin) - d) / Dot(n, hit->ryDirection);
+            if(Math::IsInf(ty) || Math::IsNaN(ty))
+                goto fail;
+            float3 py = hit->ryOrigin + ty * hit->ryDirection;
+
+            outputs.dpdx = px - hit->position;
+            outputs.dpdy = py - hit->position;
+
+            // Initialize A, Bx, and By matrices for offset computation
+            float2x2 A;
+            float2 Bx;
+            float2 By;
+
+            if(Math::Absf(n.x) > Math::Absf(n.y) && Math::Absf(n.x) > Math::Absf(n.z)) {
+                A.r0 = float2(dpdu.y, dpdv.y);
+                A.r1 = float2(dpdu.z, dpdv.z);
+                Bx = float2(px.y - hit->position.y, px.z - hit->position.z);
+                By = float2(py.y - hit->position.y, py.z - hit->position.z);
+            }
+            else if(Math::Absf(n.y) > Math::Absf(n.z)) {
+                A.r0 = float2(dpdu.x, dpdv.x);
+                A.r1 = float2(dpdu.z, dpdv.z);
+                Bx = float2(px.x - hit->position.x, px.z - hit->position.z);
+                By = float2(py.x - hit->position.x, py.z - hit->position.z);
+            }
+            else {
+                A.r0 = float2(dpdu.x, dpdv.x);
+                A.r1 = float2(dpdu.y, dpdv.y);
+                Bx = float2(px.x - hit->position.x, px.y - hit->position.y);
+                By = float2(py.x - hit->position.x, py.y - hit->position.y);
+            }
+
+            if(!Matrix2x2::SolveLinearSystem(A, Bx, outputs.duvdx)) {
+                outputs.duvdx = float2::Zero_;
+            }
+
+            if(!Matrix2x2::SolveLinearSystem(A, By, outputs.duvdy)) {
+                outputs.duvdy = float2::Zero_;
+            }
+            return;
+        }
+
+        fail:
+            outputs = SurfaceDifferentials();
+    }
+
+    //==============================================================================
+    bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* __restrict hit, SurfaceParameters& surface)
+    {
+        SceneResource* scene = context->sceneData->scene;
+
+        uint32 primitiveId = hit->primId;
+
         uint32 i0 = scene->data->indices[3 * primitiveId + 0];
         uint32 i1 = scene->data->indices[3 * primitiveId + 1];
         uint32 i2 = scene->data->indices[3 * primitiveId + 2];
@@ -107,30 +173,37 @@ namespace Shooty
         float2 uv1 = float2(v1.u, v1.v);
         float2 uv2 = float2(v2.u, v2.v);
 
-        float a0 = Saturate(1.0f - (barycentric.x + barycentric.y));
-        float a1 = barycentric.x;
-        float a2 = barycentric.y;
+        float a0 = Saturate(1.0f - (hit->baryCoords.x + hit->baryCoords.y));
+        float a1 = hit->baryCoords.x;
+        float a2 = hit->baryCoords.y;
 
         float3 t = Normalize(a0 * t0 + a1 * t1 + a2 * t2);
         float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
         float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
 
-        if(Dot(n, -ray.direction) < 0.0f && ((material->flags & eTransparent) == 0)) {
+        if(Dot(n, hit->viewDirection) < 0.0f && ((material->flags & eTransparent) == 0)) {
             // -- we've hit inside of a non-transparent object. This is probably caused by floating point precision issues.
             return false;
         }
+
+        // JSTODO - Hmmmmmmmmmmmmmmmm.
+        bool rayHasDifferentials = hit->rxDirection.x != 0 || hit->rxDirection.y != 0;
 
         // -- Calculate tangent space transforms
         surface.tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
 
+        surface.rxOrigin        = hit->rxOrigin;
+        surface.rxDirection     = hit->rxDirection;
+        surface.ryOrigin        = hit->ryOrigin;
+        surface.ryDirection     = hit->ryDirection;
         surface.geometricNormal = n;
-        surface.position        = position;
-        surface.error           = error;
+        surface.position        = hit->position;
+        surface.error           = hit->error;
         surface.materialFlags   = material->flags;
         
-        bool canUseDifferentials = (material->flags & eHasTextures) && ray.hasDifferentials;
-        bool preserveDifferentials = (material->flags & ePreserveRayDifferentials) && ray.hasDifferentials;
+        bool canUseDifferentials = (material->flags & eHasTextures) && rayHasDifferentials;
+        bool preserveDifferentials = (material->flags & ePreserveRayDifferentials) && rayHasDifferentials;
         
         if (canUseDifferentials || preserveDifferentials)  {
             // Compute deltas for triangle partial derivatives
@@ -161,21 +234,21 @@ namespace Shooty
         }
 
         if(canUseDifferentials) {
-            CalculateSurfaceDifferentials(ray, surface.geometricNormal, position, surface.dpdu, surface.dpdv, surface.differentials);
+            CalculateSurfaceDifferentials(hit, surface.geometricNormal, surface.dpdu, surface.dpdv, surface.differentials);
         }
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.emissive = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, ray.hasDifferentials, float3::Zero_);
-        surface.albedo = SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, ray.hasDifferentials, float3::Zero_);
-        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, ray.hasDifferentials, surface.albedo);
-        surface.roughness = SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, ray.hasDifferentials, 1.0f);
-        surface.metalness = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, ray.hasDifferentials, 1.0f);
+        surface.emissive      = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, rayHasDifferentials, float3::Zero_);
+        surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, float3::One_);
+        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, rayHasDifferentials, surface.albedo);
+        surface.roughness     = material->roughness * SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, rayHasDifferentials, 1.0f);
+        surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
         surface.shader = material->shader;
-        surface.ior = material->ior;
+        surface.ior = Dot(n, hit->viewDirection) < 0.0f ? 1.0f : material->ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
-        float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, ray.hasDifferentials);
+        float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, rayHasDifferentials);
         surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
 
         return true;

@@ -327,26 +327,27 @@ namespace Shooty
     //==============================================================================
     float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v)
     {
+        return float3::Zero_;
         // -- JSTODO - find light sources that can effect this point
 
-        uint lightSampleCount = 1;
+        //uint lightSampleCount = 1;
 
-        float3 lightCenter = float3(0.0f, 20.0f, 0.0f);
-        float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
+        //float3 lightCenter = float3(0.0f, 20.0f, 0.0f);
+        //float3 lightIntensity = float3(2.0f, 2.0f, 2.0f);
 
-        RectangularAreaLight rectangleLight;
-        rectangleLight.intensity = lightIntensity;
-        rectangleLight.eX = float3(5.0f, 0.0f, 0.0f);
-        rectangleLight.eZ = float3(0.0f, 0.0f, 5.0f);
-        rectangleLight.corner = lightCenter - 0.5f * rectangleLight.eX - 0.5f * rectangleLight.eZ;
+        //RectangularAreaLight rectangleLight;
+        //rectangleLight.intensity = lightIntensity;
+        //rectangleLight.eX = float3(5.0f, 0.0f, 0.0f);
+        //rectangleLight.eZ = float3(0.0f, 0.0f, 5.0f);
+        //rectangleLight.corner = lightCenter - 0.5f * rectangleLight.eX - 0.5f * rectangleLight.eZ;
 
-        SphericalAreaLight sphereLight;
-        sphereLight.intensity = lightIntensity;
-        sphereLight.center = lightCenter;
-        sphereLight.radius = 1.9947114f; // chosen to have a surface area of 50
+        //SphericalAreaLight sphereLight;
+        //sphereLight.intensity = lightIntensity;
+        //sphereLight.center = lightCenter;
+        //sphereLight.radius = 1.9947114f; // chosen to have a surface area of 50
 
-        float3 sa = IntegrateSphereLightWithSolidAngleSampling(rtcScene, twister, surface, v, sphereLight, lightSampleCount);
-        return sa;
+        //float3 sa = IntegrateSphereLightWithSolidAngleSampling(rtcScene, twister, surface, v, sphereLight, lightSampleCount);
+        //return sa;
     }
 
     //==============================================================================
@@ -461,20 +462,12 @@ namespace Shooty
         }
     }
 
-    static float FresnelDialectric(float cosThetaI, float ni, float nt)
+    static float SchlickDialecticFresnel(float cosThetaI, float ni, float nt)
     {
-        float sinThetaI = Math::Sqrtf(Max<float>(0, 1.0f - cosThetaI * cosThetaI));
-        float sinThetaT = (ni / nt) * sinThetaI;
+        float r0 = (ni - 1.0f) / (nt + 1.0f);
+        r0 *= r0;
 
-        if(sinThetaT >= 1.0f)
-            return 1.0f;
-
-        float cosThetaT = Math::Sqrtf(Max<float>(0, 1.0f - sinThetaT * sinThetaT));
-        float Rparl = ((nt * cosThetaI) - (ni * cosThetaT)) /
-                      ((nt * cosThetaI) + (ni * cosThetaT));
-        float Rperp = ((ni * cosThetaI) - (nt * cosThetaT)) /
-                      ((ni * cosThetaI) + (nt * cosThetaT));
-        return (Rparl * Rparl + Rperp * Rperp) / 2;
+        return r0 + (1.0f - r0) * Math::Powf(1 - cosThetaI, 5.0f);
     }
 
     //==============================================================================
@@ -488,14 +481,10 @@ namespace Shooty
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
         float t = Random::MersenneTwisterFloat(twister);
-
-        float transmissionFresnel = FresnelDialectric(Dot(wo, wm), currentIor, surface.ior);
-        bool reflect = t < transmissionFresnel;
-        if(!reflect) {
-            reflect = !Transmit(wm, wo, currentIor, surface.ior, wi);
+        float F = SchlickDialecticFresnel(Math::Absf(Dot(wm, wo)), currentIor, surface.ior);
+        if(t  >= F && Transmit(wm, wo, currentIor, surface.ior, wi)) {
             ior = surface.ior;
-        }
-        if(reflect) {
+        } else {
             wi = Reflect(wm, wo);
             ior = currentIor;
         }
@@ -505,6 +494,6 @@ namespace Shooty
         float G1 = SmithGGXMasking(wi, wo, wm, a2);
         float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
 
-        reflectance = (G2 / G1);
+        reflectance = surface.albedo * (G2 / G1);
     }
 }

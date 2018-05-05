@@ -3,13 +3,14 @@ Obviously there's an infinite list of things that can be done here. This is just
 
 Short term goals
 ---------------------
-Ray tracer kernel context needs to be per thread.
-Ray batching and sorting
-Shading point batching and sorting
+MIS
+Deferred path tracing
+Vertex Connection and Merging
 
 Features:
 ---------
-Vertex Connection and Merging
+Ray batching and sorting
+Shading point batching and sorting
 Depth of field
 
 Optimizations:

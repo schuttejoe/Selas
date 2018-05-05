@@ -23,18 +23,20 @@ namespace Shooty
         rapidjson::Document document;
         ReturnFailure_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
-        Json::ReadFixedString(document, "shaderName", material->shaderName);
+        Json::ReadFixedString(document, "ShaderName", material->shaderName);
 
-        Json::ReadFixedString(document, "emissive", material->emissive);
-        Json::ReadFixedString(document, "albedo", material->albedo);
-        Json::ReadFixedString(document, "height", material->height);
-        Json::ReadFixedString(document, "normal", material->normal);
-        Json::ReadFixedString(document, "roughness", material->roughness);
-        Json::ReadFixedString(document, "specular", material->specular);
-        Json::ReadFixedString(document, "metalness", material->metalness);
+        Json::ReadFixedString(document, "EmissiveTexture", material->emissiveTextureName);
+        Json::ReadFixedString(document, "AlbedoTexture", material->albedoTextureName);
+        Json::ReadFixedString(document, "HeightTexture", material->heightTextureName);
+        Json::ReadFixedString(document, "NormalTexture", material->normalTextureName);
+        Json::ReadFixedString(document, "RoughnessTexture", material->roughnessTextureName);
+        Json::ReadFixedString(document, "SpecularTexture", material->specularTextureName);
+        Json::ReadFixedString(document, "MetalnessTexture", material->metalnessTextureName);
 
-        Json::ReadFloat(document, "MetalnessScale", material->metalnessScale, 1.0f);
-        Json::ReadFloat(document, "ior", material->ior, 1.0f);
+        Json::ReadFloat(document, "Metalness", material->metalness, 1.0f);
+        Json::ReadFloat(document, "Albedo", material->albedo, 1.0f);
+        Json::ReadFloat(document, "Roughness", material->roughness, 1.0f);
+        Json::ReadFloat(document, "Ior", material->ior, 1.0f);
 
         return true;
     }

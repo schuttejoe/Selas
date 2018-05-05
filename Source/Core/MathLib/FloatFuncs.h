@@ -241,11 +241,14 @@ namespace Shooty
     ForceInline_ bool Transmit(float3 wm, float3 wi, float ni, float no, float3& wo)
     {
         float c = Dot(wi, wm);
+        if(c < 0.0f) {
+            c = -c;
+            wm = -wm;
+        }
 
         float n = ni / no;
 
         float root = 1.0f - n * n * (1.0f - c * c);
-        float root2 = 1.0f + n * (c * c - 1.0f);
         if(root < 0)
             return false;
 

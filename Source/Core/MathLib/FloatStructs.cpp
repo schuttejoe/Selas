@@ -11,6 +11,7 @@ namespace Shooty
     const float2 float2::YAxis_ = float2(0.0f, 1.0f);
 
     const float3 float3::Zero_ = float3(0.0f, 0.0f, 0.0f);
+    const float3 float3::One_  = float3(1.0f, 1.0f, 1.0f);
     const float3 float3::XAxis_ = float3(1.0f, 0.0f, 0.0f);
     const float3 float3::YAxis_ = float3(0.0f, 1.0f, 0.0f);
     const float3 float3::ZAxis_ = float3(0.0f, 0.0f, 1.0f);

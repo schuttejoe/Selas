@@ -8,6 +8,8 @@
 
 namespace Shooty
 {
+    struct SurfaceDifferentials;
+
     struct Ray
     {
         float3 origin;
@@ -25,4 +27,5 @@ namespace Shooty
     };
 
     Ray MakeRay(float3 origin, float3 direction, float near, float far, float ior);
+    Ray MakeDifferentialRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float near, float far, float ior);
 }
