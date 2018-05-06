@@ -25,8 +25,8 @@ namespace Shooty
         uint CalculateMarginalDensityFunctionCount(uint width, uint height);
         uint CalculateConditionalDensityFunctionsCount(uint width, uint height);
 
-        float IblPdf(IblDensityFunctions* distributions, float3 w);
-        void Ibl(IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
+        float IblPdf(const IblDensityFunctions* distributions, float3 w);
+        void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
         void ShutdownDensityFunctions(IblDensityFunctions* distributions);
 
         float GgxDPdf(float roughness, float dotNH);

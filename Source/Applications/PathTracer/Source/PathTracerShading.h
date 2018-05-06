@@ -11,6 +11,14 @@ typedef struct RTCSceneTy* RTCScene;
 
 namespace Shooty
 {
+    struct KernelContext;
+    struct HitParameters;
+    struct Ray;
+    struct Material;
+    struct ImageBasedLightResourceData;
+    struct SurfaceParameters;
+    struct SceneResource;
+
     namespace Random
     {
         struct MersenneTwister;
@@ -31,16 +39,11 @@ namespace Shooty
         float3 eZ;
     };
 
-    struct Material;
-    struct ImageBasedLightResourceData;
-    struct SurfaceParameters;
-    struct SceneResource;
+    Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi, float3 throughput, uint32 pixelIndex);
+    void InsertRay(KernelContext* context, const Ray& ray, bool useRussianRoulette);
+    void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value);
+    void AccumulatePixelEnergy(KernelContext* context, const HitParameters& hit, float3 value);
 
-    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi);
-    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v);
-
-    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance);
-    void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior);
-    void ImportanceSampleDisneyBrdf(RTCScene& rtcScene, Random::MersenneTwister* twister, ImageBasedLightResourceData* ibl, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior);
-    void ImportanceSampleTransparent(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior);
+    float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
+    void ShadeSurfaceHit(KernelContext* context, const HitParameters& hit);
 }

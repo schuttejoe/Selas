@@ -20,7 +20,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, float viewX, float viewY)
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, uint32 pixelIndex, float viewX, float viewY)
     {
         // JSTODO - Blue noise probably ideal here. Maybe this: http://liris.cnrs.fr/david.coeurjolly/publications/perrier18eg.html ?
         float vx = viewX + MersenneTwisterFloat(twister);
@@ -35,19 +35,18 @@ namespace Shooty
         float3 dy = Normalize(py - camera->position);
 
         // JSTODO - Should the origins be set to p, px, and py rather than camera->position for all 3?
-        // -- Verify when implementing DOF.
         Ray result;
         result.origin    = camera->position;
         result.direction = d;
-        result.tnear     = camera->znear;
-        result.tfar      = camera->zfar;
-        result.mediumIOR = 1.0f;
+        result.throughput = float3::One_;
+        result.pixelIndex = pixelIndex;
 
         result.rxOrigin    = camera->position;
         result.rxDirection = dx;
         result.ryOrigin    = camera->position;
         result.ryDirection = dy;
-        result.hasDifferentials = true;
+
+        result.bounceCount = 0;
 
         return result;
     }

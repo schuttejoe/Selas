@@ -11,5 +11,5 @@
 namespace Shooty
 {
     struct SceneContext;
-    void PathTraceImage(const SceneContext& context, uint width, uint height, float3* imageData);
+    void PathTraceImage(SceneContext& context, uint width, uint height, float3* imageData);
 }

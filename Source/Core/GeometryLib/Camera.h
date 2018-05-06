@@ -25,5 +25,5 @@ namespace Shooty
         float    zfar;
     };
 
-    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, float viewX, float viewY);
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, uint32 pixelIndex, float viewX, float viewY);
 }

@@ -53,7 +53,7 @@ namespace Shooty
         }
 
         //==============================================================================
-        float IblPdf(IblDensityFunctions* distributions, float3 w)
+        float IblPdf(const IblDensityFunctions* distributions, float3 w)
         {
             int32 width = (int32)distributions->width;
             int32 height = (int32)distributions->height;
@@ -73,12 +73,15 @@ namespace Shooty
             float mdf = distributions->marginalDensityFunction[y];
             float cdf = (distributions->conditionalDensityFunctions + y * width)[x];
 
+            // convert from texture space to spherical with the inverse of the Jacobian
+            float invJacobian = (widthf * heightf) / Math::TwoPi_;
+
             // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-            return Math::Sinf(theta) * mdf * cdf;
+            return Math::Sinf(theta) * mdf * cdf * invJacobian;
         }
 
         //==============================================================================
-        void Ibl(IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
+        void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
         {
             // - http://www.igorsklyar.com/system/documents/papers/4/fiscourse.comp.pdf Section 4.2
             // - See also: Physically based rendering volume 2 section 13.6.5

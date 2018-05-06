@@ -35,25 +35,24 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-#define SampleSpecificTexel_    0
-#define SpecificTexelX_         400
-#define SpecificTexelY_         550
+#define SampleSpecificTexel_    0 && Debug_
+#define SpecificTexelX_         1196
+#define SpecificTexelY_         354
 
 #if SampleSpecificTexel_
 #define EnableMultiThreading_   0
 #define RaysPerPixel_           1
 #else
 #define EnableMultiThreading_   1
-#define RaysPerPixel_           128
+#define RaysPerPixel_           64
 #endif
-#define MaxBounceCount_         10
 
 namespace Shooty
 {
     //==============================================================================
     struct PathTracerContext
     {
-        const SceneContext* sceneData;
+        SceneContext* sceneData;
         RayCastCameraSettings camera;
         uint blockDimensions;
         uint blockCountX;
@@ -68,11 +67,8 @@ namespace Shooty
         float3* imageData;
     };
 
-
-
     //==============================================================================
-    static bool RayPick(const RTCScene& rtcScene, const SceneResourceData* scene, const Ray& ray,
-                        HitParameters& hit)
+    static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
     {
 
         RTCIntersectContext context;
@@ -85,8 +81,8 @@ namespace Shooty
         rayhit.ray.dir_x = ray.direction.x;
         rayhit.ray.dir_y = ray.direction.y;
         rayhit.ray.dir_z = ray.direction.z;
-        rayhit.ray.tnear = ray.tnear;
-        rayhit.ray.tfar  = ray.tfar;
+        rayhit.ray.tnear = 0.00001f;
+        rayhit.ray.tfar  = FloatMax_;
 
         rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
@@ -105,96 +101,46 @@ namespace Shooty
         const float kErr = 32.0f * 1.19209e-07f;
         hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
 
+        hit.viewDirection = -ray.direction;
         hit.rxOrigin      = ray.rxOrigin;
         hit.rxDirection   = ray.rxDirection;
         hit.ryOrigin      = ray.ryOrigin;
         hit.ryDirection   = ray.ryDirection;
-        hit.viewDirection = -ray.direction;
-        hit.ior           = ray.mediumIOR;
+        hit.pixelIndex    = ray.pixelIndex;
+        hit.throughput    = ray.throughput;
+        hit.bounceCount   = ray.bounceCount;
 
         return true;
     }
 
     //==============================================================================
-    static Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi)
+    static void EvaluateRayBatch(KernelContext* __restrict context)
     {
-        float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
+        while(context->rayStackCount > 0) {
 
-        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+            Ray ray = context->rayStack[context->rayStackCount - 1];
+            --context->rayStackCount;
 
-        Ray bounceRay;
-        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
-            bounceRay = MakeDifferentialRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, wo, wi, surface.differentials, surface.error, FloatMax_, surface.ior);
-        }
-        else {
-            bounceRay = MakeRay(offsetOrigin, wi, surface.error, FloatMax_, surface.ior);
-        }
+            HitParameters hit;
+            bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, hit);
 
-        return bounceRay;
-    }
-
-    //==============================================================================
-    static float3 CastSingleRay(KernelContext* context, const Ray& ray, uint bounceCount)
-    {
-        if(bounceCount == MaxBounceCount_) {
-            return float3::Zero_;
-        }
-
-        RTCScene rtcScene                   = context->sceneData->rtcScene;
-        SceneResource* scene                = context->sceneData->scene;
-        ImageBasedLightResourceData* ibl    = context->sceneData->ibl;
-
-        HitParameters hit;
-        bool rayCastHit = RayPick(rtcScene, scene->data, ray, hit);
-
-        float3 Lo = float3::Zero_;
-
-        if(rayCastHit) {
-
-            SurfaceParameters surface;
-            if(CalculateSurfaceParams(context, &hit, surface) == false) {
-                return float3::Zero_;
-            }
-
-            float3 v = hit.viewDirection;
-            float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
-
-            Lo += surface.emissive;
-            Lo += CalculateDirectLighting(rtcScene, scene, context->twister, surface, v);
-
-            float3 wi;
-            float3 reflectance;
-            float ior = hit.ior;
-
-            if(surface.shader == eDisney) {
-                ImportanceSampleIbl(rtcScene, ibl, context->twister, surface, v, wo, ior, wi, reflectance, ior);
-                //ImportanceSampleDisneyBrdf(twister, surface, wo, ray.mediumIOR, wi, reflectance, ior);
-            }
-            else if(surface.shader == eTransparentGgx) {
-                ImportanceSampleTransparent(context->twister, surface, wo, hit.ior, wi, reflectance, ior);
+            if(rayCastHit) {
+                ShadeSurfaceHit(context, hit);
             }
             else {
-                return float3(100.0f, 0.0f, 0.0f);
+                float3 sample = SampleIbl(context->sceneData->ibl, ray.direction);
+                AccumulatePixelEnergy(context, ray, sample);
             }
-
-            wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-
-            Ray bounceRay = CreateBounceRay(surface, v, wi);
-
-            Lo += reflectance * CastSingleRay(context, bounceRay, bounceCount + 1);
         }
-        else {
-            Lo += SampleIbl(ibl, ray.direction);
-        }
-
-        return Lo;
     }
 
     //==============================================================================
-    static float3 CastPrimaryRay(KernelContext* context, uint x, uint y)
+    static void CreatePrimaryRay(KernelContext* context, uint pixelIndex, uint x, uint y)
     {
-        Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
-        return CastSingleRay(context, ray, 0);
+        Ray ray = JitteredCameraRay(context->camera, context->twister, (uint32)pixelIndex, (float)x, (float)y);
+        InsertRay(context, ray, false);
+
+        EvaluateRayBatch(context);
     }
 
     //==============================================================================
@@ -221,13 +167,24 @@ namespace Shooty
                     uint y = by * blockDimensions + dy;
                 #endif
 
-                float3 color = float3::Zero_;
                 for(uint scan = 0; scan < raysPerPixel; ++scan) {
-                    float3 sample = CastPrimaryRay(kernelContext, x, y);
-                    color += sample;
+                    CreatePrimaryRay(kernelContext, y * width + x, x, y);
                 }
-                color = (1.0f / raysPerPixel) * color;
-                integratorContext->imageData[y * width + x] = color;
+            }
+        }
+
+        float pixelWeight = (1.0f / raysPerPixel);
+        for(uint dy = 0; dy < blockDimensions; ++dy) {
+            for(uint dx = 0; dx < blockDimensions; ++dx) {
+                #if SampleSpecificTexel_
+                    uint x = SpecificTexelX_;
+                    uint y = SpecificTexelY_;
+                #else
+                    uint x = bx * blockDimensions + dx;
+                    uint y = by * blockDimensions + dy;
+                #endif
+
+                integratorContext->imageData[y * width + x] = pixelWeight * integratorContext->imageData[y * width + x];
             }
         }
     }
@@ -246,6 +203,11 @@ namespace Shooty
         kernelContext.sceneData = integratorContext->sceneData;
         kernelContext.camera    = &integratorContext->camera;
         kernelContext.twister   = &twister;
+        kernelContext.imageData = integratorContext->imageData;
+
+        kernelContext.rayStackCapacity = 1024 * 1024;
+        kernelContext.rayStackCount = 0;
+        kernelContext.rayStack = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
         do {
             uint64 blockIndex = (uint64)Atomic::Increment64(integratorContext->consumedBlocks) - 1;
@@ -258,13 +220,14 @@ namespace Shooty
         }
         while(true);
 
+        FreeAligned_(kernelContext.rayStack);
         Random::MersenneTwisterShutdown(&twister);
     }
 
     //==============================================================================
-    void PathTraceImage(const SceneContext& context, uint width, uint height, float3* imageData)
+    void PathTraceImage(SceneContext& context, uint width, uint height, float3* imageData)
     {
-        SceneResource* scene         = context.scene;
+        const SceneResource* scene   = context.scene;
         SceneResourceData* sceneData = scene->data;
 
         uint blockDimensions = 16;

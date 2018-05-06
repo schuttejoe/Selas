@@ -8,6 +8,7 @@
 #include <SceneLib/ImageBasedLightResource.h>
 #include <GeometryLib/Camera.h>
 #include <MathLib/Random.h>
+#include <SystemLib/BasicTypes.h>
 
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;
@@ -27,16 +28,21 @@ namespace Shooty
     struct SceneContext
     {
         RTCScene rtcScene;
-        SceneResource* scene;
-        ImageBasedLightResourceData* ibl;
+        const SceneResource* scene;
+        const ImageBasedLightResourceData* ibl;
     };
 
     //==============================================================================
     struct KernelContext
     {
-        const SceneContext* sceneData;
-        const RayCastCameraSettings* camera;
-        Random::MersenneTwister* twister;
+        const RayCastCameraSettings* __restrict camera;
+        SceneContext* __restrict sceneData;
+        Random::MersenneTwister* __restrict twister;
+        float3* __restrict imageData;
+
+        Ray* __restrict rayStack;
+        uint rayStackCount;
+        uint rayStackCapacity;
     };
 
     //==============================================================================
@@ -46,12 +52,16 @@ namespace Shooty
         float error;
         float3 viewDirection;
         int32 primId;
+
         float2 baryCoords;
 
         float3 rxOrigin;
         float3 rxDirection;
         float3 ryOrigin;
         float3 ryDirection;
-        float ior;
+
+        uint32 bounceCount;
+        uint32 pixelIndex;
+        float3 throughput;
     };
 }

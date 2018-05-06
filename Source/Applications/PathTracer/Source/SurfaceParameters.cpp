@@ -143,7 +143,7 @@ namespace Shooty
     //==============================================================================
     bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* __restrict hit, SurfaceParameters& surface)
     {
-        SceneResource* scene = context->sceneData->scene;
+        const SceneResource* scene = context->sceneData->scene;
 
         uint32 primitiveId = hit->primId;
 
@@ -245,7 +245,7 @@ namespace Shooty
         surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
         surface.shader = material->shader;
-        surface.ior = Dot(n, hit->viewDirection) < 0.0f ? 1.0f : material->ior;
+        surface.ior = material->ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, rayHasDifferentials);

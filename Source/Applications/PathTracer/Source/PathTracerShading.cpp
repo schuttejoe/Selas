@@ -5,6 +5,7 @@
 
 #include "PathTracerShading.h"
 #include "SurfaceParameters.h"
+#include "IntegratorContexts.h"
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
@@ -29,6 +30,8 @@
 
 namespace Shooty
 {
+    #define MaxBounceCount_  10
+
     //==============================================================================
     static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
     {
@@ -55,7 +58,60 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 SampleIbl(ImageBasedLightResourceData* ibl, float3 wi)
+    Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi, const HitParameters& hit, float3 reflectance, uint32 bounceCount)
+    {
+        float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
+        float3 throughput = hit.throughput * reflectance;
+
+        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+
+        Ray bounceRay;
+        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
+            bounceRay = MakeDifferentialRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, wo, wi, surface.differentials, throughput, hit.pixelIndex);
+        }
+        else {
+            bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex);
+        }
+        bounceRay.bounceCount = bounceCount + 1;
+
+        return bounceRay;
+    }
+
+    //==============================================================================
+    void InsertRay(KernelContext* context, const Ray& ray, bool useRussianRoulette)
+    {
+        //if(useRussianRoulette) {
+        //    float pdf = Max<float>(ray.throughput.x, Max<float>(ray.throughput.y, ray.throughput.z));
+        //    float t = Random::MersenneTwisterFloat(context->twister);
+        //    if(t > pdf) {
+        //        return;
+        //    }
+        //    
+        //    ray.throughput = (1.0f / pdf) * ray.throughput;
+        //}
+
+        if(ray.bounceCount == MaxBounceCount_)
+            return;
+
+        Assert_(context->rayStackCount + 1 != context->rayStackCapacity);
+        context->rayStack[context->rayStackCount] = ray;
+        ++context->rayStackCount;
+    }
+
+    //==============================================================================
+    void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value)
+    {
+        context->imageData[ray.pixelIndex] += ray.throughput * value;
+    }
+
+    //==============================================================================
+    void AccumulatePixelEnergy(KernelContext* context, const HitParameters& hit, float3 value)
+    {
+        context->imageData[hit.pixelIndex] += hit.throughput * value;
+    }
+
+    //==============================================================================
+    float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi)
     {
         int32 width = (int32)ibl->densityfunctions.width;
         int32 height = (int32)ibl->densityfunctions.height;
@@ -325,9 +381,8 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDirectLighting(RTCScene& rtcScene, SceneResource* scene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 v)
+    static void CalculateDirectLighting(KernelContext* context, const HitParameters& hit, const SurfaceParameters& surface)
     {
-        return float3::Zero_;
         // -- JSTODO - find light sources that can effect this point
 
         //uint lightSampleCount = 1;
@@ -351,27 +406,29 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleGgxVdn(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float3& wi, float3& reflectance)
+    static void GgxBrdfShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
     {
+        float3 wo = Normalize(MatrixMultiply(hit.viewDirection, surface.worldToTangent));
+
         float a = surface.roughness;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
-        wi = Normalize(Reflect(wm, wo));
+        float3 wi = Normalize(Reflect(wm, wo));
 
         if(BsdfNDot(wi) > 0.0f) {
             float3 F = SchlickFresnel(surface.specularColor, Dot(wi, wm));
             float G1 = SmithGGXMasking(wi, wo, wm, a2);
             float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
 
-            reflectance = F * (G2 / G1);
-            
-        }
-        else {
-            reflectance = float3::Zero_;
+            float3 reflectance = F * (G2 / G1);
+
+            float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+            Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
+            InsertRay(context, bounceRay, true);
         }
     }
 
@@ -390,58 +447,47 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleIbl(RTCScene& rtcScene, ImageBasedLightResourceData* ibl, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    static void DisneyWithIblSamplingShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
     {
-        reflectance = float3::Zero_;
-        ior = currentIor;
-
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
 
         float theta;
         float phi;
         uint x;
         uint y;
         float iblPdf;
-        ImportanceSampling::Ibl(&ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
+        ImportanceSampling::Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
         float3 worldWi = Math::SphericalToCartesian(theta, phi);
 
         if(Dot(worldWi, surface.geometricNormal) < 0.0f) {
             return;
         }
 
-        float thetaTest;
-        float phiTest;
-        Math::NormalizedCartesianToSpherical(worldWi, thetaTest, phiTest);
-
-        wi = MatrixMultiply(worldWi, surface.worldToTangent);
-        if(BsdfNDot(wi) > 0.0f) {
-            reflectance = CalculateDisneyBsdf(surface, view, worldWi) * (1.0f / iblPdf);
-        }
+        float3 reflectance = CalculateDisneyBsdf(surface, hit.viewDirection, worldWi) * (1.0f / iblPdf);
+        Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
+        InsertRay(context, bounceRay, true);
     }
 
     //==============================================================================
-    void ImportanceSampleDisneyBrdf(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    static void DisneyBrdfShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
     {
-        ior = currentIor;
+        float3 wo = Normalize(MatrixMultiply(hit.viewDirection, surface.worldToTangent));
 
         float a = surface.roughness;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
-        wi = Reflect(wm, wo);
+        float3 wi = Reflect(wm, wo);
         if(BsdfNDot(wi) > 0.0f) {
             wi = Normalize(wi);
 
             float3 F = SchlickFresnel(surface.specularColor, Dot(wi, wm));
             float G1 = SmithGGXMasking(wi, wo, wm, a2);
             float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
-
-            // -- reflectance from the importance sampled GGX is interpolated based on metalness
-            reflectance = surface.metalness * F * (G2 / G1);
 
             // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
             // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
@@ -455,10 +501,11 @@ namespace Shooty
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
-            reflectance = reflectance + (1.0f - surface.metalness) * diffuse;
-        }
-        else {
-            reflectance = float3::Zero_;
+            float3 reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
+
+            float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+            Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
+            InsertRay(context, bounceRay, true);
         }
     }
 
@@ -471,29 +518,59 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ImportanceSampleTransparent(Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 wo, float currentIor, float3& wi, float3& reflectance, float& ior)
+    static void TransparentGgxShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
     {
+        float3 view = hit.viewDirection;
+        float3 wo = Normalize(MatrixMultiply(view, surface.worldToTangent));
+
+        float currentIor = (Dot(view, surface.geometricNormal) < 0.0f) ? surface.ior : 1.0f;
+        float exitIor    = (Dot(view, surface.geometricNormal) < 0.0f) ? 1.0f : surface.ior;
+
         float a = surface.roughness;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(twister);
-        float r1 = Random::MersenneTwisterFloat(twister);
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
-        float t = Random::MersenneTwisterFloat(twister);
+        float3 wi;
+        float t = Random::MersenneTwisterFloat(context->twister);
         float F = SchlickDialecticFresnel(Math::Absf(Dot(wm, wo)), currentIor, surface.ior);
-        if(t  >= F && Transmit(wm, wo, currentIor, surface.ior, wi)) {
-            ior = surface.ior;
-        } else {
+        if(t < F || !Transmit(wm, wo, currentIor, exitIor, wi)) {
             wi = Reflect(wm, wo);
-            ior = currentIor;
         }
-        
         wi = Normalize(wi);
 
         float G1 = SmithGGXMasking(wi, wo, wm, a2);
         float G2 = SmithGGXMaskingShading(wi, wo, wm, a2);
 
-        reflectance = surface.albedo * (G2 / G1);
+        float3 reflectance = surface.albedo * (G2 / G1);
+
+        float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+        Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
+        InsertRay(context, bounceRay, true);
+    }
+
+    //==============================================================================
+    void ShadeSurfaceHit(KernelContext* context, const HitParameters& hit)
+    {
+        SurfaceParameters surface;
+        if(CalculateSurfaceParams(context, &hit, surface) == false) {
+            return;
+        }
+
+        CalculateDirectLighting(context, hit, surface);
+        AccumulatePixelEnergy(context, hit, surface.emissive);
+
+        if(surface.shader == eDisney) {
+            DisneyWithIblSamplingShader(context, hit, surface);
+            //DisneyBrdfShader(context, hit, surface);
+        }
+        else if(surface.shader == eTransparentGgx) {
+            TransparentGgxShader(context, hit, surface);
+        }
+        else {
+            Assert_(false);
+        }
     }
 }

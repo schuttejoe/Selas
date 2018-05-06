@@ -91,6 +91,7 @@ int main()
     uint height = 720;
 
     float3* imageData = AllocArray_(float3, width * height);
+    Memory::Zero(imageData, sizeof(float3) * width * height);
 
     SceneContext context;
     context.rtcScene = rtcScene;
