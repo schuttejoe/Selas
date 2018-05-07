@@ -169,6 +169,30 @@ namespace Shooty
 
         //==============================================================================
         template <typename Type_>
+        static void Trilinear(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
+        {
+            float majorLength = Length(dst0);
+            float minorLength = Length(dst1);
+
+            float length = Max<float>(majorLength, minorLength);
+            if(length == 0) {
+                Triangle<Type_>(texture, 0, st, result);
+                return;
+            }
+
+            // Choose choose which mip level we want to sample at
+            float lod = Max<float>(0.0f, texture->mipCount - 1.0f + Math::Log2(length));
+            float ilod = Math::Floor(lod);
+
+            Type_ r0;
+            Triangle<Type_>(texture, (int32)ilod, st, r0);
+            Type_ r1;
+            Triangle<Type_>(texture, (int32)ilod + 1, st, r1);
+            result = Lerp(r0, r1, lod - ilod);
+        }
+
+        //==============================================================================
+        template <typename Type_>
         static void EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
             // Credit goes to pbrt for the EWA implementation
@@ -229,6 +253,16 @@ namespace Shooty
         }
 
         //==============================================================================
+        float TrilinearFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
+        {
+            Assert_(texture->type == TextureResourceData::Float);
+
+            float result;
+            Trilinear(texture, st, dst0, dst1, result);
+            return result;
+        }
+
+        //==============================================================================
         float EWAFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
         {
             Assert_(texture->type == TextureResourceData::Float);
@@ -255,6 +289,16 @@ namespace Shooty
 
             float3 result;
             Triangle(texture, level, st, result);
+            return result;
+        }
+
+        //==============================================================================
+        float3 TrilinearFloat3(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1)
+        {
+            Assert_(texture->type == TextureResourceData::Float3);
+
+            float3 result;
+            Trilinear(texture, st, dst0, dst1, result);
             return result;
         }
 

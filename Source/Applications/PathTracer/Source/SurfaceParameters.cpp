@@ -13,6 +13,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/ColorSpace.h>
 
+#define ForceNoMips_ false
 #define EnableEWA_ false
 
 namespace Shooty
@@ -26,8 +27,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(EnableEWA_ && hasDifferentials) {
-            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        if(!ForceNoMips_ && hasDifferentials) {
+            #if EnableEWA_
+                sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #else
+                sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #endif
         }
         else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
@@ -45,8 +50,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(EnableEWA_ && hasDifferentials) {
-            sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        if(!ForceNoMips_ && hasDifferentials) {
+            #if EnableEWA_
+                sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #else
+                sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #endif
         }
         else {
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
@@ -68,8 +77,12 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float sample;
-        if(EnableEWA_ && hasDifferentials) {
-            sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+        if(!ForceNoMips_ && hasDifferentials) {
+            #if EnableEWA_
+                sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #else
+                sample = TextureFiltering::TrilinearFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+            #endif
         }
         else {
             sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);

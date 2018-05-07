@@ -34,16 +34,15 @@ namespace Shooty
         float3 dx = Normalize(px - camera->position);
         float3 dy = Normalize(py - camera->position);
 
-        // JSTODO - Should the origins be set to p, px, and py rather than camera->position for all 3?
         Ray result;
-        result.origin    = camera->position;
-        result.direction = d;
+        result.origin     = p;
+        result.direction  = d;
         result.throughput = float3::One_;
         result.pixelIndex = pixelIndex;
 
-        result.rxOrigin    = camera->position;
+        result.rxOrigin    = px;
         result.rxDirection = dx;
-        result.ryOrigin    = camera->position;
+        result.ryOrigin    = py;
         result.ryDirection = dy;
 
         result.bounceCount = 0;

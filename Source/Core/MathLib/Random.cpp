@@ -31,6 +31,12 @@ namespace Shooty
         }
 
         //==============================================================================
+        void MersenneTwisterReseed(MersenneTwister* twister, uint32 seed)
+        {
+            twister->data->mtEngine.seed(seed);
+        }
+
+        //==============================================================================
         void MersenneTwisterShutdown(MersenneTwister* twister)
         {
             SafeDelete_(twister->data);

@@ -62,7 +62,6 @@ namespace Shooty
         uint height;
         volatile int64* consumedBlocks;
         volatile int64* completedBlocks;
-        volatile int64* kernelSeedAtomic;
 
         float3* imageData;
     };
@@ -144,8 +143,10 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void RayCastImageBlock(const PathTracerContext* integratorContext, KernelContext* kernelContext, uint blockIndex, Random::MersenneTwister* twister)
+    static void RayCastImageBlock(const PathTracerContext* integratorContext, KernelContext* kernelContext, uint blockIndex)
     {
+        Random::MersenneTwisterReseed(kernelContext->twister, (uint32)blockIndex);
+
         uint width = integratorContext->width;
         uint height = integratorContext->height;
 
@@ -192,19 +193,16 @@ namespace Shooty
     //==============================================================================
     static void PathTracerKernel(void* userData)
     {
-        PathTracerContext* integratorContext = static_cast<PathTracerContext*>(userData);
-
-        int64 seed = Atomic::Increment64(integratorContext->kernelSeedAtomic);
-
         Random::MersenneTwister twister;
-        Random::MersenneTwisterInitialize(&twister, (uint32)seed);
+        Random::MersenneTwisterInitialize(&twister, 0);
+
+        PathTracerContext* integratorContext = static_cast<PathTracerContext*>(userData);
 
         KernelContext kernelContext;
         kernelContext.sceneData = integratorContext->sceneData;
         kernelContext.camera    = &integratorContext->camera;
-        kernelContext.twister   = &twister;
         kernelContext.imageData = integratorContext->imageData;
-
+        kernelContext.twister   = &twister;
         kernelContext.rayStackCapacity = 1024 * 1024;
         kernelContext.rayStackCount = 0;
         kernelContext.rayStack = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
@@ -214,13 +212,14 @@ namespace Shooty
             if(blockIndex >= integratorContext->blockCount)
                 break;
 
-            RayCastImageBlock(integratorContext, &kernelContext, (uint)blockIndex, &twister);
+            RayCastImageBlock(integratorContext, &kernelContext, (uint)blockIndex);
 
             Atomic::Increment64(integratorContext->completedBlocks);
         }
         while(true);
 
         FreeAligned_(kernelContext.rayStack);
+        
         Random::MersenneTwisterShutdown(&twister);
     }
 
@@ -255,7 +254,6 @@ namespace Shooty
 
         int64 consumedBlocks = 0;
         int64 completedBlocks = 0;
-        int64 kernelSeedAtomic = 0;
 
         PathTracerContext integratorContext;
         integratorContext.sceneData         = &context;
@@ -269,7 +267,6 @@ namespace Shooty
         integratorContext.height            = height;
         integratorContext.consumedBlocks    = &consumedBlocks;
         integratorContext.completedBlocks   = &completedBlocks;
-        integratorContext.kernelSeedAtomic  = &kernelSeedAtomic;
 
         #if EnableMultiThreading_ 
             const uint threadCount = 7;

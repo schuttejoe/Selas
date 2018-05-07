@@ -19,6 +19,7 @@ namespace Shooty
         };
 
         void MersenneTwisterInitialize(MersenneTwister* twister, uint32 seed);
+        void MersenneTwisterReseed(MersenneTwister* twister, uint32 seed);
         void MersenneTwisterShutdown(MersenneTwister* twister);
         float MersenneTwisterFloat(MersenneTwister* twister);
         uint32 MersenneTwisterUint32(MersenneTwister* twister);

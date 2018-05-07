@@ -23,10 +23,12 @@ namespace Shooty
 
         float PointFloat(TextureResourceData* texture, float2 st);
         float TriangleFloat(TextureResourceData* texture, int32 level, float2 st);
+        float TrilinearFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
         float EWAFloat(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
 
         float3 PointFloat3(TextureResourceData* texture, float2 st);
         float3 TriangleFloat3(TextureResourceData* texture, int32 level, float2 st);
+        float3 TrilinearFloat3(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
         float3 EWAFloat3(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1);
     }
 }
