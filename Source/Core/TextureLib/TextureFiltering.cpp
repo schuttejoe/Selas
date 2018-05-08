@@ -102,7 +102,7 @@ namespace Shooty
         template <typename Type_>
         static void EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
-            // Credit goes to pbrt for the EWA implementation
+            // -- Credit goes to pbrt for the EWA implementation
             // https://github.com/mmp/pbrt-v3
 
             WrapMode wrapMode = WrapMode::Repeat;
@@ -119,7 +119,7 @@ namespace Shooty
             uint32 mipHeight = texture->mipHeights[reqLevel];
             Type_* mip = reinterpret_cast<Type_*>(&texture->texture[mipOffset]);
 
-            // Convert EWA coordinates to appropriate scale for level
+            // -- Convert EWA coordinates to appropriate scale for level
             st.x = st.x * mipWidth - 0.5f;
             st.y = st.y * mipHeight - 0.5f;
             dst0.x *= mipWidth;
@@ -127,7 +127,7 @@ namespace Shooty
             dst1.x *= mipWidth;
             dst1.y *= mipHeight;
 
-            // Compute ellipse coefficients to bound EWA filter region
+            // -- Compute ellipse coefficients to bound EWA filter region
             float A = dst0.y * dst0.y + dst1.y * dst1.y + 1;
             float B = -2 * (dst0.x * dst0.y + dst1.x * dst1.y);
             float C = dst0.x * dst0.x + dst1.x * dst1.x + 1;
@@ -136,7 +136,7 @@ namespace Shooty
             B *= invF;
             C *= invF;
 
-            // Compute the ellipse's bounding box in texture space
+            // -- Compute the ellipse's bounding box in texture space
             float det = -B * B + 4 * A * C;
             float invDet = 1 / det;
             float uSqrt = Math::Sqrtf(det * C);
@@ -146,14 +146,14 @@ namespace Shooty
             int32 t0 = (int32)Math::Ceil(st.y - 2 * invDet * vSqrt);
             int32 t1 = (int32)Math::Floor(st.y + 2 * invDet * vSqrt);
 
-            // Scan over ellipse bound and compute quadratic equation
+            // -- Scan over ellipse bound and compute quadratic equation
             Type_ sum = Type_(0.0f);
             float sumWts = 0;
             for(int32 it = t0; it <= t1; ++it) {
                 float tt = it - st.y;
                 for(int32 is = s0; is <= s1; ++is) {
                     float ss = is - st.x;
-                    // Compute squared radius and filter texel if inside ellipse
+                    // -- Compute squared radius and filter texel if inside ellipse
                     float r2 = A * ss * ss + B * ss * tt + C * tt * tt;
                     if(r2 < 1) {
                         int32 index = Min<int32>((int32)(r2 * EwaLutSize), EwaLutSize - 1);
@@ -174,13 +174,13 @@ namespace Shooty
             float majorLength = Length(dst0);
             float minorLength = Length(dst1);
 
-            float length = Max<float>(majorLength, minorLength);
+            float length = Min<float>(majorLength, minorLength);
             if(length == 0) {
                 Triangle<Type_>(texture, 0, st, result);
                 return;
             }
 
-            // Choose choose which mip level we want to sample at
+            // -- Choose which mip levels we want to sample
             float lod = Max<float>(0.0f, texture->mipCount - 1.0f + Math::Log2(length));
             float ilod = Math::Floor(lod);
 
@@ -195,10 +195,10 @@ namespace Shooty
         template <typename Type_>
         static void EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
-            // Credit goes to pbrt for the EWA implementation
+            // -- Credit goes to pbrt for the EWA implementation
             // https://github.com/mmp/pbrt-v3
 
-            // Compute ellipse minor and major axes
+            // -- Compute ellipse minor and major axes
             if(LengthSquared(dst0) < LengthSquared(dst1)) {
                 float2 tmp = dst0;
                 dst0 = dst1;
@@ -210,7 +210,7 @@ namespace Shooty
 
             const uint maxAnisotropy = 16;
 
-            // Clamp ellipse eccentricity if too large
+            // -- Clamp ellipse eccentricity if too large
             if(minorLength * maxAnisotropy < majorLength && minorLength > 0) {
                 float scale = majorLength / (minorLength * maxAnisotropy);
                 dst1 = dst1 * scale;
@@ -221,7 +221,7 @@ namespace Shooty
                 return;
             }
 
-            // Choose level of detail for EWA lookup and perform EWA filtering
+            // -- Choose which mip levels we want to sample
             float lod = Max<float>(0.0f, texture->mipCount - 1.0f + Math::Log2(minorLength));
             float ilod = Math::Floor(lod);
 

@@ -39,8 +39,7 @@ namespace Shooty
         float3 eZ;
     };
 
-    Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi, float3 throughput, uint32 pixelIndex);
-    void InsertRay(KernelContext* context, const Ray& ray, bool useRussianRoulette);
+    void InsertRay(KernelContext* context, const Ray& ray);
     void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value);
     void AccumulatePixelEnergy(KernelContext* context, const HitParameters& hit, float3 value);
 

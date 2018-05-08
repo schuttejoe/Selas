@@ -13,8 +13,8 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/ColorSpace.h>
 
-#define ForceNoMips_ false
-#define EnableEWA_ false
+#define ForceNoMips_ true
+#define EnableEWA_ true
 
 namespace Shooty
 {
@@ -199,16 +199,13 @@ namespace Shooty
             return false;
         }
 
-        // JSTODO - Hmmmmmmmmmmmmmmmm.
         bool rayHasDifferentials = hit->rxDirection.x != 0 || hit->rxDirection.y != 0;
 
         // -- Calculate tangent space transforms
         surface.tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
 
-        surface.rxOrigin        = hit->rxOrigin;
         surface.rxDirection     = hit->rxDirection;
-        surface.ryOrigin        = hit->ryOrigin;
         surface.ryDirection     = hit->ryDirection;
         surface.geometricNormal = n;
         surface.position        = hit->position;
@@ -222,21 +219,22 @@ namespace Shooty
             // Compute deltas for triangle partial derivatives
             float2 duv02 = uv0 - uv2;
             float2 duv12 = uv1 - uv2;
-            float determinant = duv02.x * duv12.y - duv02.y * duv12.x;
-            bool degenerateUV = Math::Absf(determinant) < SmallFloatEpsilon_;
+            float uvDeterminant     = duv02.x * duv12.y - duv02.y * duv12.x;
+
+            bool degenerateUV = Math::Absf(uvDeterminant) < SmallFloatEpsilon_;
             if(!degenerateUV) {
                 float3 edge02 = p0 - p2;
                 float3 edge12 = p1 - p2;
                 float3 dn02 = n0 - n2;
                 float3 dn12 = n1 - n2;
 
-                float invDet = 1 / determinant;
-                surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invDet;
-                surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invDet;
+                float invUvDeterminant = 1 / uvDeterminant;
+                surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invUvDeterminant;
+                surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invUvDeterminant;
 
                 if(preserveDifferentials) {
-                    surface.differentials.dndu = (duv12.y * dn02 - duv02.y * dn12) * invDet;
-                    surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invDet;
+                    surface.differentials.dndu = ( duv12.y * dn02 - duv02.y * dn12) * invUvDeterminant;
+                    surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invUvDeterminant;
                 }
             }
             if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {

@@ -26,9 +26,6 @@ namespace Shooty
         float3x3 worldToTangent;
         float3x3 tangentToWorld;
 
-        // -- spatial differentials
-        float3 dpdu, dpdv;
-
         // -- material layer info
         eMaterialShader shader;
         float3 emissive;
@@ -39,10 +36,9 @@ namespace Shooty
         float  roughness;
         float  ior;
 
-        // -- surface hit info
-        float3 rxOrigin;
+        // -- spatial differentials
+        float3 dpdu, dpdv;
         float3 rxDirection;
-        float3 ryOrigin;
         float3 ryDirection;
 
         // -- uv differentials.

@@ -35,16 +35,14 @@ namespace Shooty
         float3 dy = Normalize(py - camera->position);
 
         Ray result;
-        result.origin     = p;
-        result.direction  = d;
-        result.throughput = float3::One_;
-        result.pixelIndex = pixelIndex;
-
+        result.origin      = p;
+        result.direction   = d;
+        result.throughput  = float3::One_;
+        result.pixelIndex  = pixelIndex;
         result.rxOrigin    = px;
         result.rxDirection = dx;
         result.ryOrigin    = py;
         result.ryDirection = dy;
-
         result.bounceCount = 0;
 
         return result;

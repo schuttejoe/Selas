@@ -137,7 +137,7 @@ namespace Shooty
     static void CreatePrimaryRay(KernelContext* context, uint pixelIndex, uint x, uint y)
     {
         Ray ray = JitteredCameraRay(context->camera, context->twister, (uint32)pixelIndex, (float)x, (float)y);
-        InsertRay(context, ray, false);
+        InsertRay(context, ray);
 
         EvaluateRayBatch(context);
     }

@@ -58,7 +58,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    Ray CreateBounceRay(const SurfaceParameters& surface, float3 wo, float3 wi, const HitParameters& hit, float3 reflectance, uint32 bounceCount)
+    static Ray CreateReflectionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance)
     {
         float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
         float3 throughput = hit.throughput * reflectance;
@@ -67,18 +67,36 @@ namespace Shooty
 
         Ray bounceRay;
         if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
-            bounceRay = MakeDifferentialRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, wo, wi, surface.differentials, throughput, hit.pixelIndex);
+            bounceRay = MakeReflectionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.perturbedNormal, hit.viewDirection, wi, surface.differentials, throughput, hit.pixelIndex, hit.bounceCount + 1);
         }
         else {
-            bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex);
+            bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
         }
-        bounceRay.bounceCount = bounceCount + 1;
 
         return bounceRay;
     }
 
     //==============================================================================
-    void InsertRay(KernelContext* context, const Ray& ray, bool useRussianRoulette)
+    static Ray CreateRefractionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance, float iorRatio)
+    {
+        float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
+        float3 throughput = hit.throughput * reflectance;
+
+        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+
+        Ray bounceRay;
+        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
+            bounceRay = MakeRefractionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.perturbedNormal, hit.viewDirection, wi, surface.differentials, iorRatio, throughput, hit.pixelIndex, hit.bounceCount + 1);
+        }
+        else {
+            bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
+        }
+
+        return bounceRay;
+    }
+
+    //==============================================================================
+    void InsertRay(KernelContext* context, const Ray& ray)
     {
         //if(useRussianRoulette) {
         //    float pdf = Max<float>(ray.throughput.x, Max<float>(ray.throughput.y, ray.throughput.z));
@@ -427,8 +445,8 @@ namespace Shooty
             float3 reflectance = F * (G2 / G1);
 
             float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-            Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
-            InsertRay(context, bounceRay, true);
+            Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
+            InsertRay(context, bounceRay);
         }
     }
 
@@ -465,8 +483,8 @@ namespace Shooty
         }
 
         float3 reflectance = CalculateDisneyBsdf(surface, hit.viewDirection, worldWi) * (1.0f / iblPdf);
-        Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
-        InsertRay(context, bounceRay, true);
+        Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
+        InsertRay(context, bounceRay);
     }
 
     //==============================================================================
@@ -504,8 +522,8 @@ namespace Shooty
             float3 reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
 
             float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-            Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
-            InsertRay(context, bounceRay, true);
+            Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
+            InsertRay(context, bounceRay);
         }
     }
 
@@ -533,11 +551,14 @@ namespace Shooty
         float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = ImportanceSampling::GgxVndf(wo, surface.roughness, r0, r1);
 
+        bool usedRefraction = true;
+
         float3 wi;
         float t = Random::MersenneTwisterFloat(context->twister);
         float F = SchlickDialecticFresnel(Math::Absf(Dot(wm, wo)), currentIor, surface.ior);
         if(t < F || !Transmit(wm, wo, currentIor, exitIor, wi)) {
             wi = Reflect(wm, wo);
+            usedRefraction = false;
         }
         wi = Normalize(wi);
 
@@ -547,8 +568,13 @@ namespace Shooty
         float3 reflectance = surface.albedo * (G2 / G1);
 
         float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-        Ray bounceRay = CreateBounceRay(surface, hit.viewDirection, worldWi, hit, reflectance, hit.bounceCount);
-        InsertRay(context, bounceRay, true);
+        Ray bounceRay;
+        if(usedRefraction)
+            bounceRay = CreateRefractionBounceRay(surface, hit, worldWi, reflectance, currentIor / exitIor);
+        else
+            bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
+        
+        InsertRay(context, bounceRay);
     }
 
     //==============================================================================
