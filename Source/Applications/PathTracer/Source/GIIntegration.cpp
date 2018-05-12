@@ -3,7 +3,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "PathTracer.h"
+#include "GIIntegration.h"
 #include "PathTracerShading.h"
 #include "SurfaceParameters.h"
 #include "IntegratorContexts.h"
@@ -44,25 +44,24 @@
 #define RaysPerPixel_           1
 #else
 #define EnableMultiThreading_   1
-#define RaysPerPixel_           64
+#define RaysPerPixel_           256
 #endif
 
 namespace Shooty
 {
     //==============================================================================
-    struct PathTracerContext
+    struct IntegrationContext
     {
         SceneContext* sceneData;
         RayCastCameraSettings camera;
-        uint blockDimensions;
-        uint blockCountX;
-        uint blockCountY;
-        uint blockCount;
         uint width;
         uint height;
-        volatile int64* consumedBlocks;
-        volatile int64* completedBlocks;
+        uint raysPerPixel;
 
+        volatile int64* completedThreads;
+        volatile int64* kernelIndices;
+
+        void* imageDataSpinlock;
         float3* imageData;
     };
 
@@ -143,49 +142,21 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void RayCastImageBlock(const PathTracerContext* integratorContext, KernelContext* kernelContext, uint blockIndex)
+    static void RayCastImageBlock(const IntegrationContext* integratorContext, KernelContext* kernelContext)
     {
-        Random::MersenneTwisterReseed(kernelContext->twister, (uint32)blockIndex);
-
         uint width = integratorContext->width;
         uint height = integratorContext->height;
 
         const RayCastCameraSettings& camera = integratorContext->camera;
-        uint blockDimensions = integratorContext->blockDimensions;
 
-        uint by = blockIndex / integratorContext->blockCountX;
-        uint bx = blockIndex % integratorContext->blockCountX;
+        const uint raysPerPixel = integratorContext->raysPerPixel;
 
-        const uint raysPerPixel = RaysPerPixel_;
-
-        for(uint dy = 0; dy < blockDimensions; ++dy) {
-            for(uint dx = 0; dx < blockDimensions; ++dx) {
-                #if SampleSpecificTexel_
-                    uint x = SpecificTexelX_;
-                    uint y = SpecificTexelY_;
-                #else
-                    uint x = bx * blockDimensions + dx;
-                    uint y = by * blockDimensions + dy;
-                #endif
+        for(uint y = 0; y < height; ++y) {
+            for(uint x = 0; x < width; ++x) {
 
                 for(uint scan = 0; scan < raysPerPixel; ++scan) {
                     CreatePrimaryRay(kernelContext, y * width + x, x, y);
                 }
-            }
-        }
-
-        float pixelWeight = (1.0f / raysPerPixel);
-        for(uint dy = 0; dy < blockDimensions; ++dy) {
-            for(uint dx = 0; dx < blockDimensions; ++dx) {
-                #if SampleSpecificTexel_
-                    uint x = SpecificTexelX_;
-                    uint y = SpecificTexelY_;
-                #else
-                    uint x = bx * blockDimensions + dx;
-                    uint y = by * blockDimensions + dy;
-                #endif
-
-                integratorContext->imageData[y * width + x] = pixelWeight * integratorContext->imageData[y * width + x];
             }
         }
     }
@@ -193,56 +164,60 @@ namespace Shooty
     //==============================================================================
     static void PathTracerKernel(void* userData)
     {
-        Random::MersenneTwister twister;
-        Random::MersenneTwisterInitialize(&twister, 0);
+        IntegrationContext* integratorContext = static_cast<IntegrationContext*>(userData);
+        int64 kernelIndex = Atomic::Increment64(integratorContext->kernelIndices);
 
-        PathTracerContext* integratorContext = static_cast<PathTracerContext*>(userData);
+        Random::MersenneTwister twister;
+        Random::MersenneTwisterInitialize(&twister, (uint32)kernelIndex);
+
+        uint width = integratorContext->width;
+        uint height = integratorContext->height;
+
+        float3* imageData = AllocArrayAligned_(float3, width * height, CacheLineSize_);
+        Memory::Zero(imageData, sizeof(float3) * width * height);
 
         KernelContext kernelContext;
-        kernelContext.sceneData = integratorContext->sceneData;
-        kernelContext.camera    = &integratorContext->camera;
-        kernelContext.imageData = integratorContext->imageData;
-        kernelContext.twister   = &twister;
+        kernelContext.sceneData        = integratorContext->sceneData;
+        kernelContext.camera           = &integratorContext->camera;
+        kernelContext.imageData        = imageData;
+        kernelContext.twister          = &twister;
         kernelContext.rayStackCapacity = 1024 * 1024;
-        kernelContext.rayStackCount = 0;
-        kernelContext.rayStack = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
+        kernelContext.rayStackCount    = 0;
+        kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
-        do {
-            uint64 blockIndex = (uint64)Atomic::Increment64(integratorContext->consumedBlocks) - 1;
-            if(blockIndex >= integratorContext->blockCount)
-                break;
-
-            RayCastImageBlock(integratorContext, &kernelContext, (uint)blockIndex);
-
-            Atomic::Increment64(integratorContext->completedBlocks);
-        }
-        while(true);
+        RayCastImageBlock(integratorContext, &kernelContext);
 
         FreeAligned_(kernelContext.rayStack);
-        
         Random::MersenneTwisterShutdown(&twister);
+
+        EnterSpinLock(integratorContext->imageDataSpinlock);
+
+        float3* resultImageData = integratorContext->imageData;
+        for(uint y = 0; y < height; ++y) {
+            for(uint x = 0; x < width; ++x) {
+                uint index = y * width + x;
+                resultImageData[index] += imageData[index];
+            }
+        }
+
+        LeaveSpinLock(integratorContext->imageDataSpinlock);
+
+        FreeAligned_(imageData);
+        Atomic::Increment64(integratorContext->completedThreads);
     }
 
     //==============================================================================
-    void PathTraceImage(SceneContext& context, uint width, uint height, float3* imageData)
+    void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData)
     {
         const SceneResource* scene   = context.scene;
         SceneResourceData* sceneData = scene->data;
-
-        uint blockDimensions = 16;
-        AssertMsg_(blockDimensions % 16 == 0, "Naive block splitting is temp so I'm ignoring obvious edge cases for now");
-        AssertMsg_(blockDimensions % 16 == 0, "Naive block splitting is temp so I'm ignoring obvious edge cases for now");
-
-        uint blockCountX = width / blockDimensions;
-        uint blockCountY = height / blockDimensions;
-        uint blockCount = blockCountX * blockCountY;
 
         float aspect = (float)width / height;
         float verticalFov = 2.0f * Math::Atanf(sceneData->camera.fov * 0.5f) * aspect;
 
         float4x4 projection = PerspectiveFovLhProjection(verticalFov, aspect, sceneData->camera.znear, sceneData->camera.zfar);
-        float4x4 view = LookAtLh(sceneData->camera.position, sceneData->camera.up, sceneData->camera.lookAt);
-        float4x4 viewProj = MatrixMultiply(view, projection);
+        float4x4 view       = LookAtLh(sceneData->camera.position, sceneData->camera.up, sceneData->camera.lookAt);
+        float4x4 viewProj   = MatrixMultiply(view, projection);
 
         RayCastCameraSettings camera;
         camera.invViewProjection = MatrixInverse(viewProj);
@@ -252,28 +227,31 @@ namespace Shooty
         camera.znear             = sceneData->camera.znear;
         camera.zfar              = sceneData->camera.zfar;
 
-        int64 consumedBlocks = 0;
-        int64 completedBlocks = 0;
+        int64 completedThreads = 0;
+        int64 kernelIndex = 0;
 
-        PathTracerContext integratorContext;
+        #if EnableMultiThreading_ 
+            const uint additionalTthreadCount = 7;
+        #else
+            const uint additionalTthreadCount = 0;
+        #endif
+
+        IntegrationContext integratorContext;
         integratorContext.sceneData         = &context;
         integratorContext.camera            = camera;
-        integratorContext.blockDimensions   = blockDimensions;
-        integratorContext.blockCountX       = blockCountX;
-        integratorContext.blockCountY       = blockCountY;
-        integratorContext.blockCount        = blockCount;
         integratorContext.imageData         = imageData;
         integratorContext.width             = width;
         integratorContext.height            = height;
-        integratorContext.consumedBlocks    = &consumedBlocks;
-        integratorContext.completedBlocks   = &completedBlocks;
+        integratorContext.raysPerPixel      = RaysPerPixel_ / (additionalTthreadCount + 1);
+        integratorContext.completedThreads  = &completedThreads;
+        integratorContext.kernelIndices     = &kernelIndex;
+        integratorContext.imageDataSpinlock = CreateSpinLock();
 
-        #if EnableMultiThreading_ 
-            const uint threadCount = 7;
-            ThreadHandle threadHandles[threadCount];
+        #if EnableMultiThreading_
+            ThreadHandle threadHandles[additionalTthreadCount];
 
             // -- fork threads
-            for(uint scan = 0; scan < threadCount; ++scan) {
+            for(uint scan = 0; scan < additionalTthreadCount; ++scan) {
                 threadHandles[scan] = CreateThread(PathTracerKernel, &integratorContext);
             }
         #endif
@@ -283,11 +261,20 @@ namespace Shooty
 
         #if EnableMultiThreading_ 
             // -- wait for any other threads to finish
-            while(*integratorContext.completedBlocks != blockCount);
+            while(*integratorContext.completedThreads != *integratorContext.kernelIndices);
 
-            for(uint scan = 0; scan < threadCount; ++scan) {
+            for(uint scan = 0; scan < additionalTthreadCount; ++scan) {
                 ShutdownThread(threadHandles[scan]);
             }
         #endif
+
+        CloseSpinlock(integratorContext.imageDataSpinlock);
+
+        for(uint y = 0; y < height; ++y) {
+            for(uint x = 0; x < width; ++x) {
+                uint index = y * width + x;
+                imageData[index] = imageData[index] * (1.0f / RaysPerPixel_);
+            }
+        }
     }
 }

@@ -3,7 +3,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include "PathTracer.h"
+#include "GIIntegration.h"
 #include "IntegratorContexts.h"
 
 #include <SceneLib/SceneResource.h>
@@ -99,7 +99,7 @@ int main()
     context.ibl = iblResouce.data;
 
     SystemTime::GetCycleCounter(&timer);
-    PathTraceImage(context, width, height, imageData);
+    GenerateImage(context, width, height, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);
