@@ -31,6 +31,7 @@
 #include <SystemLib/Memory.h>
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/MinMax.h>
+#include <SystemLib/SystemTime.h>
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -41,10 +42,13 @@
 
 #if SampleSpecificTexel_
 #define EnableMultiThreading_   0
-#define RaysPerPixel_           1
+#define PathsPerPixel_          1
+#define IntegrationSeconds_     0.0f
 #else
 #define EnableMultiThreading_   1
-#define RaysPerPixel_           256
+#define PathsPerPixel_          8
+// -- when zero PathsPerPixel_ will be used.
+#define IntegrationSeconds_     0.0f
 #endif
 
 namespace Shooty
@@ -56,8 +60,11 @@ namespace Shooty
         RayCastCameraSettings camera;
         uint width;
         uint height;
-        uint raysPerPixel;
+        uint pathsPerPixel;
+        float integrationSeconds;
+        int64 integrationStartTime;
 
+        volatile int64* pathsEvaluatedPerPixel;
         volatile int64* completedThreads;
         volatile int64* kernelIndices;
 
@@ -142,14 +149,12 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void RayCastImageBlock(const IntegrationContext* integratorContext, KernelContext* kernelContext)
+    static void RayCastImageBlock(const IntegrationContext* integratorContext, KernelContext* kernelContext, uint raysPerPixel)
     {
         uint width = integratorContext->width;
         uint height = integratorContext->height;
 
         const RayCastCameraSettings& camera = integratorContext->camera;
-
-        const uint raysPerPixel = integratorContext->raysPerPixel;
 
         for(uint y = 0; y < height; ++y) {
             for(uint x = 0; x < width; ++x) {
@@ -185,7 +190,25 @@ namespace Shooty
         kernelContext.rayStackCount    = 0;
         kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
-        RayCastImageBlock(integratorContext, &kernelContext);
+        if(integratorContext->integrationSeconds > 0.0f) {
+            
+            int64 pathsTracedPerPixel = 0;
+            float elapsedMs = 0.0f;
+            while(elapsedMs < integratorContext->integrationSeconds) {
+                RayCastImageBlock(integratorContext, &kernelContext, 1);
+                ++pathsTracedPerPixel;
+
+                int64 startTime = integratorContext->integrationStartTime;
+                elapsedMs = SystemTime::ElapsedMs(startTime) / 1000.0f;
+            }
+
+            Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
+            
+        }
+        else {
+            RayCastImageBlock(integratorContext, &kernelContext, integratorContext->pathsPerPixel);
+            Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, integratorContext->pathsPerPixel);
+        }        
 
         FreeAligned_(kernelContext.rayStack);
         Random::MersenneTwisterShutdown(&twister);
@@ -229,29 +252,34 @@ namespace Shooty
 
         int64 completedThreads = 0;
         int64 kernelIndex = 0;
+        int64 pathsEvaluatedPerPixel = 0;
 
         #if EnableMultiThreading_ 
-            const uint additionalTthreadCount = 7;
+            const uint additionalThreadCount = 7;
         #else
-            const uint additionalTthreadCount = 0;
+            const uint additionalThreadCount = 0;
         #endif
+        static_assert(PathsPerPixel_ % (additionalThreadCount + 1) == 0, "Path count not divisible by number of threads");
 
         IntegrationContext integratorContext;
-        integratorContext.sceneData         = &context;
-        integratorContext.camera            = camera;
-        integratorContext.imageData         = imageData;
-        integratorContext.width             = width;
-        integratorContext.height            = height;
-        integratorContext.raysPerPixel      = RaysPerPixel_ / (additionalTthreadCount + 1);
-        integratorContext.completedThreads  = &completedThreads;
-        integratorContext.kernelIndices     = &kernelIndex;
-        integratorContext.imageDataSpinlock = CreateSpinLock();
+        integratorContext.sceneData              = &context;
+        integratorContext.camera                 = camera;
+        integratorContext.imageData              = imageData;
+        integratorContext.width                  = width;
+        integratorContext.height                 = height;
+        integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
+        SystemTime::GetCycleCounter(&integratorContext.integrationStartTime);
+        integratorContext.integrationSeconds     = IntegrationSeconds_;
+        integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
+        integratorContext.completedThreads       = &completedThreads;
+        integratorContext.kernelIndices          = &kernelIndex;
+        integratorContext.imageDataSpinlock      = CreateSpinLock();
 
         #if EnableMultiThreading_
-            ThreadHandle threadHandles[additionalTthreadCount];
+            ThreadHandle threadHandles[additionalThreadCount];
 
             // -- fork threads
-            for(uint scan = 0; scan < additionalTthreadCount; ++scan) {
+            for(uint scan = 0; scan < additionalThreadCount; ++scan) {
                 threadHandles[scan] = CreateThread(PathTracerKernel, &integratorContext);
             }
         #endif
@@ -263,7 +291,7 @@ namespace Shooty
             // -- wait for any other threads to finish
             while(*integratorContext.completedThreads != *integratorContext.kernelIndices);
 
-            for(uint scan = 0; scan < additionalTthreadCount; ++scan) {
+            for(uint scan = 0; scan < additionalThreadCount; ++scan) {
                 ShutdownThread(threadHandles[scan]);
             }
         #endif
@@ -273,7 +301,7 @@ namespace Shooty
         for(uint y = 0; y < height; ++y) {
             for(uint x = 0; x < width; ++x) {
                 uint index = y * width + x;
-                imageData[index] = imageData[index] * (1.0f / RaysPerPixel_);
+                imageData[index] = imageData[index] * (1.0f / pathsEvaluatedPerPixel);
             }
         }
     }
