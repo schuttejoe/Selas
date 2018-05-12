@@ -4,9 +4,9 @@
 //==============================================================================
 
 #include "GIIntegration.h"
-#include "PathTracerShading.h"
-#include "SurfaceParameters.h"
-#include "IntegratorContexts.h"
+#include <Shading/Shading.h>
+#include <Shading/SurfaceParameters.h>
+#include <Shading/IntegratorContexts.h>
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
@@ -40,6 +40,8 @@
 #define SpecificTexelX_         1196
 #define SpecificTexelY_         354
 
+#define MaxBounceCount_         10
+
 #if SampleSpecificTexel_
 #define EnableMultiThreading_   0
 #define PathsPerPixel_          1
@@ -48,7 +50,7 @@
 #define EnableMultiThreading_   1
 #define PathsPerPixel_          8
 // -- when zero PathsPerPixel_ will be used.
-#define IntegrationSeconds_     0.0f
+#define IntegrationSeconds_     30.0f
 #endif
 
 namespace Shooty
@@ -61,6 +63,7 @@ namespace Shooty
         uint width;
         uint height;
         uint pathsPerPixel;
+        uint maxBounceCount;
         float integrationSeconds;
         int64 integrationStartTime;
 
@@ -186,6 +189,7 @@ namespace Shooty
         kernelContext.camera           = &integratorContext->camera;
         kernelContext.imageData        = imageData;
         kernelContext.twister          = &twister;
+        kernelContext.maxBounceCount   = integratorContext->maxBounceCount;
         kernelContext.rayStackCapacity = 1024 * 1024;
         kernelContext.rayStackCount    = 0;
         kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
@@ -267,6 +271,7 @@ namespace Shooty
         integratorContext.imageData              = imageData;
         integratorContext.width                  = width;
         integratorContext.height                 = height;
+        integratorContext.maxBounceCount         = MaxBounceCount_;
         integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
         SystemTime::GetCycleCounter(&integratorContext.integrationStartTime);
         integratorContext.integrationSeconds     = IntegrationSeconds_;

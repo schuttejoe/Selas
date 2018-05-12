@@ -4,7 +4,7 @@
 //==============================================================================
 
 #include "GIIntegration.h"
-#include "IntegratorContexts.h"
+#include <Shading/IntegratorContexts.h>
 
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>

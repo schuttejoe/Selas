@@ -1,0 +1,17 @@
+#pragma once
+
+//==============================================================================
+// Joe Schutte
+//==============================================================================
+
+#include <MathLib/FloatStructs.h>
+
+namespace Shooty
+{
+    namespace Fresnel
+    {
+        float3 Schlick(float3 r0, float radians);
+        float Schlick(float u);
+        float SchlickDialectic(float cosThetaI, float ni, float nt);
+    }
+}

@@ -34,7 +34,9 @@ namespace Shooty
         float  metalness;
         float3 specularColor;
         float  roughness;
-        float  ior;
+
+        float currentIor;
+        float exitIor; // -- only valid if total internal reflection doesn't occur
 
         // -- spatial differentials
         float3 dpdu, dpdv;

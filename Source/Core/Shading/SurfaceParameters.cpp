@@ -256,7 +256,9 @@ namespace Shooty
         surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
         surface.shader = material->shader;
-        surface.ior = material->ior;
+        
+        surface.currentIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? material->ior : 1.0f;
+        surface.exitIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, rayHasDifferentials);

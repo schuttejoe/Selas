@@ -39,6 +39,7 @@ namespace Shooty
         SceneContext* __restrict sceneData;
         Random::MersenneTwister* __restrict twister;
         float3* __restrict imageData;
+        uint maxBounceCount;
 
         Ray* __restrict rayStack;
         uint rayStackCount;

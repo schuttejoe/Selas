@@ -18,26 +18,13 @@ namespace Shooty
     struct ImageBasedLightResourceData;
     struct SurfaceParameters;
     struct SceneResource;
-
     namespace Random
     {
         struct MersenneTwister;
     }
 
-    struct SphericalAreaLight
-    {
-        float3 intensity;
-        float3 center;
-        float radius;
-    };
-
-    struct RectangularAreaLight
-    {
-        float3 intensity;
-        float3 corner;
-        float3 eX;
-        float3 eZ;
-    };
+    Ray CreateReflectionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance);
+    Ray CreateRefractionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance, float iorRatio);
 
     void InsertRay(KernelContext* context, const Ray& ray);
     void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value);
@@ -45,4 +32,6 @@ namespace Shooty
 
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
     void ShadeSurfaceHit(KernelContext* context, const HitParameters& hit);
+
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi);
 }
