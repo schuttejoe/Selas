@@ -125,7 +125,24 @@ namespace Shooty
                 bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, hit);
 
                 if(rayCastHit) {
-                    ShadeSurfaceHit(context, hit);
+                    SurfaceParameters surface;
+                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                        break;
+                    }
+
+                    BsdfSample sample;
+                    SampleBsdfFunction(context, surface, sample);
+                    if(sample.reflectance.x == 0 && sample.reflectance.y == 0 && sample.reflectance.z == 0) {
+                        break;
+                    }
+
+                    Ray bounceRay;
+                    if(sample.reflection)
+                        bounceRay = CreateReflectionBounceRay(surface, hit, sample.wi, sample.reflectance);
+                    else
+                        bounceRay = CreateRefractionBounceRay(surface, hit, sample.wi, sample.reflectance, surface.currentIor / surface.exitIor);
+
+                    InsertRay(context, bounceRay);
                 }
                 else {
                     float3 sample = SampleIbl(context->sceneData->ibl, ray.direction);

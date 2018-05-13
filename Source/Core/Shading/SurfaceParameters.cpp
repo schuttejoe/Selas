@@ -201,6 +201,8 @@ namespace Shooty
 
         bool rayHasDifferentials = hit->rxDirection.x != 0 || hit->rxDirection.y != 0;
 
+        surface.view = hit->viewDirection;
+
         // -- Calculate tangent space transforms
         surface.tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);

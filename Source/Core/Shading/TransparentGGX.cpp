@@ -37,14 +37,13 @@ namespace Shooty
 
         pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
 
-        return F * G2 * D ;
+        return F * G2 * D;
     }
 
     //==============================================================================
-    void TransparentGgxShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
+    void TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
     {
-        float3 view = hit.viewDirection;
-        float3 wo = Normalize(MatrixMultiply(view, surface.worldToTangent));
+        float3 wo = Normalize(MatrixMultiply(surface.view, surface.worldToTangent));
 
         float a = surface.roughness;
         float a2 = a * a;
@@ -53,29 +52,23 @@ namespace Shooty
         float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = Bsdf::GgxVndf(wo, surface.roughness, r0, r1);
 
-        bool usedRefraction = true;
+        bool usedReflection = false;
 
         float3 wi;
         float t = Random::MersenneTwisterFloat(context->twister);
         float F = Fresnel::SchlickDialectic(Math::Absf(Dot(wm, wo)), surface.currentIor, surface.exitIor);
         if(t < F || !Transmit(wm, wo, surface.currentIor, surface.exitIor, wi)) {
             wi = Reflect(wm, wo);
-            usedRefraction = false;
+            usedReflection = true;
         }
         wi = Normalize(wi);
 
         float G1 = Bsdf::SmithGGXMasking(wi, wo, wm, a2);
         float G2 = Bsdf::SmithGGXMaskingShading(wi, wo, wm, a2);
 
-        float3 reflectance = surface.albedo * (G2 / G1);
-
-        float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-        Ray bounceRay;
-        if(usedRefraction)
-            bounceRay = CreateRefractionBounceRay(surface, hit, worldWi, reflectance, surface.currentIor / surface.exitIor);
-        else
-            bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
-
-        InsertRay(context, bounceRay);
+        sample.reflectance = surface.albedo * (G2 / G1);
+        sample.reflection = usedReflection;
+        sample.wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+        sample.pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
     }
 }

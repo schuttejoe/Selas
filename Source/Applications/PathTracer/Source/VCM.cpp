@@ -142,18 +142,6 @@ namespace Shooty
             return true;
         }
 
-        struct PathState
-        {
-            float3 position;
-            float3 direction;
-            float3 throughput;
-            float dVCM;
-            float dVC;
-            float dVM;
-            uint32 pathLength    : 31;
-            uint32 isAreaMeasure : 1;
-        };
-
         //==============================================================================
         static void GenerateLightSample(KernelContext* context, float vcWeight, PathState& state)
         {

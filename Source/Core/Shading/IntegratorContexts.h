@@ -7,6 +7,7 @@
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
 #include <GeometryLib/Camera.h>
+#include <GeometryLib/Ray.h>
 #include <MathLib/Random.h>
 #include <SystemLib/BasicTypes.h>
 
@@ -18,6 +19,7 @@ namespace Shooty
     struct SceneResource;
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
+    struct SurfaceParameters;
 
     namespace Random
     {
@@ -68,4 +70,25 @@ namespace Shooty
         uint32 pixelIndex;
         float3 throughput;
     };
+
+    struct PathState
+    {
+        float3 position;
+        float3 direction;
+        float3 throughput;
+        float dVCM;
+        float dVC;
+        float dVM;
+        uint32 pathLength : 31;
+        uint32 isAreaMeasure : 1;
+    };
+
+    // -- generation of differential rays
+    Ray CreateReflectionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance);
+    Ray CreateRefractionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance, float iorRatio);
+
+    // -- context utility functions
+    void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value);
+    void AccumulatePixelEnergy(KernelContext* context, const HitParameters& hit, float3 value);
+    void InsertRay(KernelContext* context, const Ray& ray);
 }

@@ -23,6 +23,8 @@ namespace Shooty
         float3 geometricNormal;
         float error;
 
+        float3 view;
+
         float3x3 worldToTangent;
         float3x3 tangentToWorld;
 

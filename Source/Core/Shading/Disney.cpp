@@ -25,6 +25,7 @@ namespace Shooty
     //==============================================================================
     float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf)
     {
+        // JSTODO - validate me
         float3 wm = Normalize(wo + wi);
 
         float a = surface.roughness;
@@ -61,7 +62,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void DisneyWithIblSamplingShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
+    void DisneyWithIblSamplingShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
     {
         float r0 = Random::MersenneTwisterFloat(context->twister);
         float r1 = Random::MersenneTwisterFloat(context->twister);
@@ -79,15 +80,16 @@ namespace Shooty
         }
 
         float bsdfPdf;
-        float3 reflectance = CalculateDisneyBsdf(surface, hit.viewDirection, worldWi, bsdfPdf) * (1.0f / iblPdf);
-        Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
-        InsertRay(context, bounceRay);
+        sample.reflectance = CalculateDisneyBsdf(surface, surface.view, worldWi, bsdfPdf) * (1.0f / iblPdf);
+        sample.pdf = iblPdf;
+        sample.reflection = true;
+        sample.wi = worldWi;
     }
 
     //==============================================================================
-    void DisneyBrdfShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface)
+    void DisneyBrdfShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
     {
-        float3 wo = Normalize(MatrixMultiply(hit.viewDirection, surface.worldToTangent));
+        float3 wo = Normalize(MatrixMultiply(surface.view, surface.worldToTangent));
 
         float a = surface.roughness;
         float a2 = a * a;
@@ -116,11 +118,10 @@ namespace Shooty
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
-            float3 reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
-
-            float3 worldWi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-            Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
-            InsertRay(context, bounceRay);
+            sample.reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
+            sample.wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+            sample.reflection = true;
+            sample.pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
         }
     }
 }

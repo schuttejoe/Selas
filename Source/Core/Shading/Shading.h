@@ -11,6 +11,7 @@ typedef struct RTCSceneTy* RTCScene;
 
 namespace Shooty
 {
+    // -- forward declarations
     struct KernelContext;
     struct HitParameters;
     struct Ray;
@@ -23,15 +24,18 @@ namespace Shooty
         struct MersenneTwister;
     }
 
-    Ray CreateReflectionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance);
-    Ray CreateRefractionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance, float iorRatio);
+    // -- BSDF sample output
+    struct BsdfSample
+    {
+        float3 reflectance = float3::Zero_;
+        float3 wi          = float3::Zero_;
+        float pdf          = 0.0f;
+        bool reflection    = false;
+    };
 
-    void InsertRay(KernelContext* context, const Ray& ray);
-    void AccumulatePixelEnergy(KernelContext* context, const Ray& ray, float3 value);
-    void AccumulatePixelEnergy(KernelContext* context, const HitParameters& hit, float3 value);
+    // JSTODO - KernelContext is bad to pass in here since it gives the shaders access to data they shouldn't have. Need to break it into more nuanced pieces.
 
-    float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
-    void ShadeSurfaceHit(KernelContext* context, const HitParameters& hit);
-
+    // -- Bsdf evaluation
+    void SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, BsdfSample& sample);
     float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf);
 }
