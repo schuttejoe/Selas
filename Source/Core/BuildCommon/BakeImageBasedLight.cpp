@@ -15,8 +15,8 @@ namespace Shooty
         uint64 width = data->densityfunctions.width;
         uint64 height = data->densityfunctions.height;
 
-        uint marginalDensityFunctionSize = sizeof(float) * ImportanceSampling::CalculateMarginalDensityFunctionCount(width, height);
-        uint conditionalDensityFunctionSize = sizeof(float) * ImportanceSampling::CalculateConditionalDensityFunctionsCount(width, height);
+        uint marginalDensityFunctionSize = sizeof(float) * CalculateMarginalDensityFunctionCount(width, height);
+        uint conditionalDensityFunctionSize = sizeof(float) * CalculateConditionalDensityFunctionsCount(width, height);
         uint hdrDataSize = sizeof(float3) * width * height;
 
         BinaryWriter writer;

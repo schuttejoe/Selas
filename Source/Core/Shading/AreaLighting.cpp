@@ -3,9 +3,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Shading/NextEventEstimation.h>
+#include <Shading/AreaLighting.h>
 #include <Shading/SurfaceParameters.h>
 #include <Shading/Shading.h>
+#include <Shading/IntegratorContexts.h>
 
 #include <SceneLib/SceneResource.h>
 #include <GeometryLib/RectangulerLight.h>
@@ -210,11 +211,40 @@ namespace Shooty
             if(dotNL > 0.0f && OcclusionRay(rtcScene, surface, nwp, dist)) {
                 // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
                 float pdf_xp = 1.0f / (Math::TwoPi_ * (1.0f - q));
-                float3 bsdf = EvaluateBsdf(surface, view, nwp);
+                float bsdfPdf;
+                float3 bsdf = EvaluateBsdf(surface, view, nwp, bsdfPdf);
                 Lo += bsdf * (1.0f / pdf_xp) * L;
             }
         }
 
         return Lo * (1.0f / lightSampleCount);
+    }
+
+    //==============================================================================
+    void GenerateIblLightSample(KernelContext* __restrict context, LightSample& sample)
+    {
+        // -- http://www.iliyan.com/publications/ImplementingVCM/ImplementingVCM_TechRep2012_rev2.pdf
+        // -- see section 5.1 of ^ to understand the position and emission pdf calculation
+
+        // -- choose direction to sample the ibl
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
+
+        uint x;
+        uint y;
+        float phi;
+        float theta;
+        // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
+        // -- even though it's a solid angle measure.
+        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, theta, phi, x, y, sample.directionPdfA);
+
+        sample.direction = -Math::SphericalToCartesian(theta, phi);
+        sample.radiance = SampleIbl(context->sceneData->ibl, x, y);
+
+        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+        sample.position = context->sceneData->scene->data->boundingSphere.XYZ() + sceneBoundingRadius * -sample.direction;
+
+        sample.emissionPdfW = sample.directionPdfA * context->sceneData->invSquareBoundingRadius;
+        sample.cosThetaLight = 1.0f; // -- not used
     }
 }

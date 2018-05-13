@@ -3,7 +3,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "GIIntegration.h"
+#include "PathTracer.h"
+#include "VCM.h"
 #include <Shading/IntegratorContexts.h>
 
 #include <SceneLib/SceneResource.h>
@@ -93,13 +94,16 @@ int main()
     float3* imageData = AllocArray_(float3, width * height);
     Memory::Zero(imageData, sizeof(float3) * width * height);
 
+    float sceneBoundingRadius = sceneResource.data->boundingSphere.w;
+
     SceneContext context;
     context.rtcScene = rtcScene;
     context.scene = &sceneResource;
     context.ibl = iblResouce.data;
+    context.invSquareBoundingRadius = (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
 
     SystemTime::GetCycleCounter(&timer);
-    GenerateImage(context, width, height, imageData);
+    VCM::GenerateImage(context, width, height, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);

@@ -5,6 +5,8 @@
 //==============================================================================
 
 #include <StringLib/FixedString.h>
+#include <GeometryLib/AxisAlignedBox.h>
+#include <GeometryLib/Camera.h>
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
@@ -14,16 +16,6 @@ namespace Shooty
 
     struct TextureResource;
     struct HitParameters;
-
-    struct Camera
-    {
-        float3 position;
-        float  fov;
-        float3 lookAt;
-        float  znear;
-        float3 up;
-        float  zfar;
-    };
 
     enum eMaterialShader
     {
@@ -85,7 +77,11 @@ namespace Shooty
     struct SceneResourceData
     {
         // -- camera information
-        Camera               camera;
+        CameraSettings       camera;
+
+        // -- misc scene info
+        AxisAlignedBox       aaBox;
+        float4               boundingSphere;
 
         // -- material information
         uint32               textureCount;

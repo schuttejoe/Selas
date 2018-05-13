@@ -33,5 +33,5 @@ namespace Shooty
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
     void ShadeSurfaceHit(KernelContext* context, const HitParameters& hit);
 
-    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi);
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf);
 }

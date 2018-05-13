@@ -308,6 +308,7 @@ namespace Shooty
     {
         float4x4 Identity(void);
         float4x4 Zero(void);
+        float4x4 Scale(float x, float y, float z);
         float4x4 Translate(float x, float y, float z);
         float4x4 ScaleTranslate(float s, float tx, float ty, float tz);
         float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz);

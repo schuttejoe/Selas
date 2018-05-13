@@ -13,7 +13,7 @@ namespace Shooty
     struct SurfaceParameters;
     
     // -- BSDF evaluation for next event estimation
-    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi);
+    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf);
 
     // -- Shaders
     void DisneyWithIblSamplingShader(KernelContext* __restrict context, const HitParameters& hit, const SurfaceParameters& surface);

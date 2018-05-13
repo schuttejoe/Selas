@@ -64,6 +64,18 @@ namespace Shooty
         }
 
         //==============================================================================
+        float4x4 Scale(float x, float y, float z)
+        {
+            float4x4 result = {
+                float4(  x, 0.f, 0.f, 0.f),
+                float4(0.f,   y, 0.f, 0.f),
+                float4(0.f, 0.f,   z, 0.f),
+                float4(0.f, 0.f, 0.f, 1.f),
+            };
+            return result;
+        }
+
+        //==============================================================================
         float4x4 Translate(float x, float y, float z)
         {
             float4x4 result = {

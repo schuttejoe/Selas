@@ -35,10 +35,10 @@ namespace Shooty
     }
 
     //==============================================================================
-    static void CalculateStrataDistributionFunctions(uint width, uint height, float* __restrict intensities, ImportanceSampling::IblDensityFunctions* functions)
+    static void CalculateStrataDistributionFunctions(uint width, uint height, float* __restrict intensities, IblDensityFunctions* functions)
     {
-        uint mdfCount = ImportanceSampling::CalculateMarginalDensityFunctionCount(width, height);
-        uint cdfCount = ImportanceSampling::CalculateConditionalDensityFunctionsCount(width, height);
+        uint mdfCount = CalculateMarginalDensityFunctionCount(width, height);
+        uint cdfCount = CalculateConditionalDensityFunctionsCount(width, height);
 
         functions->width = width;
         functions->height = height;

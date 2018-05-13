@@ -6,6 +6,7 @@
 #include <BuildCommon/SceneBuildPipeline.h>
 #include <BuildCommon/ImportMaterial.h>
 #include <UtilityLib/Color.h>
+#include <GeometryLib/AxisAlignedBox.h>
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/CheckedCast.h>
 #include <SystemLib/MinMax.h>
@@ -103,6 +104,15 @@ namespace Shooty
             totalIndexCount += meshData.indexCount;
             totalVertexCount += meshData.vertexCount;
         }
+
+        MakeInvalid(&built->aaBox);
+        for(uint scan = 0, count = totalVertexCount; scan < count; ++scan) {
+            IncludePosition(&built->aaBox, built->positions[scan]);
+        }
+
+        float3 center = 0.5f * (built->aaBox.max + built->aaBox.min);
+        float radius = Length(built->aaBox.max - center);
+        built->boundingSphere = float4(center, radius);
     }
 
     //==============================================================================

@@ -7,6 +7,7 @@
 #include <SceneLib/SceneResource.h>
 #include <ContainersLib/CArray.h>
 #include <StringLib/FixedString.h>
+#include <GeometryLib/AxisAlignedBox.h>
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
@@ -50,7 +51,7 @@ namespace Shooty
     {
         CArray<ImportedMesh*> meshes;
         CArray<FixedString256> materials;
-        Camera camera;
+        CameraSettings camera;
     };
 
     //== Build =====================================================================
@@ -65,7 +66,9 @@ namespace Shooty
     struct BuiltScene
     {
         // -- meta data
-        Camera camera;
+        CameraSettings camera;
+        AxisAlignedBox aaBox;
+        float4 boundingSphere;
 
         // -- material information
         CArray<FixedString256> textures;

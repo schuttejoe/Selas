@@ -23,7 +23,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi)
+    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf)
     {
         float3 wm = Normalize(wo + wi);
 
@@ -55,6 +55,8 @@ namespace Shooty
         float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
         float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
+        pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
+
         return surface.metalness * F * (G2 / G1) * D + (1.0f - surface.metalness) * diffuse;
     }
 
@@ -76,7 +78,8 @@ namespace Shooty
             return;
         }
 
-        float3 reflectance = CalculateDisneyBsdf(surface, hit.viewDirection, worldWi) * (1.0f / iblPdf);
+        float bsdfPdf;
+        float3 reflectance = CalculateDisneyBsdf(surface, hit.viewDirection, worldWi, bsdfPdf) * (1.0f / iblPdf);
         Ray bounceRay = CreateReflectionBounceRay(surface, hit, worldWi, reflectance);
         InsertRay(context, bounceRay);
     }

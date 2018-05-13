@@ -29,15 +29,27 @@ namespace Shooty
         ImageBasedLightResourceData* data;
     };
 
+    //==============================================================================
+    // -- reading image based light resource data from disk
     bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource);
 
-
+    //==============================================================================
+    // -- functions used in build to set up the conditional and marginal density functions
     uint CalculateMarginalDensityFunctionCount(uint width, uint height);
     uint CalculateConditionalDensityFunctionsCount(uint width, uint height);
 
+    //==============================================================================
+    // -- Importance sampling functions
     float IblPdf(const IblDensityFunctions* distributions, float3 w);
     void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
-    void ShutdownDensityFunctions(IblDensityFunctions* distributions);
 
+    //==============================================================================
+    // -- Sampling the ibl directly
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
+    float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y);
+
+    //==============================================================================
+    // -- cleanup
+    void ShutdownDensityFunctions(IblDensityFunctions* distributions);
+    
 }

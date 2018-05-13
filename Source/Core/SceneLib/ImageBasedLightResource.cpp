@@ -129,13 +129,6 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ShutdownDensityFunctions(IblDensityFunctions* distributions)
-    {
-        SafeFree_(distributions->conditionalDensityFunctions);
-        SafeFree_(distributions->marginalDensityFunction);
-    }
-
-    //==============================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi)
     {
         int32 width = (int32)ibl->densityfunctions.width;
@@ -154,5 +147,18 @@ namespace Shooty
         int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
 
         return ibl->hdrData[y * ibl->densityfunctions.width + x];
+    }
+
+    //==============================================================================
+    float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y)
+    {
+        return ibl->hdrData[y * ibl->densityfunctions.width + x];
+    }
+
+    //==============================================================================
+    void ShutdownDensityFunctions(IblDensityFunctions* distributions)
+    {
+        SafeFree_(distributions->conditionalDensityFunctions);
+        SafeFree_(distributions->marginalDensityFunction);
     }
 }

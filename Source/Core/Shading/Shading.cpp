@@ -76,7 +76,7 @@ namespace Shooty
     //==============================================================================
     void InsertRay(KernelContext* context, const Ray& ray)
     {
-        if(ray.bounceCount == context->maxBounceCount)
+        if(ray.bounceCount == context->maxPathLength)
             return;
 
         Assert_(context->rayStackCount + 1 != context->rayStackCapacity);
@@ -119,13 +119,13 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi)
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf)
     {
         if(surface.shader == eDisney) {
-            return CalculateDisneyBsdf(surface, wo, wi);
+            return CalculateDisneyBsdf(surface, wo, wi, pdf);
         }
         else if(surface.shader == eTransparentGgx) {
-            return CalculateTransparentGGXBsdf(surface, wo, wi);
+            return CalculateTransparentGGXBsdf(surface, wo, wi, pdf);
         }
         else {
             Assert_(false);

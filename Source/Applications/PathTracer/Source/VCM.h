@@ -11,5 +11,9 @@
 namespace Shooty
 {
     struct SceneContext;
-    void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData);
+
+    namespace VCM
+    {
+        void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData);
+    }
 }

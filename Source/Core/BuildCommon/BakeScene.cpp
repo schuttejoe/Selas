@@ -8,12 +8,6 @@
 namespace Shooty
 {
     //==============================================================================
-    static void SerializeCamera(BinaryWriter* writer, const BuiltScene& sceneData)
-    {
-        SerializerWrite(writer, &sceneData.camera, sizeof(sceneData.camera));
-    }
-
-    //==============================================================================
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
     {
         uint32 materialCount = sceneData.materials.Length();
@@ -32,7 +26,6 @@ namespace Shooty
     //==============================================================================
     static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData)
     {
-
         uint32 meshCount = sceneData.meshes.Length();
         uint32 indexCount = sceneData.indices.Length();
         uint32 vertexCount = sceneData.positions.Length();
@@ -56,7 +49,10 @@ namespace Shooty
         BinaryWriter writer;
         ReturnFailure_(SerializerStart(&writer, filepath));
 
-        SerializeCamera(&writer, sceneData);
+        SerializerWrite(&writer, &sceneData.camera, sizeof(sceneData.camera));
+        SerializerWrite(&writer, &sceneData.aaBox, sizeof(sceneData.aaBox));
+        SerializerWrite(&writer, &sceneData.boundingSphere, sizeof(sceneData.boundingSphere));
+
         SerializeMaterials(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 

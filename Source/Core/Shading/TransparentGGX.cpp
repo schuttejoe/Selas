@@ -16,11 +16,9 @@
 namespace Shooty
 {
     //==============================================================================
-    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi)
+    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float pdf)
     {
-        // JSTODO - This needs to be validated if NEE becomes a part of my renderer.
-        Assert_(false);
-
+        // JSTODO - validate me
         float3 wm = Normalize(wo + wi);
 
         float a = surface.roughness;
@@ -36,6 +34,8 @@ namespace Shooty
 
         float denomPart = (dotNH * dotNH) * (a2 - 1) + 1;
         float D = a2 / (Math::Pi_ * denomPart * denomPart);
+
+        pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
 
         return F * G2 * D ;
     }
