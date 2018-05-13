@@ -149,10 +149,6 @@ namespace Shooty
             material.albedo    = importedMaterialData.albedo;
             material.ior = importedMaterialData.ior;
 
-            if(StringUtil::Length(importedMaterialData.emissiveTextureName.Ascii())) {
-                material.flags |= eHasTextures;
-                material.emissiveTextureIndex = AddTexture(built, importedMaterialData.emissiveTextureName);
-            }
             if(StringUtil::Length(importedMaterialData.albedoTextureName.Ascii())) {
                 material.flags |= eHasTextures;
                 material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTextureName);

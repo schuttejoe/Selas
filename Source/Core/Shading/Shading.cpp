@@ -104,11 +104,8 @@ namespace Shooty
             return;
         }
 
-        AccumulatePixelEnergy(context, hit, surface.emissive);
-
         if(surface.shader == eDisney) {
-            DisneyWithIblSamplingShader(context, hit, surface);
-            //DisneyBrdfShader(context, hit, surface);
+            DisneyBrdfShader(context, hit, surface);
         }
         else if(surface.shader == eTransparentGgx) {
             TransparentGgxShader(context, hit, surface);

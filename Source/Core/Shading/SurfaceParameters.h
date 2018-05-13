@@ -28,7 +28,6 @@ namespace Shooty
 
         // -- material layer info
         eMaterialShader shader;
-        float3 emissive;
         uint32 materialFlags;
         float3 albedo;
         float  metalness;

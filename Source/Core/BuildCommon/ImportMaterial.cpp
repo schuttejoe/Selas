@@ -25,7 +25,6 @@ namespace Shooty
 
         Json::ReadFixedString(document, "ShaderName", material->shaderName);
 
-        Json::ReadFixedString(document, "EmissiveTexture", material->emissiveTextureName);
         Json::ReadFixedString(document, "AlbedoTexture", material->albedoTextureName);
         Json::ReadFixedString(document, "HeightTexture", material->heightTextureName);
         Json::ReadFixedString(document, "NormalTexture", material->normalTextureName);

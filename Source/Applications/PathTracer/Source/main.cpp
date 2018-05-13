@@ -103,7 +103,7 @@ int main()
     context.invSquareBoundingRadius = (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
 
     SystemTime::GetCycleCounter(&timer);
-    VCM::GenerateImage(context, width, height, imageData);
+    PathTracer::GenerateImage(context, width, height, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);

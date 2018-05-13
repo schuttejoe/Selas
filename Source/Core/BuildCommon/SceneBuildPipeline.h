@@ -20,7 +20,6 @@ namespace Shooty
     {
         FixedString256 shaderName;
 
-        FixedString256 emissiveTextureName;
         FixedString256 albedoTextureName;
         FixedString256 heightTextureName;
         FixedString256 normalTextureName;

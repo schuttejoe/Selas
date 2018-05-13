@@ -35,8 +35,7 @@ namespace Shooty
     struct Material
     {
         Material()
-            : emissiveTextureIndex(InvalidIndex32)
-            , albedoTextureIndex(InvalidIndex32)
+            : albedoTextureIndex(InvalidIndex32)
             , roughnessTextureIndex(InvalidIndex32)
             , heightTextureIndex(InvalidIndex32)
             , normalTextureIndex(InvalidIndex32)
@@ -50,7 +49,6 @@ namespace Shooty
         {
         }
 
-        uint32 emissiveTextureIndex;
         uint32 albedoTextureIndex;
         uint32 roughnessTextureIndex;
         uint32 heightTextureIndex;

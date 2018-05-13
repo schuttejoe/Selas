@@ -249,7 +249,6 @@ namespace Shooty
         }
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.emissive      = SampleTextureFloat3(surface, scene, uvs, material->emissiveTextureIndex, false, rayHasDifferentials, float3::Zero_);
         surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, float3::One_);
         surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, rayHasDifferentials, surface.albedo);
         surface.roughness     = material->roughness * SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, rayHasDifferentials, 1.0f);

@@ -41,7 +41,7 @@
 #define EnableMultiThreading_   1
 #define PathsPerPixel_          8
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     16.0f
 
 namespace Shooty
 {
