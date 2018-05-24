@@ -22,7 +22,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
+    float3 EvaluateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
         // JSTODO - validate me
         float3 wm = Normalize(wo + wi);
@@ -48,7 +48,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleTransparentGgx(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v,  surface.worldToTangent));
         float3x3 tangentToWorld = MatrixTranspose(surface.worldToTangent);

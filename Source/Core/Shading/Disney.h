@@ -14,9 +14,9 @@ namespace Shooty
     struct BsdfSample;
 
     // -- BSDF evaluation for next event estimation
-    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
+    float3 EvaluateDisneyBrdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
     bool DisneyWithIblSamplingShader(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
-    bool DisneyBrdfShader(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleDisneyBrdf(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
 }

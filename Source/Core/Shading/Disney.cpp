@@ -23,7 +23,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
+    float3 EvaluateDisneyBrdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
         // JSTODO - validate me
 
@@ -84,7 +84,7 @@ namespace Shooty
 
         float bsdfForwardPdf;
         float bsdfReversePdf;
-        sample.reflectance = CalculateDisneyBsdf(surface, v, worldWi, bsdfForwardPdf, bsdfReversePdf) * (1.0f / iblPdf);
+        sample.reflectance = EvaluateDisneyBrdf(surface, v, worldWi, bsdfForwardPdf, bsdfReversePdf) * (1.0f / iblPdf);
         sample.forwardPdfW = iblPdf;
         sample.reversePdfW = iblPdf;
         sample.reflection = true;
@@ -94,7 +94,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    bool DisneyBrdfShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleDisneyBrdf(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 

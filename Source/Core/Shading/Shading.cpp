@@ -38,12 +38,11 @@ namespace Shooty
     //==============================================================================
     bool SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
-        // JSTODO - Rename these functions to be *Sample
         if(surface.shader == eDisney) {
-            return DisneyBrdfShader(context, surface, v, sample);
+            return SampleDisneyBrdf(context, surface, v, sample);
         }
         else if(surface.shader == eTransparentGgx) {
-            return TransparentGgxShader(context, surface, v, sample);
+            return SampleTransparentGgx(context, surface, v, sample);
         }
         else {
             Assert_(false);
@@ -55,12 +54,11 @@ namespace Shooty
     //==============================================================================
     float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
-        // JSTODO - Rename these functions to be *Evaluate
         if(surface.shader == eDisney) {
-            return CalculateDisneyBsdf(surface, wo, wi, forwardPdf, reversePdf);
+            return EvaluateDisneyBrdf(surface, wo, wi, forwardPdf, reversePdf);
         }
         else if(surface.shader == eTransparentGgx) {
-            return CalculateTransparentGGXBsdf(surface, wo, wi, forwardPdf, reversePdf);
+            return EvaluateTransparentGGXBsdf(surface, wo, wi, forwardPdf, reversePdf);
         }
         else {
             Assert_(false);
