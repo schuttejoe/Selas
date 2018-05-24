@@ -35,6 +35,7 @@ namespace Shooty
         float Square(float x);
         float Floor(float x);
         float Ceil(float x);
+        float Sign(float x);
 
         bool IsInf(float x);
         bool IsNaN(float x);

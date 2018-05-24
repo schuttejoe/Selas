@@ -74,7 +74,7 @@ int main()
     }
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k.bin", &iblResouce) == false) {
+    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -100,10 +100,9 @@ int main()
     context.rtcScene = rtcScene;
     context.scene = &sceneResource;
     context.ibl = iblResouce.data;
-    context.invSquareBoundingRadius = (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
 
     SystemTime::GetCycleCounter(&timer);
-    PathTracer::GenerateImage(context, width, height, imageData);
+    VCM::GenerateImage(context, width, height, imageData);
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);

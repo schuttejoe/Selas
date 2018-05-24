@@ -32,20 +32,20 @@ namespace Shooty
         RTCScene rtcScene;
         const SceneResource* scene;
         const ImageBasedLightResourceData* ibl;
-        float invSquareBoundingRadius;
     };
 
     //==============================================================================
     struct KernelContext
     {
         const RayCastCameraSettings* __restrict camera;
-        SceneContext* __restrict sceneData;
-        Random::MersenneTwister* __restrict twister;
-        float3* __restrict imageData;
-        uint imageWidth;
-        uint imageHeight;
-        uint maxPathLength;
+        SceneContext*                __restrict sceneData;
+        Random::MersenneTwister*     __restrict twister;
+        float3*                      __restrict imageData;
+        uint                                    imageWidth;
+        uint                                    imageHeight;
+        uint                                    maxPathLength;
 
+        // JSTODO - This probably won't match the behavior I want for deferred path tracing. Delete me.
         Ray* __restrict rayStack;
         uint rayStackCount;
         uint rayStackCapacity;

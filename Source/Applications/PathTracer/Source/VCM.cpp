@@ -16,6 +16,7 @@
 #include <GeometryLib/Camera.h>
 #include <GeometryLib/Ray.h>
 #include <GeometryLib/SurfaceDifferentials.h>
+#include <GeometryLib/HashGrid.h>
 #include <UtilityLib/FloatingPoint.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
@@ -26,6 +27,7 @@
 #include <MathLib/Projection.h>
 #include <MathLib/Quaternion.h>
 #include <ContainersLib/Rect.h>
+#include <ContainersLib/CArray.h>
 #include <ThreadingLib/Thread.h>
 #include <SystemLib/OSThreading.h>
 #include <SystemLib/Atomic.h>
@@ -40,7 +42,7 @@
 
 #define MaxBounceCount_         10
 
-#define EnableMultiThreading_   0
+#define EnableMultiThreading_   1
 #define IntegrationSeconds_     30.0f
 
 #define VcmRadiusFactor_ 0.005f
@@ -67,15 +69,28 @@ namespace Shooty
             volatile int64* pathsEvaluatedPerPixel;
             volatile int64* completedThreads;
             volatile int64* kernelIndices;
+            volatile int64* vcmPassCount;
 
             void* imageDataSpinlock;
             float3* imageData;
         };
 
+        // JSTODO - This uses a lot of memory. Maybe store hit position and resample the material for each use?
+        struct VcmVertex
+        {
+            float3 throughput;
+            uint32 pathLength;
+            float dVCM;
+            float dVC;
+            float dVM;
+
+            SurfaceParameters surface;
+        };
+
         //==============================================================================
         bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
         {
-            float3 origin = OffsetRayOrigin(surface, direction, 4.0f);
+            float3 origin = OffsetRayOrigin(surface, direction, 0.1f);
 
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
@@ -97,9 +112,33 @@ namespace Shooty
         }
 
         //==============================================================================
+        bool VcOcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
+        {
+            float biasDistance;
+            float3 origin = OffsetRayOrigin(surface, direction, 0.1f, biasDistance);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            __declspec(align(16)) RTCRay ray;
+            ray.org_x = origin.x;
+            ray.org_y = origin.y;
+            ray.org_z = origin.z;
+            ray.dir_x = direction.x;
+            ray.dir_y = direction.y;
+            ray.dir_z = direction.z;
+            ray.tnear = surface.error;
+            ray.tfar = distance - 16.0f * Math::Absf(biasDistance);
+
+            rtcOccluded1(rtcScene, &context, &ray);
+
+            // -- ray.tfar == -inf when hit occurs
+            return (ray.tfar >= 0.0f);
+        }
+
+        //==============================================================================
         static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
         {
-
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
@@ -148,8 +187,11 @@ namespace Shooty
             // -- right now we're just generating a sample on the ibl
             float lightSampleWeight = 1.0f;
 
-            LightSample sample;
-            GenerateIblLightSample(context, sample);
+            LightEmissionSample sample;
+            {
+                // -- JSTODO - Sample area lights and such
+                EmitIblLightSample(context, sample);
+            }
 
             sample.emissionPdfW  *= lightSampleWeight;
             sample.directionPdfA *= lightSampleWeight;
@@ -165,7 +207,29 @@ namespace Shooty
         }
 
         //==============================================================================
-        static void ConnectLightPathToCamera(KernelContext* context, PathState& state, const SurfaceParameters& surface, float vcWeight, float lightPathCount)
+        static void GenerateCameraSample(KernelContext* context, uint x, uint y, float lightPathCount, PathState& state)
+        {
+            const RayCastCameraSettings* __restrict camera = context->camera;
+
+            Ray cameraRay = JitteredCameraRay(camera, context->twister, 0, (float)x, (float)y);
+
+            float cosThetaCamera = Dot(camera->forward, cameraRay.direction);
+            float imagePointToCameraDistance = camera->imagePlaneDistance / cosThetaCamera;
+            float imageToSolidAngle = imagePointToCameraDistance * imagePointToCameraDistance / cosThetaCamera;
+
+            state.position      = cameraRay.origin;
+            state.direction     = cameraRay.direction;
+            state.throughput    = float3::One_;
+
+            state.dVCM          = lightPathCount / imageToSolidAngle;
+            state.dVC           = 0;
+            state.dVM           = 0;
+            state.pathLength    = 1;
+            state.isAreaMeasure = 1;
+        }
+
+        //==============================================================================
+        static void ConnectLightPathToCamera(KernelContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight, float lightPathCount)
         {
             const RayCastCameraSettings* __restrict camera = context->camera;
 
@@ -175,7 +239,7 @@ namespace Shooty
             }
 
             int2 imagePosition = WorldToImage(camera, surface.position);
-            if(imagePosition.x < 0.0f || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0.0f || imagePosition.y >= camera->viewportHeight) {
+            if(imagePosition.x < 0 || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0 || imagePosition.y >= camera->viewportHeight) {
                 return;
             }
 
@@ -183,13 +247,14 @@ namespace Shooty
             toPosition = (1.0f / distance) * toPosition;
 
             // -- evaluate BSDF
-            float bsdfPdf;
-            float3 bsdf = EvaluateBsdf(surface, -state.direction, -toPosition, bsdfPdf);
+            float bsdfForwardPdf;
+            float bsdfReversePdf;
+            float3 bsdf = EvaluateBsdf(surface, -state.direction, -toPosition, bsdfForwardPdf, bsdfReversePdf);
             if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
                 return;
             }
 
-            float cosThetaSurface = Math::Absf(Dot(surface.perturbedNormal, -toPosition));
+            float cosThetaSurface = Math::Absf(Dot(surface.geometricNormal, -toPosition));
             float cosThetaCamera  = Dot(camera->forward, toPosition);
 
             float imagePointToCameraDistance = camera->imagePlaneDistance / cosThetaCamera;
@@ -199,27 +264,219 @@ namespace Shooty
 
             float cameraPdfA = imageToSurface;
 
-            float lightPartialWeight = (cameraPdfA / lightPathCount) * (vcWeight + state.dVCM + state.dVC * bsdfPdf);
-            float pathWeight = 1.0f / (lightPartialWeight + 1.0f);
+            float lightPartialWeight = (cameraPdfA / lightPathCount) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdf);
+            float misWeight = 1.0f / (lightPartialWeight + 1.0f);
             
-            float3 sample = pathWeight * state.throughput * bsdf * (1.0f / (lightPathCount * surfaceToImage));
-            if(sample.x == 0 && sample.y == 0 && sample.z == 0) {
+            float3 pathContribution = misWeight * state.throughput * bsdf * (1.0f / (lightPathCount * surfaceToImage));
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
                 return;
             }
 
             if(OcclusionRay(context->sceneData->rtcScene, surface, -toPosition, distance)) {
                 uint index = imagePosition.y * context->imageWidth + imagePosition.x;
-                context->imageData[index] = context->imageData[index] + sample;
+                context->imageData[index] = context->imageData[index] + pathContribution;
             }
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(KernelContext* context, float kernelRadius, uint width, uint height)
+        static float3 ConnectToSkyLight(KernelContext* context, PathState& state)
+        {
+            float directPdfA;
+            float emissionPdfW;
+            float3 radiance = DirectIblSample(context, state.direction, directPdfA, emissionPdfW);
+
+            if(state.pathLength == 1) {
+                return radiance;
+            }
+
+            float cameraWeight = directPdfA * state.dVCM + emissionPdfW * state.dVC;
+
+            float misWeight = 1.0f / (1.0f + cameraWeight);
+            return misWeight * radiance;
+        }
+
+        //==============================================================================
+        static float3 ConnectCameraPathToLight(KernelContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight)
+        {
+            // -- only using the ibl for now
+            float lightSampleWeight = 1.0f;
+
+            // -- choose direction to sample the ibl
+            float r0 = Random::MersenneTwisterFloat(context->twister);
+            float r1 = Random::MersenneTwisterFloat(context->twister);
+
+            LightDirectSample sample;
+            {
+                // -- JSTODO - Sample area lights and such
+                DirectIblLightSample(context, sample);
+                sample.directionPdfA *= lightSampleWeight;
+            }
+            
+            float bsdfForwardPdfW;
+            float bsdfReversePdfW;
+            float3 bsdf = EvaluateBsdf(surface, -state.direction, sample.direction, bsdfForwardPdfW, bsdfReversePdfW);
+            if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float cosThetaSurface = Math::Absf(Dot(surface.perturbedNormal, sample.direction));
+
+            float lightWeight = bsdfForwardPdfW / sample.directionPdfA;
+            float cameraWeight = (sample.emissionPdfW * cosThetaSurface / (sample.directionPdfA * sample.cosThetaLight)) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdfW);
+
+            float misWeight = 1.0f / (lightWeight + 1 + cameraWeight);
+            float3 pathContribution = (misWeight * cosThetaSurface / sample.directionPdfA) * sample.radiance * bsdf;
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
+                return float3::Zero_;
+            }
+
+            if(OcclusionRay(context->sceneData->rtcScene, surface, sample.direction, sample.distance)) {
+                return pathContribution;
+            }
+
+            return float3::Zero_;
+        }
+
+        //==============================================================================
+        static bool SampleBsdfScattering(KernelContext* context, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState)
+        {
+            BsdfSample sample;
+            if(SampleBsdfFunction(context, surface, -pathState.direction, sample) == false) {
+                return false;
+            }
+            if(sample.reflectance.x == 0.0f && sample.reflectance.y == 0.0f && sample.reflectance.z == 0.0f) {
+                return false;
+            }
+
+            float cosThetaBsdf = Math::Absf(Dot(sample.wi, surface.perturbedNormal));
+
+            pathState.position = surface.position;
+            pathState.throughput = pathState.throughput * sample.reflectance;
+            pathState.dVC = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVC * sample.reversePdfW + pathState.dVCM + vmWeight);
+            pathState.dVM = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVM * sample.reversePdfW + pathState.dVCM * vcWeight + 1.0f);
+            pathState.dVCM = 1.0f / sample.forwardPdfW;
+            pathState.direction = sample.wi;
+            ++pathState.pathLength;
+
+            return true;
+        }
+
+        //==============================================================================
+        static float3 ConnectPathVertices(KernelContext* context, const SurfaceParameters& surface, const PathState& cameraState, const VcmVertex& lightVertex, float vmWeight)
+        {
+            float3 direction = lightVertex.surface.position - surface.position;
+            float distanceSquared = LengthSquared(direction);
+            float distance = Math::Sqrtf(distanceSquared);
+            direction = (1.0f / distance) * direction;
+
+            float cameraBsdfForwardPdfW;
+            float cameraBsdfReversePdfW;
+            float3 cameraBsdf = EvaluateBsdf(surface, -cameraState.direction, direction, cameraBsdfForwardPdfW, cameraBsdfReversePdfW);
+            if(cameraBsdf.x == 0 && cameraBsdf.y == 0 && cameraBsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float lightBsdfForwardPdfW;
+            float lightBsdfReversePdfW;
+            float3 lightBsdf = EvaluateBsdf(lightVertex.surface, -direction, lightVertex.surface.view, lightBsdfForwardPdfW, lightBsdfReversePdfW);
+            if(lightBsdf.x == 0 && lightBsdf.y == 0 && lightBsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float cosThetaCamera = Math::Absf(Dot(direction, surface.perturbedNormal));
+            float cosThetaLight = Math::Absf(Dot(-direction, lightVertex.surface.perturbedNormal));
+
+            float geometryTerm = cosThetaLight * cosThetaCamera / distanceSquared;
+            if(geometryTerm < 0.0f) {
+                // -- JSTODO - For this to be possible the cosTheta terms would need to be negative. But with transparent surfaces the normal will often be for the other side of the surface.
+                return float3::Zero_;
+            }
+
+            // -- convert pdfs from solid angle to area measure
+            float cameraBsdfPdfA = cameraBsdfForwardPdfW * Math::Absf(cosThetaLight) / distanceSquared;
+            float lightBsdfPdfA = lightBsdfForwardPdfW * Math::Absf(cosThetaCamera) / distanceSquared;
+
+            float lightWeight = cameraBsdfPdfA * (vmWeight + lightVertex.dVCM + lightVertex.dVC * lightBsdfReversePdfW);
+            float cameraWeight = lightBsdfPdfA * (vmWeight + cameraState.dVCM + cameraState.dVC * cameraBsdfReversePdfW);
+
+            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
+
+            float3 pathContribution = misWeight * geometryTerm * cameraBsdf * lightBsdf;
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
+                return float3::Zero_;
+            }
+
+            if(VcOcclusionRay(context->sceneData->rtcScene, surface, direction, distance)) {
+                return pathContribution;
+            }
+
+            return float3::Zero_;
+        }
+
+        struct VertexMergingCallbackStruct
+        {
+            const KernelContext* context;
+            const SurfaceParameters* surface;
+            const CArray<VcmVertex>* pathVertices;
+            const PathState* cameraState;
+            float vcWeight;
+
+            float3 result;
+        };
+
+        //==============================================================================
+        static void MergeVertices(uint vertexIndex, void* userData)
+        {
+            VertexMergingCallbackStruct* vmData = (VertexMergingCallbackStruct*)userData;
+            const KernelContext* context = vmData->context;
+            const SurfaceParameters& surface = *vmData->surface;
+            const PathState& cameraState = *vmData->cameraState;
+            const VcmVertex& lightVertex = vmData->pathVertices->GetData()[vertexIndex];
+
+            if(cameraState.pathLength + lightVertex.pathLength > context->maxPathLength) {
+                return;
+            }
+
+            float bsdfForwardPdfW;
+            float bsdfReversePdfW;
+            float3 bsdf = EvaluateBsdf(surface, -cameraState.direction, lightVertex.surface.view, bsdfForwardPdfW, bsdfReversePdfW);
+            if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
+                return;
+            }
+
+            float lightWeight = lightVertex.dVCM * vmData->vcWeight + lightVertex.dVM * bsdfForwardPdfW;
+            float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
+
+            Assert_(!Math::IsNaN(bsdf.x));
+            Assert_(!Math::IsNaN(bsdf.y));
+            Assert_(!Math::IsNaN(bsdf.z));
+            Assert_(!Math::IsNaN(lightVertex.throughput.x));
+            Assert_(!Math::IsNaN(lightVertex.throughput.y));
+            Assert_(!Math::IsNaN(lightVertex.throughput.z));
+
+            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
+            vmData->result += misWeight * bsdf * lightVertex.throughput;
+        }
+
+        //==============================================================================
+        static void VertexConnectionAndMerging(KernelContext* context, CArray<VcmVertex>& pathVertices, HashGrid& hashGrid, float kernelRadius, uint width, uint height)
         {
             uint lightPathCount = width * height;
 
-            float vcWeight = Math::Pi_ * kernelRadius * kernelRadius * lightPathCount;
-            float vmWeight = 1.0f / vcWeight;
+            pathVertices.Clear();
+            pathVertices.Reserve((uint32)(lightPathCount));
+
+            CArray<uint32> pathEnds;
+            pathEnds.Reserve((uint32)(lightPathCount));
+            CArray<float3> deletememaybe;
+            deletememaybe.Reserve((uint32)(lightPathCount));
+
+            float kernelRadiusSquare = kernelRadius * kernelRadius;
+
+            float vmNormalization = 1.0f / (Math::Pi_ * kernelRadiusSquare * lightPathCount);
+
+            float vmWeight = Math::Pi_ * kernelRadiusSquare * lightPathCount;
+            float vcWeight = 1.0f / vmWeight;
 
             // -- generate light paths
             for(uint scan = 0; scan < lightPathCount; ++scan) {
@@ -230,7 +487,8 @@ namespace Shooty
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
-                    // -- Make a basic ray. No differentials are used for light path vertices. // JSTODO - Ray storing a pixel index and bounce count was not very forward thinking. Remove those.
+                     // JSTODO - Ray storing a pixel index and bounce count was not very forward thinking. Remove those.
+                    // -- Make a basic ray. No differentials are used for light path vertices.
                     Ray ray = MakeRay(state.position, state.direction, state.throughput, 0, 0);
 
                     // -- Cast the ray against the scene
@@ -256,13 +514,135 @@ namespace Shooty
                     state.dVC  *= (1.0f / absDotNL);
                     state.dVM  *= (1.0f / absDotNL);
 
-                    // -- JSTODO - store the vertex for use with vertex merging
+                    // -- store the vertex for use with vertex merging
+                    VcmVertex vcmVertex;
+                    vcmVertex.throughput = state.throughput;
+                    vcmVertex.pathLength = state.pathLength;
+                    vcmVertex.dVCM = state.dVCM;
+                    vcmVertex.dVC = state.dVC;
+                    vcmVertex.dVM = state.dVM;
+                    vcmVertex.surface = surface;
+                    pathVertices.Add(vcmVertex);
+                    deletememaybe.Add(surface.position);
+
+                    // -- debug tech
+                    //float3 toPosition = surface.position - context->camera->position;
+                    //if(Dot(context->camera->forward, toPosition) > 0.0f) {
+                    //    int2 imagePosition = WorldToImage(context->camera, surface.position);
+                    //    if(imagePosition.x >= 0 && imagePosition.x < context->camera->viewportWidth && imagePosition.y > 0 && imagePosition.y < context->camera->viewportHeight) {
+
+                    //        float3 color;
+                    //        if(state.pathLength == 1)
+                    //            color = float3(0.0f, 0.0f, 1.0f);
+                    //        else if(state.pathLength >= 2 && state.pathLength < 3)
+                    //            color = float3(0.0f, 1.0f, 0.0f);
+                    //        else
+                    //            color = float3(1.0f, 0.0f, 0.0f);
+                    //        uint index = imagePosition.y * context->imageWidth + imagePosition.x;
+                    //        context->imageData[index] = context->imageData[index] + color;
+                    //    }
+                    //}
 
                     // -- connect the path to the camera
-                    ConnectLightPathToCamera(context, state, surface, vcWeight, (float)lightPathCount);
+                    ConnectLightPathToCamera(context, state, surface, vmWeight, (float)lightPathCount);
 
-                    // -- JSTODO - bsdf scattering to advance the path
-                    break;
+                    // -- bsdf scattering to advance the path
+                    if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
+                        break;
+                    }
+                }
+
+                pathEnds.Add(pathVertices.Length());
+            }
+
+            // -- build the hash grid
+            BuildHashGrid(&hashGrid, lightPathCount, kernelRadius, deletememaybe);
+
+            // -- generate camera paths
+            for(uint y = 0; y < height; ++y) {
+                for(uint x = 0; x < width; ++x) {
+                    uint index = y * width + x;
+
+                    if(x == 830 && y == 375) {
+                        index = index;
+                    }
+                    PathState cameraPathState;
+                    GenerateCameraSample(context, x, y, (float)lightPathCount, cameraPathState);
+
+                    float3 color = float3::Zero_;
+
+                    while(cameraPathState.pathLength < context->maxPathLength) {
+
+                        // JSTODO - Ray storing a pixel index and bounce count was not very forward thinking. Remove those.
+                       // -- Make a basic ray. No differentials are used atm...
+                        Ray ray = MakeRay(cameraPathState.position, cameraPathState.direction, cameraPathState.throughput, 0, 0);
+
+                        // -- Cast the ray against the scene
+                        HitParameters hit;
+                        if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                            // -- if the ray exits the scene then we sample the ibl and accumulate the results.
+                            float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
+                            color += sample;
+                            break;
+                        }
+
+                        // -- Calculate all surface information for this hit position
+                        SurfaceParameters surface;
+                        if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                            break;
+                        }
+
+                        float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
+                        float absDotNL = Math::Absf(Dot(surface.geometricNormal, hit.viewDirection));
+
+                        // -- Update accumulated MIS parameters with info from our new hit position
+                        cameraPathState.dVCM *= connectionLengthSqr;
+                        cameraPathState.dVCM /= absDotNL;
+                        cameraPathState.dVC  /= absDotNL;
+                        cameraPathState.dVM  /= absDotNL;
+
+                        // -- Vertex connection to a light source
+                        if(cameraPathState.pathLength + 1 < context->maxPathLength) {
+                            float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, vmWeight);
+                            color += sample; 
+                        }
+
+                        // -- Vertex connection to a light vertex
+                        {
+                            uint pathStart = (index == 0) ? 0 : pathEnds[index - 1];
+                            uint pathEnd = pathEnds[index];
+
+                            for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
+                                const VcmVertex& lightVertex = pathVertices[lightVertexIndex];
+                                if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
+                                    break;
+                                }
+
+                                color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, vmWeight);
+                            }
+                        }
+
+                        // -- Vertex merging
+                        {
+                            VertexMergingCallbackStruct callbackData;
+                            callbackData.context = context;
+                            callbackData.surface = &surface;
+                            callbackData.pathVertices = &pathVertices;
+                            callbackData.cameraState = &cameraPathState;
+                            callbackData.vcWeight = vcWeight;
+                            callbackData.result = float3::Zero_;
+                            SearchHashGrid(&hashGrid, deletememaybe, surface.position, &callbackData, MergeVertices);
+
+                            color += cameraPathState.throughput * vmNormalization * callbackData.result;
+                        }
+
+                        // -- bsdf scattering to advance the path
+                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
+                            break;
+                        }
+                    }
+
+                    context->imageData[index] += color;
                 }
             }
         }
@@ -294,21 +674,26 @@ namespace Shooty
             kernelContext.rayStackCount    = 0;
             kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
-            float iterationIndex = 0.0f;
+            HashGrid hashGrid;
+            CArray<VcmVertex> lightVertices;
 
             int64 pathsTracedPerPixel = 0;
             float elapsedMs = 0.0f;
             while(elapsedMs < integratorContext->integrationSeconds) {
-                iterationIndex += 1.0f;;
+                int64 index = Atomic::Increment64(integratorContext->vcmPassCount);
+                float iterationIndex = index + 1.0f;
 
                 float vcmKernelRadius = integratorContext->vcmRadius / Math::Powf(iterationIndex, 0.5f * (1.0f - integratorContext->vcmRadiusAlpha));
 
-                VertexConnectionAndMerging(&kernelContext, vcmKernelRadius, width, height);
+                VertexConnectionAndMerging(&kernelContext, lightVertices, hashGrid, vcmKernelRadius, width, height);
                 ++pathsTracedPerPixel;
 
                 int64 startTime = integratorContext->integrationStartTime;
                 elapsedMs = SystemTime::ElapsedMs(startTime) / 1000.0f;
             }
+
+            ShutdownHashGrid(&hashGrid);
+            lightVertices.Close();
 
             Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
 
@@ -343,6 +728,7 @@ namespace Shooty
             int64 completedThreads = 0;
             int64 kernelIndex = 0;
             int64 pathsEvaluatedPerPixel = 0;
+            int64 vcmPassCount = 0;
 
             #if EnableMultiThreading_ 
                 const uint additionalThreadCount = 7;
@@ -360,6 +746,7 @@ namespace Shooty
             SystemTime::GetCycleCounter(&integratorContext.integrationStartTime);
             integratorContext.integrationSeconds     = IntegrationSeconds_;
             integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
+            integratorContext.vcmPassCount           = &vcmPassCount;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
             integratorContext.imageDataSpinlock      = CreateSpinLock();

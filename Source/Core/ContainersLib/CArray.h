@@ -10,7 +10,6 @@
 
 namespace Shooty
 {
-
     template <typename Type_>
     class CArray
     {

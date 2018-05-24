@@ -16,34 +16,42 @@
 namespace Shooty
 {
     //==============================================================================
-    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float pdf)
+    static float BsdfNDot(float3 x)
+    {
+        return x.y;
+    }
+
+    //==============================================================================
+    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
         // JSTODO - validate me
         float3 wm = Normalize(wo + wi);
 
         float a = surface.roughness;
         float a2 = a * a;
-        float dotNH = Dot(surface.perturbedNormal, wm);
-        float dotNL = Dot(surface.perturbedNormal, wi);
-        if(dotNL <= 0.0f || dotNH <= 0.0f) {
-            return float3::Zero_;
-        }
+        float absDotNH = Math::Absf(Dot(surface.perturbedNormal, wm));
+        float absDotNL = Math::Absf(Dot(surface.perturbedNormal, wi));
+        float absDotNV = Math::Absf(Dot(surface.perturbedNormal, wo));
+        float absDotHV = Math::Absf(Dot(wm, wo));
+        float absDotHL = Math::Absf(Dot(wm, wi));
 
-        float F = (1.0f - Fresnel::SchlickDialectic(Math::Absf(Dot(wm, wo)), surface.currentIor, surface.exitIor));
-        float G2 = Bsdf::SmithGGXMaskingShading(wi, wo, wm, a2);
+        float F = (1.0f - Fresnel::SchlickDialectic(absDotHV, surface.currentIor, surface.exitIor));
+        float G2 = Bsdf::SmithGGXMaskingShading(absDotNL, absDotNV, a2);
 
-        float denomPart = (dotNH * dotNH) * (a2 - 1) + 1;
+        float denomPart = (absDotNH * absDotNL) * (a2 - 1) + 1;
         float D = a2 / (Math::Pi_ * denomPart * denomPart);
 
-        pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
+        forwardPdf = Bsdf::GgxVndfPdf(absDotHV, absDotNL, absDotNV, absDotNH, a2);
+        reversePdf = Bsdf::GgxVndfPdf(absDotHL, absDotNV, absDotNL, absDotNH, a2);
 
         return F * G2 * D;
     }
 
     //==============================================================================
-    void TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
+    bool TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
-        float3 wo = Normalize(MatrixMultiply(surface.view, surface.worldToTangent));
+        float3 wo = Normalize(MatrixMultiply(v,  surface.worldToTangent));
+        float3x3 tangentToWorld = MatrixTranspose(surface.worldToTangent);
 
         float a = surface.roughness;
         float a2 = a * a;
@@ -57,18 +65,29 @@ namespace Shooty
         float3 wi;
         float t = Random::MersenneTwisterFloat(context->twister);
         float F = Fresnel::SchlickDialectic(Math::Absf(Dot(wm, wo)), surface.currentIor, surface.exitIor);
+        float scatterPdf = 1.0f - F;
         if(t < F || !Transmit(wm, wo, surface.currentIor, surface.exitIor, wi)) {
             wi = Reflect(wm, wo);
             usedReflection = true;
+            scatterPdf = F;
         }
         wi = Normalize(wi);
 
-        float G1 = Bsdf::SmithGGXMasking(wi, wo, wm, a2);
-        float G2 = Bsdf::SmithGGXMaskingShading(wi, wo, wm, a2);
+        float absDotNL = Math::Absf(BsdfNDot(wi));
+        float absDotNV = Math::Absf(BsdfNDot(wo));
+        float absDotNH = Math::Absf(BsdfNDot(wm));
+        float absDotHV = Math::Absf(Dot(wm, wo));
+        float absDotHL = Math::Absf(Dot(wm, wi));
+
+        float G1 = Bsdf::SmithGGXMasking(absDotNV, a2);
+        float G2 = Bsdf::SmithGGXMaskingShading(absDotNL, absDotNV, a2);
 
         sample.reflectance = surface.albedo * (G2 / G1);
         sample.reflection = usedReflection;
-        sample.wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
-        sample.pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
+        sample.wi = Normalize(MatrixMultiply(wi, tangentToWorld));
+        sample.forwardPdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHV, absDotNL, absDotNV, absDotNH, a2);
+        sample.reversePdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHL, absDotNV, absDotNL, absDotNH, a2);
+
+        return true;
     }
 }

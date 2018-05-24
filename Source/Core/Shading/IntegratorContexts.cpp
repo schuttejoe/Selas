@@ -15,15 +15,20 @@ namespace Shooty
         float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
         float3 throughput = hit.throughput * reflectance;
 
-        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
-
         Ray bounceRay;
-        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
-            bounceRay = MakeReflectionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.perturbedNormal, hit.viewDirection, wi, surface.differentials, throughput, hit.pixelIndex, hit.bounceCount + 1);
-        }
-        else {
+
+        #if EnableDifferentials_
+            bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+   
+            if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
+                bounceRay = MakeReflectionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, hit.viewDirection, wi, surface.differentials, throughput, hit.pixelIndex, hit.bounceCount + 1);
+            }
+            else {
+                bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
+            }
+        #else
             bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
-        }
+        #endif
 
         return bounceRay;
     }
@@ -34,15 +39,20 @@ namespace Shooty
         float3 offsetOrigin = OffsetRayOrigin(surface, wi, 1.0f);
         float3 throughput = hit.throughput * reflectance;
 
+        Ray bounceRay;
+
+        #if EnableDifferentials_
         bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
 
-        Ray bounceRay;
         if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
-            bounceRay = MakeRefractionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.perturbedNormal, hit.viewDirection, wi, surface.differentials, iorRatio, throughput, hit.pixelIndex, hit.bounceCount + 1);
+            bounceRay = MakeRefractionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, hit.viewDirection, wi, surface.differentials, iorRatio, throughput, hit.pixelIndex, hit.bounceCount + 1);
         }
         else {
             bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
         }
+        #else
+            bounceRay = MakeRay(offsetOrigin, wi, throughput, hit.pixelIndex, hit.bounceCount + 1);
+        #endif
 
         return bounceRay;
     }

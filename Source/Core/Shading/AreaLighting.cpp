@@ -9,8 +9,9 @@
 #include <Shading/IntegratorContexts.h>
 
 #include <SceneLib/SceneResource.h>
-#include <GeometryLib/RectangulerLight.h>
+#include <GeometryLib/RectangulerLightSampler.h>
 #include <GeometryLib/CoordinateSystem.h>
+#include <GeometryLib/Disc.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Trigonometric.h>
 #include <MathLib/ImportanceSampling.h>
@@ -211,8 +212,9 @@ namespace Shooty
             if(dotNL > 0.0f && OcclusionRay(rtcScene, surface, nwp, dist)) {
                 // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
                 float pdf_xp = 1.0f / (Math::TwoPi_ * (1.0f - q));
-                float bsdfPdf;
-                float3 bsdf = EvaluateBsdf(surface, view, nwp, bsdfPdf);
+                float bsdfForwardPdf;
+                float bsdfReversePdf;
+                float3 bsdf = EvaluateBsdf(surface, view, nwp, bsdfForwardPdf, bsdfReversePdf);
                 Lo += bsdf * (1.0f / pdf_xp) * L;
             }
         }
@@ -221,7 +223,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void GenerateIblLightSample(KernelContext* __restrict context, LightSample& sample)
+    void EmitIblLightSample(KernelContext* __restrict context, LightEmissionSample& sample)
     {
         // -- http://www.iliyan.com/publications/ImplementingVCM/ImplementingVCM_TechRep2012_rev2.pdf
         // -- see section 5.1 of ^ to understand the position and emission pdf calculation
@@ -229,22 +231,77 @@ namespace Shooty
         // -- choose direction to sample the ibl
         float r0 = Random::MersenneTwisterFloat(context->twister);
         float r1 = Random::MersenneTwisterFloat(context->twister);
+        float r2 = Random::MersenneTwisterFloat(context->twister);
+        float r3 = Random::MersenneTwisterFloat(context->twister);
 
         uint x;
         uint y;
-        float phi;
-        float theta;
+        float dirPhi;
+        float dirTheta;
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, theta, phi, x, y, sample.directionPdfA);
-
-        sample.direction = -Math::SphericalToCartesian(theta, phi);
-        sample.radiance = SampleIbl(context->sceneData->ibl, x, y);
+        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
+        float3 radiance = SampleIbl(context->sceneData->ibl, x, y);
 
         float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
-        sample.position = context->sceneData->scene->data->boundingSphere.XYZ() + sceneBoundingRadius * -sample.direction;
+        float3 sceneCenter = context->sceneData->scene->data->boundingSphere.XYZ();
 
-        sample.emissionPdfW = sample.directionPdfA * context->sceneData->invSquareBoundingRadius;
+        float3 dX, dZ;
+        MakeOrthogonalCoordinateSystem(toIbl, &dX, &dZ);
+
+        float2 discSample = SampleConcentricDisc(r2, r3);
+        float discPdf = ConcentricDiscPdf();
+
+        float3 position = sceneCenter + sceneBoundingRadius * (toIbl + discSample.x * dX + discSample.y * dZ);
+        
+        float pdfPosition = discPdf * (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
+        float pdfDirection = sample.directionPdfA;
+
+        sample.position = position;
+        sample.direction = -toIbl;
+        sample.radiance = radiance;
+        sample.emissionPdfW = pdfPosition * pdfDirection;
         sample.cosThetaLight = 1.0f; // -- not used
+    }
+
+    //==============================================================================
+    void DirectIblLightSample(KernelContext* __restrict context, LightDirectSample& sample)
+    {
+        // -- choose direction to sample the ibl
+        float r0 = Random::MersenneTwisterFloat(context->twister);
+        float r1 = Random::MersenneTwisterFloat(context->twister);
+
+        uint x;
+        uint y;
+        float dirPhi;
+        float dirTheta;
+        // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
+        // -- even though it's a solid angle measure.
+        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
+        float3 radiance = SampleIbl(context->sceneData->ibl, x, y);
+
+        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+
+        sample.distance = 1e36f;
+        sample.direction = toIbl;
+        sample.radiance = radiance;
+        sample.emissionPdfW = sample.directionPdfA * ConcentricDiscPdf();
+        sample.cosThetaLight = 1.0f; // -- not used
+    }
+
+    //==============================================================================
+    float3 DirectIblSample(KernelContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
+    {
+        float iblPdfA;
+        float3 radiance = SampleIbl(context->sceneData->ibl, direction, iblPdfA);
+
+        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+        float pdfPosition = ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
+
+        directPdfA = iblPdfA;
+        emissionPdfW = pdfPosition * iblPdfA;
+        return radiance;
     }
 }

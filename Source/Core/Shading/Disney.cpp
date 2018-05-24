@@ -23,25 +23,27 @@ namespace Shooty
     }
 
     //==============================================================================
-    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf)
+    float3 CalculateDisneyBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
         // JSTODO - validate me
-        float3 wm = Normalize(wo + wi);
 
         float a = surface.roughness;
         float a2 = a * a;
-        float dotLH = Dot(wi, wm);
-        float dotNH = Dot(surface.perturbedNormal, wm);
-        float dotNL = Dot(surface.perturbedNormal, wi);
+
         float dotNV = Dot(surface.perturbedNormal, wo);
-        if(dotNL <= 0.0f || dotNH <= 0.0f) {
+        float dotNL = Dot(surface.perturbedNormal, wi);
+        if(dotNL <= 0.0f || dotNV <= 0.0f) {
             return float3::Zero_;
         }
 
+        float3 wm = Normalize(wo + wi);
+        float dotNH = Dot(surface.perturbedNormal, wm);
+        float dotLH = Dot(wi, wm);
+
         float3 F = Fresnel::Schlick(surface.specularColor, dotLH);
 
-        float G1 = Bsdf::SmithGGXMasking(wi, wo, wm, a2);
-        float G2 = Bsdf::SmithGGXMaskingShading(wi, wo, wm, a2);
+        float G1 = Bsdf::SmithGGXMasking(dotNV, a2);
+        float G2 = Bsdf::SmithGGXMaskingShading(dotNL, dotNV, a2);
 
         float denomPart = (dotNH * dotNH) * (a2 - 1) + 1;
         float D = a2 / (Math::Pi_ * denomPart * denomPart);
@@ -56,13 +58,14 @@ namespace Shooty
         float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
         float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
-        pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
+        forwardPdf = Bsdf::GgxVndfPdf(dotLH, dotNL, dotNV, dotNH, a2);
+        reversePdf = Bsdf::GgxVndfPdf(dotLH, dotNV, dotNL, dotNH, a2);
 
         return surface.metalness * F * (G2 / G1) * D + (1.0f - surface.metalness) * diffuse;
     }
 
     //==============================================================================
-    void DisneyWithIblSamplingShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
+    bool DisneyWithIblSamplingShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float r0 = Random::MersenneTwisterFloat(context->twister);
         float r1 = Random::MersenneTwisterFloat(context->twister);
@@ -76,20 +79,24 @@ namespace Shooty
         float3 worldWi = Math::SphericalToCartesian(theta, phi);
 
         if(Dot(worldWi, surface.geometricNormal) < 0.0f) {
-            return;
+            return false;
         }
 
-        float bsdfPdf;
-        sample.reflectance = CalculateDisneyBsdf(surface, surface.view, worldWi, bsdfPdf) * (1.0f / iblPdf);
-        sample.pdf = iblPdf;
+        float bsdfForwardPdf;
+        float bsdfReversePdf;
+        sample.reflectance = CalculateDisneyBsdf(surface, v, worldWi, bsdfForwardPdf, bsdfReversePdf) * (1.0f / iblPdf);
+        sample.forwardPdfW = iblPdf;
+        sample.reversePdfW = iblPdf;
         sample.reflection = true;
         sample.wi = worldWi;
+
+        return true;
     }
 
     //==============================================================================
-    void DisneyBrdfShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample)
+    bool DisneyBrdfShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
-        float3 wo = Normalize(MatrixMultiply(surface.view, surface.worldToTangent));
+        float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
         float a = surface.roughness;
         float a2 = a * a;
@@ -102,14 +109,19 @@ namespace Shooty
         if(BsdfNDot(wi) > 0.0f) {
             wi = Normalize(wi);
 
+            float dotNL = BsdfNDot(wi);
+            float dotNV = BsdfNDot(wo);
+            float dotNH = BsdfNDot(wm);
+            
+            float dotLH = Dot(wi, wm);
+
             float3 F = Fresnel::Schlick(surface.specularColor, Dot(wi, wm));
-            float G1 = Bsdf::SmithGGXMasking(wi, wo, wm, a2);
-            float G2 = Bsdf::SmithGGXMaskingShading(wi, wo, wm, a2);
+            float G1 = Bsdf::SmithGGXMasking(dotNV, a2);
+            float G2 = Bsdf::SmithGGXMaskingShading(dotNL, dotNV, a2);
 
             // -- reflectance from diffuse is blended based on (1 - metalness) and uses the Disney diffuse model.
             // -- http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
-            float dotNL = BsdfNDot(wi);
-            float dotNV = BsdfNDot(wo);
+
             float rr = 0.5f + 2.0f * dotNL * dotNL * a;
             float fl = Fresnel::Schlick(dotNL);
             float fv = Fresnel::Schlick(dotNV);
@@ -118,10 +130,16 @@ namespace Shooty
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
+            float3x3 tangentToWorld = MatrixTranspose(surface.worldToTangent);
+
             sample.reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
-            sample.wi = Normalize(MatrixMultiply(wi, surface.tangentToWorld));
+            sample.wi = Normalize(MatrixMultiply(wi, tangentToWorld));
             sample.reflection = true;
-            sample.pdf = Bsdf::GgxVndfPdf(a, wo, wm, wi);
+            sample.forwardPdfW = Bsdf::GgxVndfPdf(dotLH, dotNL, dotNV, dotNH, a2);
+            sample.reversePdfW = Bsdf::GgxVndfPdf(dotLH, dotNV, dotNL, dotNH, a2);
+            return true;
         }
+
+        return false;
     }
 }

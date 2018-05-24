@@ -14,8 +14,8 @@ namespace Shooty
     struct BsdfSample;
     
     // -- BSDF evaluation for next event estimation
-    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float pdf);
+    float3 CalculateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
-    void TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, BsdfSample& sample);
+    bool TransparentGgxShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
 }

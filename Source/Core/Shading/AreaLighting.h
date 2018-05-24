@@ -33,11 +33,25 @@ namespace Shooty
         float3 eZ;
     };
 
-    struct LightSample
+    struct LightEmissionSample
     {
         float3 position;
         float3 direction;
         float3 radiance;
+
+        // -- probability of choosing that sample point
+        float emissionPdfW;
+        // -- probability of choosing that sample direction
+        float directionPdfA;
+        // -- Dot(n', w')
+        float cosThetaLight;
+    };
+
+    struct LightDirectSample
+    {
+        float3 direction;
+        float3 radiance;
+        float distance;
 
         // -- probability of choosing that sample point
         float emissionPdfW;
@@ -52,5 +66,7 @@ namespace Shooty
     float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount);
     float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, SphericalAreaLight light, uint lightSampleCount);
 
-    void GenerateIblLightSample(KernelContext* context, LightSample& sample);
+    void EmitIblLightSample(KernelContext* context, LightEmissionSample& sample);
+    void DirectIblLightSample(KernelContext* context, LightDirectSample& sample);
+    float3 DirectIblSample(KernelContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
 }

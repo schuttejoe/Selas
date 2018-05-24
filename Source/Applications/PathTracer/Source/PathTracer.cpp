@@ -131,8 +131,7 @@ namespace Shooty
                     }
 
                     BsdfSample sample;
-                    SampleBsdfFunction(context, surface, sample);
-                    if(sample.reflectance.x == 0 && sample.reflectance.y == 0 && sample.reflectance.z == 0) {
+                    if(SampleBsdfFunction(context, surface, hit.viewDirection, sample) == false) {
                         break;
                     }
 
@@ -145,7 +144,8 @@ namespace Shooty
                     InsertRay(context, bounceRay);
                 }
                 else {
-                    float3 sample = SampleIbl(context->sceneData->ibl, ray.direction);
+                    float pdf;
+                    float3 sample = SampleIbl(context->sceneData->ibl, ray.direction, pdf);
                     AccumulatePixelEnergy(context, ray, sample);
                 }
             }

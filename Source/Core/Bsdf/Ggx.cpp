@@ -14,33 +14,22 @@ namespace Shooty
     namespace Bsdf
     {
         //==============================================================================
-        static float BsdfNDot(float3 x)
+        float SmithGGXMasking(float absDotNV, float a2)
         {
-            return x.y;
+            float denomC = Math::Sqrtf(a2 + (1.0f - a2) * absDotNV * absDotNV) + absDotNV;
+
+            return 2.0f * absDotNV / denomC;
         }
 
         //==============================================================================
-        float SmithGGXMasking(float3 wi, float3 wo, float3 wm, float a2)
-        {
-            float dotNL = Math::Absf(BsdfNDot(wi));
-            float dotNV = Math::Absf(BsdfNDot(wo));
-            float denomC = Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV) + dotNV;
-
-            return 2.0f * dotNV / denomC;
-        }
-
-        //==============================================================================
-        float SmithGGXMaskingShading(float3 wi, float3 wo, float3 wm, float a2)
+        float SmithGGXMaskingShading(float absDotNL, float absDotNV, float a2)
         {
             // non height-correlated masking function
             // https://twvideo01.ubm-us.net/o1/vault/gdc2017/Presentations/Hammon_Earl_PBR_Diffuse_Lighting.pdf
-            float dotNL = Math::Absf(BsdfNDot(wi));
-            float dotNV = Math::Absf(BsdfNDot(wo));
+            float denomA = absDotNV * Math::Sqrtf(a2 + (1.0f - a2) * absDotNL * absDotNL);
+            float denomB = absDotNL * Math::Sqrtf(a2 + (1.0f - a2) * absDotNV * absDotNV);
 
-            float denomA = dotNV * Math::Sqrtf(a2 + (1.0f - a2) * dotNL * dotNL);
-            float denomB = dotNL * Math::Sqrtf(a2 + (1.0f - a2) * dotNV * dotNV);
-
-            return 2.0f * dotNL * dotNV / (denomA + denomB);
+            return 2.0f * absDotNL * absDotNV / (denomA + denomB);
         }
 
         //==============================================================================
@@ -53,9 +42,8 @@ namespace Shooty
         }
 
         //==============================================================================
-        float GgxDPdf(float roughness, float dotNH)
+        float GgxDPdf(float dotNH, float a2)
         {
-            float a2 = roughness * roughness;
             float sqrtdenom = (dotNH * dotNH) * (a2 - 1) + 1;
 
             return a2 / (Math::Pi_ * sqrtdenom * sqrtdenom);
@@ -65,8 +53,10 @@ namespace Shooty
         // https://hal.archives-ouvertes.fr/hal-01509746/document
         float3 GgxVndf(float3 wo, float roughness, float u1, float u2)
         {
+            float sign = Math::Sign(wo.y);
+
             // -- Stretch the view vector so we are sampling as though roughness==1
-            float3 v = Normalize(float3(wo.x * roughness, wo.y, wo.z * roughness));
+            float3 v = sign * Normalize(float3(wo.x * roughness, wo.y, wo.z * roughness));
 
             // -- Build an orthonormal basis with v, t1, and t2
             float3 t1 = (v.y < 0.9999f) ? Normalize(Cross(v, float3::YAxis_)) : float3::XAxis_;
@@ -83,21 +73,16 @@ namespace Shooty
             float3 n = p1 * t1 + p2 * t2 + Math::Sqrtf(Max<float>(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
 
             // -- unstretch and normalize the normal
-            return Normalize(float3(roughness * n.x, Max<float>(0.0f, n.y), roughness * n.z));
+            return sign * Normalize(float3(roughness * n.x, Max<float>(0.0f, n.y), roughness * n.z));
         }
 
         //==============================================================================
-        float GgxVndfPdf(float roughness, float3 wo, float3 wm, float3 wi)
+        float GgxVndfPdf(float absDotLH, float absDotNL, float absDotNV, float absDotNH, float a2)
         {
-            float a2 = roughness * roughness;
+            float G1 = Bsdf::SmithGGXMasking(absDotNV, a2);
+            float D = Bsdf::GgxDPdf(absDotNH, a2);
 
-            float dotLH = Math::Absf(Dot(wi, wm));
-            float dotLN = Math::Absf(BsdfNDot(wi));
-            float dotNH = Math::Absf(BsdfNDot(wm));
-            float G1 = Bsdf::SmithGGXMasking(wi, wo, wm, a2);
-            float D = Bsdf::GgxDPdf(roughness, dotNH);
-
-            return G1 * dotLH * D / dotLN;
+            return G1 * absDotLH * D / absDotNL;
         }
     }
 }

@@ -14,7 +14,7 @@
 #include <Bsdf/Ggx.h>
 #include <SceneLib/SceneResource.h>
 #include <SceneLib/ImageBasedLightResource.h>
-#include <GeometryLib/RectangulerLight.h>
+#include <GeometryLib/RectangulerLightSampler.h>
 #include <GeometryLib/CoordinateSystem.h>
 #include <UtilityLib/Color.h>
 #include <MathLib/FloatFuncs.h>
@@ -36,28 +36,31 @@
 namespace Shooty
 {
     //==============================================================================
-    void SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, BsdfSample& sample)
+    bool SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
+        // JSTODO - Rename these functions to be *Sample
         if(surface.shader == eDisney) {
-            //DisneyBrdfShader(context, surface, sample);
-            DisneyWithIblSamplingShader(context, surface, sample);
+            return DisneyBrdfShader(context, surface, v, sample);
         }
         else if(surface.shader == eTransparentGgx) {
-            TransparentGgxShader(context, surface, sample);
+            return TransparentGgxShader(context, surface, v, sample);
         }
         else {
             Assert_(false);
         }
+
+        return false;
     }
 
     //==============================================================================
-    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& pdf)
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
+        // JSTODO - Rename these functions to be *Evaluate
         if(surface.shader == eDisney) {
-            return CalculateDisneyBsdf(surface, wo, wi, pdf);
+            return CalculateDisneyBsdf(surface, wo, wi, forwardPdf, reversePdf);
         }
         else if(surface.shader == eTransparentGgx) {
-            return CalculateTransparentGGXBsdf(surface, wo, wi, pdf);
+            return CalculateTransparentGGXBsdf(surface, wo, wi, forwardPdf, reversePdf);
         }
         else {
             Assert_(false);

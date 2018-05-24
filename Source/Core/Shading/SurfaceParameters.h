@@ -9,6 +9,8 @@
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
+#define EnableDifferentials_ 0
+
 namespace Shooty
 {
     struct KernelContext;
@@ -26,7 +28,6 @@ namespace Shooty
         float3 view;
 
         float3x3 worldToTangent;
-        float3x3 tangentToWorld;
 
         // -- material layer info
         eMaterialShader shader;
@@ -39,15 +40,18 @@ namespace Shooty
         float currentIor;
         float exitIor; // -- only valid if total internal reflection doesn't occur
 
-        // -- spatial differentials
-        float3 dpdu, dpdv;
-        float3 rxDirection;
-        float3 ryDirection;
+        #if EnableDifferentials_
+            // -- spatial differentials
+            float3 dpdu, dpdv;
+            float3 rxDirection;
+            float3 ryDirection;
 
-        // -- uv differentials.
-        SurfaceDifferentials differentials;
+            // -- uv differentials.
+            SurfaceDifferentials differentials;
+        #endif
     };
 
     bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* hit, SurfaceParameters& surface);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
+    float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance);
 }

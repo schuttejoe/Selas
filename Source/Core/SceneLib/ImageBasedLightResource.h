@@ -40,12 +40,11 @@ namespace Shooty
 
     //==============================================================================
     // -- Importance sampling functions
-    float IblPdf(const IblDensityFunctions* distributions, float3 w);
     void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
 
     //==============================================================================
     // -- Sampling the ibl directly
-    float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi);
+    float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf);
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y);
 
     //==============================================================================

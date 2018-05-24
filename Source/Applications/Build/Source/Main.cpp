@@ -73,16 +73,16 @@ int main(int argc, char *argv[])
 
 #if ExportIbl_
     ImageBasedLightResourceData iblData;
-    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\simons_town_rocks_4k.hdr", &iblData)) {
+    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData)) {
         Error_("Error importing hdr");
         return -1;
     }
 
-    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k.bin");
+    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin");
     SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);
-    #endif
+#endif
 
     return 0;
 }

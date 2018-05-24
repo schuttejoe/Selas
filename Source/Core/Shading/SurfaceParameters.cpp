@@ -27,16 +27,21 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(!ForceNoMips_ && hasDifferentials) {
-            #if EnableEWA_
-                sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #else
-                sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #endif
-        }
-        else {
+
+        #if EnableDifferentials_        
+            if(!ForceNoMips_ && hasDifferentials) {
+                #if EnableEWA_
+                    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #else
+                    sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #endif
+            }
+            else {
+                sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+            }
+        #else
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        }
+        #endif
 
         return 2.0f * sample - 1.0f;
     }
@@ -50,16 +55,20 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float3 sample;
-        if(!ForceNoMips_ && hasDifferentials) {
-            #if EnableEWA_
-                sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #else
-                sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #endif
-        }
-        else {
+        #if EnableDifferentials_
+            if(!ForceNoMips_ && hasDifferentials) {
+                #if EnableEWA_
+                    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #else
+                    sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #endif
+            }
+            else {
+                sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+            }
+        #else
             sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-        }
+        #endif
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -77,16 +86,21 @@ namespace Shooty
         TextureResource* textures = scene->textures;
 
         float sample;
-        if(!ForceNoMips_ && hasDifferentials) {
-            #if EnableEWA_
-                sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #else
-                sample = TextureFiltering::TrilinearFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-            #endif
-        }
-        else {
+
+        #if EnableDifferentials_
+            if(!ForceNoMips_ && hasDifferentials) {
+                #if EnableEWA_
+                    sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #else
+                    sample = TextureFiltering::TrilinearFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                #endif
+            }
+            else {
+                sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
+            }
+        #else
             sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
-        }
+        #endif
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -201,14 +215,10 @@ namespace Shooty
 
         bool rayHasDifferentials = hit->rxDirection.x != 0 || hit->rxDirection.y != 0;
 
-        surface.view = hit->viewDirection;
-
         // -- Calculate tangent space transforms
-        surface.tangentToWorld = MakeFloat3x3(t, n, b);
-        surface.worldToTangent = MatrixTranspose(surface.tangentToWorld);
+        float3x3 tangentToWorld = MakeFloat3x3(t, n, b);
+        surface.worldToTangent = MatrixTranspose(tangentToWorld);
 
-        surface.rxDirection     = hit->rxDirection;
-        surface.ryDirection     = hit->ryDirection;
         surface.geometricNormal = n;
         surface.position        = hit->position;
         surface.error           = hit->error;
@@ -217,38 +227,43 @@ namespace Shooty
         bool canUseDifferentials = (material->flags & eHasTextures) && rayHasDifferentials;
         bool preserveDifferentials = (material->flags & ePreserveRayDifferentials) && rayHasDifferentials;
         
-        if (canUseDifferentials || preserveDifferentials)  {
-            // Compute deltas for triangle partial derivatives
-            float2 duv02 = uv0 - uv2;
-            float2 duv12 = uv1 - uv2;
-            float uvDeterminant     = duv02.x * duv12.y - duv02.y * duv12.x;
+        #if EnableDifferentials_
+            surface.rxDirection = hit->rxDirection;
+            surface.ryDirection = hit->ryDirection;
 
-            bool degenerateUV = Math::Absf(uvDeterminant) < SmallFloatEpsilon_;
-            if(!degenerateUV) {
-                float3 edge02 = p0 - p2;
-                float3 edge12 = p1 - p2;
-                float3 dn02 = n0 - n2;
-                float3 dn12 = n1 - n2;
+            if (canUseDifferentials || preserveDifferentials)  {
+                // Compute deltas for triangle partial derivatives
+                float2 duv02 = uv0 - uv2;
+                float2 duv12 = uv1 - uv2;
+                float uvDeterminant     = duv02.x * duv12.y - duv02.y * duv12.x;
 
-                float invUvDeterminant = 1 / uvDeterminant;
-                surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invUvDeterminant;
-                surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invUvDeterminant;
+                bool degenerateUV = Math::Absf(uvDeterminant) < SmallFloatEpsilon_;
+                if(!degenerateUV) {
+                    float3 edge02 = p0 - p2;
+                    float3 edge12 = p1 - p2;
+                    float3 dn02 = n0 - n2;
+                    float3 dn12 = n1 - n2;
 
-                if(preserveDifferentials) {
-                    surface.differentials.dndu = ( duv12.y * dn02 - duv02.y * dn12) * invUvDeterminant;
-                    surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invUvDeterminant;
+                    float invUvDeterminant = 1 / uvDeterminant;
+                    surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invUvDeterminant;
+                    surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invUvDeterminant;
+
+                    if(preserveDifferentials) {
+                        surface.differentials.dndu = ( duv12.y * dn02 - duv02.y * dn12) * invUvDeterminant;
+                        surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invUvDeterminant;
+                    }
+                }
+                if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
+                    MakeOrthogonalCoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
+                    surface.differentials.dndu = float3::Zero_;
+                    surface.differentials.dndv = float3::Zero_;
                 }
             }
-            if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
-                MakeOrthogonalCoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
-                surface.differentials.dndu = float3::Zero_;
-                surface.differentials.dndv = float3::Zero_;
-            }
-        }
 
-        if(canUseDifferentials) {
-            CalculateSurfaceDifferentials(hit, surface.geometricNormal, surface.dpdu, surface.dpdv, surface.differentials);
-        }
+            if(canUseDifferentials) {
+                CalculateSurfaceDifferentials(hit, surface.geometricNormal, surface.dpdu, surface.dpdv, surface.differentials);
+            }
+        #endif
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
         surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, float3::One_);
@@ -257,7 +272,7 @@ namespace Shooty
         surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
         surface.shader = material->shader;
-        
+        surface.view = hit->viewDirection;
         surface.currentIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? material->ior : 1.0f;
         surface.exitIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
 
@@ -271,8 +286,17 @@ namespace Shooty
     //==============================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale)
     {
-        float offsetDirection = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
-        float3 offset = offsetDirection * surface.error * biasScale * surface.geometricNormal;
+        float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
+        float3 offset = directionOffset * surface.error * biasScale * surface.geometricNormal;
+        return surface.position + offset;
+    }
+
+    //==============================================================================
+    float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance)
+    {
+        float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
+        signedBiasDistance = directionOffset * surface.error * biasScale;
+        float3 offset = signedBiasDistance * surface.geometricNormal;
         return surface.position + offset;
     }
 }

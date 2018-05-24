@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/RectangulerLight.h>
+#include <GeometryLib/RectangulerLightSampler.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Trigonometric.h>
 #include <SystemLib/MinMax.h>
