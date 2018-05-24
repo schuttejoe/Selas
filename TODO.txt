@@ -1,16 +1,13 @@
 
-Obviously there's an infinite list of things that can be done here. This is just what seems interesting to me atm.
+Obviously there's an infinite list of things that can be done here. This is just what seems interesting to me in the short term.
 
 Short term goals
 ---------------------
-MIS
-Deferred path tracing
-Vertex Connection and Merging
+Deferred path tracing / Ray batching and sorting
 
 Features:
 ---------
-Ray batching and sorting
-Shading point batching and sorting
+More advanced material models + vet existing models
 Depth of field
 
 Optimizations:
@@ -19,6 +16,6 @@ Russian Roulette path termination
 
 Engine:
 -------
-Serialization system
+Serialization
 Dependency system in Build
-Error system
+Error handling for build

@@ -1,7 +1,7 @@
 
 --=================================================================================================
 -- Root directory set by running SetEnvironmentVariable in the scripts directory
-RootDirectory   = os.getenv("ShootyEngine")
+RootDirectory   = os.getenv("Selas")
 
 --=================================================================================================
 -- Main directory locations
