@@ -8,7 +8,7 @@
 #include <SystemLib/Memory.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty
+namespace Selas
 {
     template <typename Type_>
     class CArray

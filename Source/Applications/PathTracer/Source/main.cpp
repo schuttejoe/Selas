@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-using namespace Shooty;
+using namespace Selas;
 
 //==============================================================================
 static uint32 PopulateEmbreeScene(SceneResourceData* sceneData, RTCDevice& rtcDevice, RTCScene& rtcScene) {
@@ -64,7 +64,7 @@ int main()
     uint32 meshHandle = -1;
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_sphere", &sceneResource) == false) {
+    if(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere", &sceneResource) == false) {
         retvalue = -1;
         goto cleanup;
     }
@@ -74,7 +74,7 @@ int main()
     }
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce) == false) {
+    if(ReadImageBasedLightResource("D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce) == false) {
         retvalue = -1;
         goto cleanup;
     }

@@ -9,7 +9,7 @@
 // -- middleware
 #include <rapidjson/document.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Json
     {

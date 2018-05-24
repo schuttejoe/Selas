@@ -11,7 +11,7 @@
 
 #include <math.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {

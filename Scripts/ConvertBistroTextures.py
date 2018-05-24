@@ -5,9 +5,9 @@ import json
 import sys
 
 imageMagick = "C:\\Program Files\\ImageMagick-7.0.7-Q16\\magick.exe"
-textureSourceDir = "D:\\Shooty\\ShootyEngine\\Content\\Scenes\\Bistro\\Textures\\"
-materialDestDir = "D:\\Shooty\\ShootyEngine\\Content\\Materials\\Bistro\\"
-textureDestDir = "D:\\Shooty\\ShootyEngine\\Content\\Textures\\Bistro\\"
+textureSourceDir = "D:\\Shooty\\Selas\\Content\\Scenes\\Bistro\\Textures\\"
+materialDestDir = "D:\\Shooty\\Selas\\Content\\Materials\\Bistro\\"
+textureDestDir = "D:\\Shooty\\Selas\\Content\\Textures\\Bistro\\"
 dstSubDir = "Bistro\\"
 
 ## ------------------------------------------------------------------------------------------------

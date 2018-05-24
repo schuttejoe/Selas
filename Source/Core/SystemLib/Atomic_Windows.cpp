@@ -10,7 +10,7 @@
 #include <windows.h>
 #include <intrin.h>
 
-namespace Shooty
+namespace Selas
 {
 
     //==============================================================================

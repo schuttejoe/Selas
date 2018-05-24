@@ -43,7 +43,7 @@
 // -- when zero, PathsPerPixel_ will be used.
 #define IntegrationSeconds_     16.0f
 
-namespace Shooty
+namespace Selas
 {
     namespace PathTracer
     {

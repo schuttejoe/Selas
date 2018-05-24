@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace StringUtil
     {

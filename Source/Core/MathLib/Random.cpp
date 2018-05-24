@@ -13,7 +13,7 @@
 
 #include <random>
 
-namespace Shooty
+namespace Selas
 {
     namespace Random
     {

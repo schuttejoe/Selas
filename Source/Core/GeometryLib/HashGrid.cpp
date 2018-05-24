@@ -8,7 +8,7 @@
 #include <MathLib/Trigonometric.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static uint CalculateCellIndex(int3 xyz, uint cellCount)

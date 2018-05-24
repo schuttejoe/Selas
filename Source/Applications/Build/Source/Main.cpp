@@ -25,21 +25,21 @@
 #include <stdio.h>
 #include <string.h>
 
-using namespace Shooty;
+using namespace Selas;
 
 //=================================================================================================
 int main(int argc, char *argv[])
 {
-    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Scenes\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\IBLs\\");
+    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Textures\\");
 
     #define ExportModel_ 1
     #define ExportIbl_ 0
 
 #if ExportModel_
     ImportedModel importedModel;
-    if (!ImportModel("D:\\Shooty\\ShootyEngine\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel)) {
+    if (!ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel)) {
         Error_("Error importing model.");
         return -1;
     }
@@ -68,17 +68,17 @@ int main(int argc, char *argv[])
         Free_(textureData.texture);
     }
 
-    BakeScene(builtScene, "D:\\Shooty\\ShootyEngine\\_Assets\\Scenes\\plane_with_sphere");
+    BakeScene(builtScene, "D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere");
 #endif
 
 #if ExportIbl_
     ImageBasedLightResourceData iblData;
-    if(!ImportImageBasedLight("D:\\Shooty\\ShootyEngine\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData)) {
+    if(!ImportImageBasedLight("D:\\Shooty\\Selas\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData)) {
         Error_("Error importing hdr");
         return -1;
     }
 
-    BakeImageBasedLight(&iblData, "D:\\Shooty\\ShootyEngine\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin");
+    BakeImageBasedLight(&iblData, "D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin");
     SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);

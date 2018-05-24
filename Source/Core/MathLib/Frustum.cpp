@@ -6,7 +6,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {

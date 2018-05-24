@@ -6,7 +6,7 @@
 #include <math.h>
 #include <cmath>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     float Math::Cosf(float radians)

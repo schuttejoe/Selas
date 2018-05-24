@@ -5,7 +5,7 @@
 #include <SystemLib/Memory.h>
 #include <string.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     // Memory

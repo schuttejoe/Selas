@@ -19,7 +19,7 @@
 #define EnableVerboseLogging_                     0
 //#define BreakOnAllocation_                      327
 
-namespace Shooty
+namespace Selas
 {
 
     #if EnableManualAllocationTracking_
@@ -165,7 +165,7 @@ namespace Shooty
     #endif
 
     //==============================================================================
-    void* ShootyAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line)
+    void* SelasAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line)
     {
 
         void* address = _aligned_malloc(size, alignment);
@@ -178,7 +178,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void* ShootyMalloc(size_t size, const char* name, const char* file, int line)
+    void* SelasMalloc(size_t size, const char* name, const char* file, int line)
     {
         void* address = malloc(size);
 
@@ -190,7 +190,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void* ShootyRealloc(void* address, size_t size, const char* name, const char* file, int line)
+    void* SelasRealloc(void* address, size_t size, const char* name, const char* file, int line)
     {
         #if EnableManualAllocationTracking_
             if(address)
@@ -207,7 +207,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ShootyAlignedFree(void* address)
+    void SelasAlignedFree(void* address)
     {
         #if EnableManualAllocationTracking_
         if(address)
@@ -218,7 +218,7 @@ namespace Shooty
     }
 
     //==============================================================================
-    void ShootyFree(void* address)
+    void SelasFree(void* address)
     {
         #if EnableManualAllocationTracking_
         if(address)

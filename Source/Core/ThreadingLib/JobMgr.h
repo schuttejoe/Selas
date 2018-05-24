@@ -9,7 +9,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     // Forward declaration

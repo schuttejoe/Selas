@@ -9,7 +9,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty
+namespace Selas
 {
 
     ForceInline_ float2 operator+(float2 lhs, float2 rhs)

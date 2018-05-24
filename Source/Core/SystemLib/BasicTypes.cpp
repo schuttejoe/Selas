@@ -4,7 +4,7 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     static_assert(sizeof(int8) == 1, "Unexpected primitive size");
     static_assert(sizeof(int16) == 2, "Unexpected primitive size");

@@ -7,7 +7,7 @@
 #include <MathLib/FloatStructs.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     struct TextureResourceData;
 

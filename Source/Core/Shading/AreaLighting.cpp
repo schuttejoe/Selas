@@ -23,7 +23,7 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-namespace Shooty
+namespace Selas
 {
     #define MaxBounceCount_  10
     

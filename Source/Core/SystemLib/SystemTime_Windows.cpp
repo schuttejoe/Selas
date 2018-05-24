@@ -9,7 +9,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-namespace Shooty
+namespace Selas
 {
     static_assert(sizeof(LARGE_INTEGER) == sizeof(int64), "Mismatched primitive size");
 

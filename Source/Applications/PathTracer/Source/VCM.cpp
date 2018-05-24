@@ -48,7 +48,7 @@
 #define VcmRadiusFactor_ 0.005f
 #define VcmRadiusAlpha_ 0.75f
 
-namespace Shooty
+namespace Selas
 {
     namespace VCM
     {

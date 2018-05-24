@@ -18,9 +18,9 @@
 
 #include <stdio.h>
 
-namespace Shooty
+namespace Selas
 {
-    cpointer TextureBaseDirectory = "D:\\Shooty\\ShootyEngine\\Content\\Textures\\";
+    cpointer TextureBaseDirectory = "D:\\Shooty\\Selas\\Content\\Textures\\";
 
     //==============================================================================
     static void Uint32ToLinearFloat3(bool isLinear, uint width, uint height, uint32* rawData, float3* output)

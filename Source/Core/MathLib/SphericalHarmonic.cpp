@@ -5,7 +5,7 @@
 #include <MathLib/SphericalHarmonic.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {

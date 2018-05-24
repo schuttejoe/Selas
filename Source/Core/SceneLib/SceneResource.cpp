@@ -10,7 +10,7 @@
 #include <IoLib/File.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     SceneResource::SceneResource()

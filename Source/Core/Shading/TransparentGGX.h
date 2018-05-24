@@ -6,7 +6,7 @@
 
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty
+namespace Selas
 {
     struct KernelContext;
     struct HitParameters;

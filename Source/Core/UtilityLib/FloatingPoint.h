@@ -7,7 +7,7 @@
 #include <SysteMlib/BasicTypes.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     inline uint32 FloatToBits(float f)

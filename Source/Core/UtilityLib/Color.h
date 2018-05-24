@@ -8,7 +8,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/CheckedCast.h>
 
-namespace Shooty
+namespace Selas
 {
     struct ColorRGBA
     {

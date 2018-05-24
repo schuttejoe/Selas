@@ -7,7 +7,7 @@
 #include <Shading/SurfaceParameters.h>
 #include <MathLib/FloatFuncs.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     Ray CreateReflectionBounceRay(const SurfaceParameters& surface, const HitParameters& hit, float3 wi, float3 reflectance)

@@ -11,7 +11,7 @@
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/MinMax.h>
 
-namespace Shooty
+namespace Selas
 {
     const uint EwaLutSize = 128;
     static float EWAFilterLut[EwaLutSize];
@@ -35,8 +35,8 @@ namespace Shooty
         {
             switch(wrapMode) {
             case WrapMode::Clamp:
-                s = Shooty::Clamp<int32>(s, 0, w - 1);
-                t = Shooty::Clamp<int32>(t, 0, h - 1);
+                s = Selas::Clamp<int32>(s, 0, w - 1);
+                t = Selas::Clamp<int32>(t, 0, h - 1);
                 break;
             case WrapMode::Repeat:
                 s = s % w;

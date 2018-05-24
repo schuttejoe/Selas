@@ -8,7 +8,7 @@
 #include <SystemLib/Memory.h>
 #include <memory.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     CJobMgr::CJobMgr(void)

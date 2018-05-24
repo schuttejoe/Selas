@@ -1,6 +1,6 @@
 
 echo off
-pushd "%ShootyEngine%"
+pushd "%Selas%"
 
 echo "Generating Solutions..."
 

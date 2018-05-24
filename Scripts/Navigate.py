@@ -4,7 +4,7 @@ import sys
 
 ## ------------------------------------------------------------------------------------------------
 def main(argv):
-    engineDir = os.environ['ShootyEngine']
+    engineDir = os.environ['Selas']
 
     drive, tail = os.path.splitdrive(engineDir)
 

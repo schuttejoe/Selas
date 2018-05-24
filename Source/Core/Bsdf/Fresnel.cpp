@@ -8,7 +8,7 @@
 #include <MathLib/Trigonometric.h>
 #include <MathLib/FloatFuncs.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Fresnel
     {

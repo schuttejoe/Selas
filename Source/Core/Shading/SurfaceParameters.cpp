@@ -16,7 +16,7 @@
 #define ForceNoMips_ true
 #define EnableEWA_ true
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static float3 SampleTextureNormal(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool hasDifferentials)

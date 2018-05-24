@@ -5,7 +5,7 @@
 #include <BuildCommon/BakeScene.h>
 #include <IoLib/BinarySerializer.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)

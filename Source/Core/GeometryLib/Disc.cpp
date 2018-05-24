@@ -5,7 +5,7 @@
 #include <GeometryLib/Disc.h>
 #include <MathLib/Trigonometric.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     // -- "From A Low Distortion Map Between Disk and Square" by Peter Shirley and Kenneth Chiu

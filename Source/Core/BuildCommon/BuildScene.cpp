@@ -13,7 +13,7 @@
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/CountOf.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader, uint32& shaderFlags)

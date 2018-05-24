@@ -9,7 +9,7 @@
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;
 
-namespace Shooty
+namespace Selas
 {
     struct KernelContext;
     struct SurfaceParameters;

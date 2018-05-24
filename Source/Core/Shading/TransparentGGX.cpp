@@ -13,7 +13,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Trigonometric.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static float BsdfNDot(float3 x)

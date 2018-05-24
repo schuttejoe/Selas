@@ -6,7 +6,7 @@
 
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty
+namespace Selas
 {
     float2 SampleConcentricDisc(float r0, float r1);
     float ConcentricDiscPdf();

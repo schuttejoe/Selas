@@ -12,7 +12,7 @@
 // -- See also: :P
 // https://schuttejoe.github.io/post/arealightsampling/
 
-namespace Shooty
+namespace Selas
 {
     void InitializeRectangleLightSampler(float3 s, float3 eX, float3 eY, float3 o, RectangleLightSampler& sampler)
     {

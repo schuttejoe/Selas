@@ -8,7 +8,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Trigonometric.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     inline void MakeOrthogonalCoordinateSystem(const float3& v1, float3* v2, float3* v3)

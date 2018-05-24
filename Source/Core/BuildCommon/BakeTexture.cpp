@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 
-namespace Shooty
+namespace Selas
 {
-    cpointer TextureAssetDirectory = "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\";
+    cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
 
     //==============================================================================
     bool BakeTexture(const TextureResourceData* data, cpointer textureName)

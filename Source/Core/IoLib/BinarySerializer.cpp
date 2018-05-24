@@ -7,7 +7,7 @@
 #include <SystemLib/JsAssert.h>
 #include <stdio.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea, uint32 sizeb)

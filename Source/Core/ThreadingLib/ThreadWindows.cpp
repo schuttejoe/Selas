@@ -6,7 +6,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <Windows.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     ThreadHandle CreateThread(ThreadFunction function, void* userData)

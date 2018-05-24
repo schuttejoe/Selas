@@ -7,7 +7,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/JsAssert.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {
@@ -57,7 +57,7 @@ namespace Shooty
             //==============================================================================
             float4 Normalize(const float4& q)
             {
-                float len = Shooty::Length(q);
+                float len = Selas::Length(q);
                 Assert_(len > 0.0f);
 
                 float ooLength = 1.0f / len;
@@ -74,13 +74,13 @@ namespace Shooty
             //==============================================================================
             float LengthSquared(const float4& q)
             {
-                return Shooty::Dot(q, q);
+                return Selas::Dot(q, q);
             }
 
             //==============================================================================
             float Length(const float4& q)
             {
-                return Sqrtf(Shooty::Dot(q, q));
+                return Sqrtf(Selas::Dot(q, q));
             }
 
             //==============================================================================
@@ -88,9 +88,9 @@ namespace Shooty
             {
                 // https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
                 float3 q = { quat.x, quat.y, quat.z };
-                float3 t = 2.0f * Shooty::Cross(q, v);
+                float3 t = 2.0f * Selas::Cross(q, v);
 
-                return v + (t * quat.w) + Shooty::Cross(q, t);
+                return v + (t * quat.w) + Selas::Cross(q, t);
             }
         }
     }

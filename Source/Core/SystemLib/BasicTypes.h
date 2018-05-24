@@ -28,7 +28,7 @@ typedef const char*        cpointer;
 #define FloatInfinityBits_         0x7F800000
 #define FloatNegativeInfinityBits_ 0xFF800000
 
-namespace Shooty
+namespace Selas
 {
     typedef uint64  uint;
     typedef int64   sint;

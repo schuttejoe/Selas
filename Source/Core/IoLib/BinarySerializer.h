@@ -7,7 +7,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <ContainersLib/CArray.h>
 
-namespace Shooty
+namespace Selas
 {
     struct PointerDesc
     {

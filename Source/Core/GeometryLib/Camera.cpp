@@ -7,7 +7,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Random.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world)

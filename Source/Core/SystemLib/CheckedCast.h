@@ -7,7 +7,7 @@
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     template <typename To_, typename From_>
     ForceInline_ To_ CheckedCast(From_ from)

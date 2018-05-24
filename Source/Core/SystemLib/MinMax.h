@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty
+namespace Selas
 {
     template<typename T>
     inline T Min(const T& lhs, const T& rhs)

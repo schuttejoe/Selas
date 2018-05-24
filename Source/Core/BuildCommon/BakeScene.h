@@ -6,7 +6,7 @@
 
 #include <BuildCommon/SceneBuildPipeline.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool BakeScene(const BuiltScene& scene_data, cpointer filepath);

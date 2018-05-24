@@ -9,7 +9,7 @@
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/Memory.h>
 
-namespace Shooty
+namespace Selas
 {
 
     //==============================================================================

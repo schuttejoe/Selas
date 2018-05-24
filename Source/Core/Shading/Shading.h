@@ -9,7 +9,7 @@
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;
 
-namespace Shooty
+namespace Selas
 {
     // -- forward declarations
     struct KernelContext;

@@ -6,7 +6,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/Trigonometric.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {

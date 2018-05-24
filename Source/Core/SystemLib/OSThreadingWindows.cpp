@@ -8,7 +8,7 @@
 #include <SystemLib/Memory.h>
 #include <windows.h>
 
-namespace Shooty
+namespace Selas
 {
 
     //==============================================================================

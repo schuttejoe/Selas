@@ -9,7 +9,7 @@
 #include <ContainersLib/CArray.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     struct HashGrid
     {

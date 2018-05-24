@@ -6,7 +6,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/MinMax.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     void MakeInvalid(AxisAlignedBox* box)

@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty
+namespace Selas
 {
     #define CountOf_(x) (sizeof(x) / sizeof(x[0]))
 }

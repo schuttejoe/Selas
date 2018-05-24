@@ -8,7 +8,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-namespace Shooty
+namespace Selas
 {
     void AssertHandler(const char* message, const char* filename, int line)
     {

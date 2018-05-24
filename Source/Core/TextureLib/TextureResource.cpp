@@ -13,10 +13,10 @@
 
 #include <stdio.h>
 
-namespace Shooty
+namespace Selas
 {
     // JSTODO - Said it before but... Environment.h/cpp
-    cpointer TextureAssetDirectory = "D:\\Shooty\\ShootyEngine\\_Assets\\Textures\\";
+    cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
 
     //==============================================================================
     bool ReadTextureResource(cpointer textureName, TextureResource* texture)

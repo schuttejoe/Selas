@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty
+namespace Selas
 {
     struct float4x4;
     struct float4;

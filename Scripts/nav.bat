@@ -1,4 +1,4 @@
 @echo off
 
-python %ShootyEngine%\\Scripts\\Navigate.py %1 > %ShootyEngine%\\Scripts\\pythoncd.bat
-%ShootyEngine%\\Scripts\\pythoncd.bat
+python %Selas%\\Scripts\\Navigate.py %1 > %Selas%\\Scripts\\pythoncd.bat
+%Selas%\\Scripts\\pythoncd.bat

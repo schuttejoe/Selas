@@ -6,7 +6,7 @@
 // Joe Schutte
 //==============================================================================
 
-namespace Shooty
+namespace Selas
 {
     template <int T>
     struct FixedString

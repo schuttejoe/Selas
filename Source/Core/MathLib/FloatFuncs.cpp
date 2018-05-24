@@ -8,7 +8,7 @@
 #include <SystemLib/JsAssert.h>
 #include <math.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     void MatrixMultiply(float4x4* const __restrict lhs, float4x4* const __restrict rhs, float4x4* __restrict mat)

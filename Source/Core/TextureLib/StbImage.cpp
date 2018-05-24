@@ -17,7 +17,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba)

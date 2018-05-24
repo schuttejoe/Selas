@@ -6,7 +6,7 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     template <typename Type_>
     void QuickSort(Type_* data, uint count)

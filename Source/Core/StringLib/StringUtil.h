@@ -7,7 +7,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <vadefs.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace StringUtil
     {

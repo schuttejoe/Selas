@@ -6,7 +6,7 @@
 #include <GeometryLib/Ray.h>
 #include <MathLib/FloatFuncs.h>
 
-namespace Shooty
+namespace Selas
 {
 
 }

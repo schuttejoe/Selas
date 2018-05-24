@@ -6,7 +6,7 @@
 
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     template <typename Type_>
     uint BinarySearch(Type_* __restrict data, uint count, Type_ searchKey)

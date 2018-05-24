@@ -13,7 +13,7 @@
 #include "assimp/Scene.h"
 #include "assimp/postprocess.h"
 
-namespace Shooty
+namespace Selas
 {
 
     #define ReturnFailure_(x) if(!x) { return false; }

@@ -8,7 +8,7 @@
 #include <MathLib/FloatStructs.h>
 #include <MathLib/IntStructs.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Random
     {

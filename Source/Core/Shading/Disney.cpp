@@ -14,7 +14,7 @@
 #include <MathLib/Trigonometric.h>
 #include <MathLib/Projection.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     static float BsdfNDot(float3 x)

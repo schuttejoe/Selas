@@ -10,7 +10,7 @@
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/MinMax.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)

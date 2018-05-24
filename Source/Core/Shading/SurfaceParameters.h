@@ -11,7 +11,7 @@
 
 #define EnableDifferentials_ 0
 
-namespace Shooty
+namespace Selas
 {
     struct KernelContext;
     struct HitParameters;

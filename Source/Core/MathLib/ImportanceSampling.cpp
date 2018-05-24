@@ -11,7 +11,7 @@
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/MinMax.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace ImportanceSampling
     {

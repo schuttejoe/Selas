@@ -9,7 +9,7 @@
 #include <MathLib/FloatFuncs.h>
 #include <SystemLib/MinMax.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace Bsdf
     {

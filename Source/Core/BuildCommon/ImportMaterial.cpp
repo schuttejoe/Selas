@@ -10,10 +10,10 @@
 
 #include <stdio.h>
 
-namespace Shooty
+namespace Selas
 {
     // JSTODO - Set up the same environment class I did at Sparkypants. Except make it relative and not depend on the environment variable.
-    cpointer MaterialBaseDirectory = "D:\\Shooty\\ShootyEngine\\Content\\Materials\\";
+    cpointer MaterialBaseDirectory = "D:\\Shooty\\Selas\\Content\\Materials\\";
 
     bool ImportMaterial(cpointer materialName, ImportedMaterialData* material)
     {

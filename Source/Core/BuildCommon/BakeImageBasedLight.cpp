@@ -7,7 +7,7 @@
 #include <MathLib/ImportanceSampling.h>
 #include <IoLib/BinarySerializer.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath)

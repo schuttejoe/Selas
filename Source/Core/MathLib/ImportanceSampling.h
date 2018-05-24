@@ -7,7 +7,7 @@
 //#include <MathLib/FloatStructs.h>
 #include <systemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     struct float3;
 

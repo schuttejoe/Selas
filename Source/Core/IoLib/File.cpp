@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace Shooty
+namespace Selas
 {
     namespace File
     {

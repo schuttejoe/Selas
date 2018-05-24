@@ -33,7 +33,7 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     bool SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)

@@ -6,7 +6,7 @@
 
 // JSTODO - Rename this file or split it into more than one.
 
-namespace Shooty
+namespace Selas
 {
     namespace Math
     {

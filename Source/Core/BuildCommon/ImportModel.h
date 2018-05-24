@@ -7,7 +7,7 @@
 #include <BuildCommon/SceneBuildPipeline.h>
 #include <SystemLib/BasicTypes.h>
 
-namespace Shooty
+namespace Selas
 {
     bool ImportModel(const char* filename, ImportedModel* scene);
     void ShutdownImportedModel(ImportedModel* scene);

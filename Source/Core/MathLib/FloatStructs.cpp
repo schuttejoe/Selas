@@ -4,7 +4,7 @@
 
 #include <MathLib/FloatStructs.h>
 
-namespace Shooty
+namespace Selas
 {
     const float2 float2::Zero_ = float2(0.0f, 0.0f);
     const float2 float2::XAxis_ = float2(1.0f, 0.0f);

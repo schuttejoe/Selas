@@ -4,5 +4,5 @@ _Projects
 Content
 Middleware
 Scripts/pythoncd.bat
-scripts/shooty.sublime-workspace
-scripts/ls.py
+Scripts/ls.py
+SetEnvironmentalVariable.bat

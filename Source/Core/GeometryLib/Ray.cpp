@@ -6,7 +6,7 @@
 #include <GeometryLib/SurfaceDifferentials.h>
 #include <MathLib/FloatFuncs.h>
 
-namespace Shooty
+namespace Selas
 {
     //==============================================================================
     Ray MakeRay(float3 origin, float3 direction, float3 throughput, uint32 pixelIndex, uint32 bounceCount)
