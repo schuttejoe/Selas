@@ -145,7 +145,7 @@ namespace Selas
 
                         float distSquared = LengthSquared(position - particle);
                         if(distSquared <= hashGrid->radiusSquare) {
-                            callback(scan, userData);
+                            callback(particleIndex, userData);
                         }
                     }
                 }

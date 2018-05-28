@@ -68,5 +68,5 @@ namespace Selas
 
     void EmitIblLightSample(KernelContext* context, LightEmissionSample& sample);
     void DirectIblLightSample(KernelContext* context, LightDirectSample& sample);
-    float3 DirectIblSample(KernelContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
+    float3 IblCalculateRadiance(KernelContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
 }

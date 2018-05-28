@@ -287,12 +287,12 @@ namespace Selas
         sample.distance = 1e36f;
         sample.direction = toIbl;
         sample.radiance = radiance;
-        sample.emissionPdfW = sample.directionPdfA * ConcentricDiscPdf();
+        sample.emissionPdfW = sample.directionPdfA * ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius*sceneBoundingRadius));
         sample.cosThetaLight = 1.0f; // -- not used
     }
 
     //==============================================================================
-    float3 DirectIblSample(KernelContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
+    float3 IblCalculateRadiance(KernelContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
     {
         float iblPdfA;
         float3 radiance = SampleIbl(context->sceneData->ibl, direction, iblPdfA);

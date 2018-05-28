@@ -283,7 +283,7 @@ namespace Selas
         {
             float directPdfA;
             float emissionPdfW;
-            float3 radiance = DirectIblSample(context, state.direction, directPdfA, emissionPdfW);
+            float3 radiance = IblCalculateRadiance(context, state.direction, directPdfA, emissionPdfW);
 
             if(state.pathLength == 1) {
                 return radiance;
@@ -437,6 +437,11 @@ namespace Selas
                 return;
             }
 
+            // JSTODO - This is a hack :(. How do I correctly prevent ringing around the base of glossy transparent objects?
+            if((surface.materialFlags & eTransparent) != (lightVertex.surface.materialFlags & eTransparent)) {
+                return;
+            }
+
             float bsdfForwardPdfW;
             float bsdfReversePdfW;
             float3 bsdf = EvaluateBsdf(surface, -cameraState.direction, lightVertex.surface.view, bsdfForwardPdfW, bsdfReversePdfW);
@@ -459,27 +464,25 @@ namespace Selas
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(KernelContext* context, CArray<VcmVertex>& pathVertices, HashGrid& hashGrid, float kernelRadius, uint width, uint height)
+        static void VertexConnectionAndMerging(KernelContext* context, CArray<VcmVertex>& pathVertices, HashGrid& hashGrid, float vmSearchRadius, uint width, uint height)
         {
-            uint lightPathCount = width * height;
+            uint vmCount = width * height;
+            uint vcCount = 1;
+
+            float vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
+            float vmNormalization   = 1.0f / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
+            float vmWeight          = Math::Pi_ * vmSearchRadiusSqr * vmCount / vcCount;
+            float vcWeight          = vcCount / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
 
             pathVertices.Clear();
-            pathVertices.Reserve((uint32)(lightPathCount));
-
+            pathVertices.Reserve((uint32)(vmCount));
             CArray<uint32> pathEnds;
-            pathEnds.Reserve((uint32)(lightPathCount));
+            pathEnds.Reserve((uint32)(vmCount));
             CArray<float3> deletememaybe;
-            deletememaybe.Reserve((uint32)(lightPathCount));
-
-            float kernelRadiusSquare = kernelRadius * kernelRadius;
-
-            float vmNormalization = 1.0f / (Math::Pi_ * kernelRadiusSquare * lightPathCount);
-
-            float vmWeight = Math::Pi_ * kernelRadiusSquare * lightPathCount;
-            float vcWeight = 1.0f / vmWeight;
+            deletememaybe.Reserve((uint32)(vmCount));
 
             // -- generate light paths
-            for(uint scan = 0; scan < lightPathCount; ++scan) {
+            for(uint scan = 0; scan < vmCount; ++scan) {
                 
                 // -- create initial light path vertex y_0 
                 PathState state;
@@ -525,26 +528,8 @@ namespace Selas
                     pathVertices.Add(vcmVertex);
                     deletememaybe.Add(surface.position);
 
-                    // -- debug tech
-                    //float3 toPosition = surface.position - context->camera->position;
-                    //if(Dot(context->camera->forward, toPosition) > 0.0f) {
-                    //    int2 imagePosition = WorldToImage(context->camera, surface.position);
-                    //    if(imagePosition.x >= 0 && imagePosition.x < context->camera->viewportWidth && imagePosition.y > 0 && imagePosition.y < context->camera->viewportHeight) {
-
-                    //        float3 color;
-                    //        if(state.pathLength == 1)
-                    //            color = float3(0.0f, 0.0f, 1.0f);
-                    //        else if(state.pathLength >= 2 && state.pathLength < 3)
-                    //            color = float3(0.0f, 1.0f, 0.0f);
-                    //        else
-                    //            color = float3(1.0f, 0.0f, 0.0f);
-                    //        uint index = imagePosition.y * context->imageWidth + imagePosition.x;
-                    //        context->imageData[index] = context->imageData[index] + color;
-                    //    }
-                    //}
-
                     // -- connect the path to the camera
-                    ConnectLightPathToCamera(context, state, surface, vmWeight, (float)lightPathCount);
+                    ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
 
                     // -- bsdf scattering to advance the path
                     if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
@@ -556,7 +541,7 @@ namespace Selas
             }
 
             // -- build the hash grid
-            BuildHashGrid(&hashGrid, lightPathCount, kernelRadius, deletememaybe);
+            BuildHashGrid(&hashGrid, vmCount, vmSearchRadius, deletememaybe);
 
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
@@ -567,7 +552,7 @@ namespace Selas
                         index = index;
                     }
                     PathState cameraPathState;
-                    GenerateCameraSample(context, x, y, (float)lightPathCount, cameraPathState);
+                    GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
 
                     float3 color = float3::Zero_;
 
@@ -645,6 +630,28 @@ namespace Selas
                     context->imageData[index] += color;
                 }
             }
+
+            // -- debug tech
+            //for(uint scan = 0, count = pathVertices.Length(); scan < count; ++scan) {
+            //    const SurfaceParameters& surface = pathVertices[scan].surface;
+
+            //    float3 toPosition = surface.position - context->camera->position;
+            //    if(Dot(context->camera->forward, toPosition) > 0.0f) {
+            //        int2 imagePosition = WorldToImage(context->camera, surface.position);
+            //        if(imagePosition.x >= 0 && imagePosition.x < context->camera->viewportWidth && imagePosition.y > 0 && imagePosition.y < context->camera->viewportHeight) {
+
+            //            float3 color;
+            //            if(pathVertices[scan].pathLength == 1)
+            //                color = float3(0.0f, 0.0f, 10.0f);
+            //            else if(pathVertices[scan].pathLength >= 2 && pathVertices[scan].pathLength < 3)
+            //                color = float3(0.0f, 10.0f, 0.0f);
+            //            else
+            //                color = float3(10.0f, 0.0f, 0.0f);
+            //            uint index = imagePosition.y * context->imageWidth + imagePosition.x;
+            //            context->imageData[index] = context->imageData[index] + color;
+            //        }
+            //    }
+            //}
         }
 
         //==============================================================================
