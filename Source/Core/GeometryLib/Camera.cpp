@@ -28,7 +28,7 @@ namespace Selas
     }
 
     //==============================================================================
-    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, uint32 pixelIndex, float viewX, float viewY)
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, float viewX, float viewY)
     {
         // JSTODO - Blue noise probably ideal here. Maybe this: http://liris.cnrs.fr/david.coeurjolly/publications/perrier18eg.html ?
         float vx = viewX + MersenneTwisterFloat(twister);
@@ -45,13 +45,10 @@ namespace Selas
         Ray result;
         result.origin      = p;
         result.direction   = d;
-        result.throughput  = float3::One_;
-        result.pixelIndex  = pixelIndex;
         result.rxOrigin    = px;
         result.rxDirection = dx;
         result.ryOrigin    = py;
         result.ryDirection = dy;
-        result.bounceCount = 0;
 
         return result;
     }

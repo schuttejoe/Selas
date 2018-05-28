@@ -168,7 +168,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* __restrict hit, SurfaceParameters& surface)
+    bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* __restrict hit, SurfaceParameters& surface)
     {
         const SceneResource* scene = context->sceneData->scene;
 
@@ -208,7 +208,7 @@ namespace Selas
         float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
         float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
 
-        if(Dot(n, hit->viewDirection) < 0.0f && ((material->flags & eTransparent) == 0)) {
+        if(Dot(n, -ray.direction) < 0.0f && ((material->flags & eTransparent) == 0)) {
             // -- we've hit inside of a non-transparent object. This is probably caused by floating point precision issues.
             return false;
         }
@@ -272,9 +272,9 @@ namespace Selas
         surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
         surface.shader = material->shader;
-        surface.view = hit->viewDirection;
-        surface.currentIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? material->ior : 1.0f;
-        surface.exitIor = (Dot(hit->viewDirection, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
+        surface.view = -ray.direction;
+        surface.currentIor = (Dot(-ray.direction, surface.geometricNormal) < 0.0f) ? material->ior : 1.0f;
+        surface.exitIor = (Dot(-ray.direction, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, rayHasDifferentials);

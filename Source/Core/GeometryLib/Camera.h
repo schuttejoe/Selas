@@ -42,7 +42,7 @@ namespace Selas
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world);
     float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y);
 
-    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, uint32 pixelIndex, float viewX, float viewY);
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, float viewX, float viewY);
 
     void InitializeRayCastCamera(const CameraSettings& settings, uint width, uint height, RayCastCameraSettings& camera);
 }

@@ -41,7 +41,7 @@
 #define EnableMultiThreading_   1
 #define PathsPerPixel_          8
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     16.0f
+#define IntegrationSeconds_     30.0f
 
 namespace Selas
 {
@@ -101,52 +101,49 @@ namespace Selas
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
 
-            hit.viewDirection = -ray.direction;
             hit.rxOrigin = ray.rxOrigin;
             hit.rxDirection = ray.rxDirection;
             hit.ryOrigin = ray.ryOrigin;
             hit.ryDirection = ray.ryDirection;
-            hit.pixelIndex = ray.pixelIndex;
-            hit.throughput = ray.throughput;
-            hit.bounceCount = ray.bounceCount;
 
             return true;
         }
 
         //==============================================================================
-        static void EvaluateRayBatch(KernelContext* __restrict context)
+        static void EvaluateRayBatch(KernelContext* __restrict context, Ray ray, uint pixelIndex)
         {
-            while(context->rayStackCount > 0) {
+            float3 throughput = float3::One_;
 
-                Ray ray = context->rayStack[context->rayStackCount - 1];
-                --context->rayStackCount;
-
+            uint bounceCount = 0;
+            while (bounceCount < context->maxPathLength) {
                 HitParameters hit;
                 bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, hit);
 
                 if(rayCastHit) {
                     SurfaceParameters surface;
-                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                    if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
                         break;
                     }
 
                     BsdfSample sample;
-                    if(SampleBsdfFunction(context, surface, hit.viewDirection, sample) == false) {
+                    if(SampleBsdfFunction(context, surface, -ray.direction, sample) == false) {
                         break;
                     }
 
+                    throughput = throughput * sample.reflectance;
+
                     Ray bounceRay;
                     if(sample.reflection)
-                        bounceRay = CreateReflectionBounceRay(surface, hit, sample.wi, sample.reflectance);
+                        ray = CreateReflectionBounceRay(surface, hit, sample.wi, sample.reflectance);
                     else
-                        bounceRay = CreateRefractionBounceRay(surface, hit, sample.wi, sample.reflectance, surface.currentIor / surface.exitIor);
-
-                    InsertRay(context, bounceRay);
+                        ray = CreateRefractionBounceRay(surface, hit, sample.wi, sample.reflectance, surface.currentIor / surface.exitIor);
+                    ++bounceCount;
                 }
                 else {
                     float pdf;
                     float3 sample = SampleIbl(context->sceneData->ibl, ray.direction, pdf);
-                    AccumulatePixelEnergy(context, ray, sample);
+                    context->imageData[pixelIndex] += throughput * sample;
+                    break;
                 }
             }
         }
@@ -154,10 +151,8 @@ namespace Selas
         //==============================================================================
         static void CreatePrimaryRay(KernelContext* context, uint pixelIndex, uint x, uint y)
         {
-            Ray ray = JitteredCameraRay(context->camera, context->twister, (uint32)pixelIndex, (float)x, (float)y);
-            InsertRay(context, ray);
-
-            EvaluateRayBatch(context);
+            Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
+            EvaluateRayBatch(context, ray, pixelIndex);
         }
 
         //==============================================================================
@@ -193,9 +188,6 @@ namespace Selas
             kernelContext.imageData        = imageData;
             kernelContext.twister          = &twister;
             kernelContext.maxPathLength   = integratorContext->maxBounceCount;
-            kernelContext.rayStackCapacity = 1024 * 1024;
-            kernelContext.rayStackCount    = 0;
-            kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
             if(integratorContext->integrationSeconds > 0.0f) {
 
@@ -217,7 +209,6 @@ namespace Selas
                 Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, integratorContext->pathsPerPixel);
             }
 
-            FreeAligned_(kernelContext.rayStack);
             Random::MersenneTwisterShutdown(&twister);
 
             EnterSpinLock(integratorContext->imageDataSpinlock);

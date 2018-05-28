@@ -51,7 +51,7 @@ namespace Selas
         #endif
     };
 
-    bool CalculateSurfaceParams(const KernelContext* context, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance);
 }

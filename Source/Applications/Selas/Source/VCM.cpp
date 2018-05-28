@@ -169,14 +169,10 @@ namespace Selas
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
 
-            hit.viewDirection = -ray.direction;
             hit.rxOrigin      = ray.rxOrigin;
             hit.rxDirection   = ray.rxDirection;
             hit.ryOrigin      = ray.ryOrigin;
             hit.ryDirection   = ray.ryDirection;
-            hit.pixelIndex    = ray.pixelIndex;
-            hit.throughput    = ray.throughput;
-            hit.bounceCount   = ray.bounceCount;
 
             return true;
         }
@@ -211,7 +207,7 @@ namespace Selas
         {
             const RayCastCameraSettings* __restrict camera = context->camera;
 
-            Ray cameraRay = JitteredCameraRay(camera, context->twister, 0, (float)x, (float)y);
+            Ray cameraRay = JitteredCameraRay(camera, context->twister, (float)x, (float)y);
 
             float cosThetaCamera = Dot(camera->forward, cameraRay.direction);
             float imagePointToCameraDistance = camera->imagePlaneDistance / cosThetaCamera;
@@ -490,9 +486,8 @@ namespace Selas
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
-                     // JSTODO - Ray storing a pixel index and bounce count was not very forward thinking. Remove those.
-                    // -- Make a basic ray. No differentials are used for light path vertices.
-                    Ray ray = MakeRay(state.position, state.direction, state.throughput, 0, 0);
+                    // -- Make a basic ray. No differentials are used atm.
+                    Ray ray = MakeRay(state.position, state.direction);
 
                     // -- Cast the ray against the scene
                     HitParameters hit;
@@ -502,12 +497,12 @@ namespace Selas
 
                     // -- Calculate all surface information for this hit position
                     SurfaceParameters surface;
-                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                    if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
                         break;
                     }
 
                     float connectionLengthSqr = LengthSquared(state.position - surface.position);
-                    float absDotNL = Math::Absf(Dot(surface.perturbedNormal, hit.viewDirection));
+                    float absDotNL = Math::Absf(Dot(surface.perturbedNormal, surface.view));
 
                     // -- Update accumulated MIS parameters with info from our new hit position
                     if(state.pathLength > 1 || state.isAreaMeasure) {
@@ -558,9 +553,8 @@ namespace Selas
 
                     while(cameraPathState.pathLength < context->maxPathLength) {
 
-                        // JSTODO - Ray storing a pixel index and bounce count was not very forward thinking. Remove those.
                        // -- Make a basic ray. No differentials are used atm...
-                        Ray ray = MakeRay(cameraPathState.position, cameraPathState.direction, cameraPathState.throughput, 0, 0);
+                        Ray ray = MakeRay(cameraPathState.position, cameraPathState.direction);
 
                         // -- Cast the ray against the scene
                         HitParameters hit;
@@ -573,12 +567,12 @@ namespace Selas
 
                         // -- Calculate all surface information for this hit position
                         SurfaceParameters surface;
-                        if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                        if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
                             break;
                         }
 
                         float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
-                        float absDotNL = Math::Absf(Dot(surface.geometricNormal, hit.viewDirection));
+                        float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
 
                         // -- Update accumulated MIS parameters with info from our new hit position
                         cameraPathState.dVCM *= connectionLengthSqr;
@@ -677,9 +671,6 @@ namespace Selas
             kernelContext.imageHeight      = height;
             kernelContext.twister          = &twister;
             kernelContext.maxPathLength    = integratorContext->maxBounceCount;
-            kernelContext.rayStackCapacity = 1024 * 1024;
-            kernelContext.rayStackCount    = 0;
-            kernelContext.rayStack         = AllocArrayAligned_(Ray, kernelContext.rayStackCapacity, CacheLineSize_);
 
             HashGrid hashGrid;
             CArray<VcmVertex> lightVertices;
@@ -704,7 +695,6 @@ namespace Selas
 
             Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
 
-            FreeAligned_(kernelContext.rayStack);
             Random::MersenneTwisterShutdown(&twister);
 
             EnterSpinLock(integratorContext->imageDataSpinlock);

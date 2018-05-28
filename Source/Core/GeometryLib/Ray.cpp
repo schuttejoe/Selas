@@ -9,7 +9,7 @@
 namespace Selas
 {
     //==============================================================================
-    Ray MakeRay(float3 origin, float3 direction, float3 throughput, uint32 pixelIndex, uint32 bounceCount)
+    Ray MakeRay(float3 origin, float3 direction)
     {
         Ray ray;
         ray.origin      = origin;
@@ -18,23 +18,17 @@ namespace Selas
         ray.rxDirection = float3::Zero_;
         ray.ryOrigin    = float3::Zero_;
         ray.ryDirection = float3::Zero_;
-        ray.throughput  = throughput;
-        ray.pixelIndex  = pixelIndex;
-        ray.bounceCount = bounceCount;
 
         return ray;
     }
 
     //==============================================================================
     // -- See Tracing Ray Differentials [Igehy 1999] - https://graphics.stanford.edu/papers/trd/
-    Ray MakeReflectionRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float3 throughput, uint32 pixelIndex, uint32 bounceCount)
+    Ray MakeReflectionRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials)
     {
         Ray ray;
         ray.origin      = p;
         ray.direction   = wi;
-        ray.throughput  = throughput;
-        ray.pixelIndex  = pixelIndex;
-        ray.bounceCount = bounceCount;
         ray.rxOrigin    = p + differentials.dpdx;
         ray.ryOrigin    = p + differentials.dpdy;
 
@@ -54,14 +48,11 @@ namespace Selas
 
     //==============================================================================
     // -- See Tracing Ray Differentials [Igehy 1999] - https://graphics.stanford.edu/papers/trd/
-    Ray MakeRefractionRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float iorRatio, float3 throughput, uint32 pixelIndex, uint32 bounceCount)
+    Ray MakeRefractionRay(float3 rxDirection, float3 ryDirection, float3 p, float3 n, float3 wo, float3 wi, const SurfaceDifferentials& differentials, float iorRatio)
     {
         Ray ray;
         ray.origin      = p;
         ray.direction   = wi;
-        ray.throughput  = throughput;
-        ray.pixelIndex  = pixelIndex;
-        ray.bounceCount = bounceCount;
         ray.rxOrigin    = p + differentials.dpdx;
         ray.ryOrigin    = p + differentials.dpdy;
 
