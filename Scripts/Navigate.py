@@ -23,8 +23,8 @@ def main(argv):
             targetDir = os.path.join(engineDir, "Scripts")
         if argv[0].lower() == "content":
             targetDir = os.path.join(engineDir, "Content")
-        if argv[0].lower() == "pathtracer" or argv[0].lower() == "pt":
-            targetDir = os.path.join(engineDir, "Source", "Applications", "PathTracer")
+        if argv[0].lower() == "selas":
+            targetDir = os.path.join(engineDir, "Source", "Applications", "Selas")
         if argv[0].lower() == "build":
             targetDir = os.path.join(engineDir, "Source", "Applications", "Build")
         if argv[0].lower() == "projects":
