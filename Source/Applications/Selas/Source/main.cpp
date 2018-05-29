@@ -102,7 +102,9 @@ int main()
     context.ibl = iblResouce.data;
 
     SystemTime::GetCycleCounter(&timer);
+
     VCM::GenerateImage(context, width, height, imageData);
+
     float renderms = SystemTime::ElapsedMs(timer);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);

@@ -36,7 +36,9 @@ namespace Selas
         float    viewportHeight;
         float    znear;
         float    zfar;
-        float    imagePlaneDistance;
+
+        // -- the distance from the camera that you'd have to travel before the area of a single pixel is 1.
+        float    virtualImagePlaneDistance;
     };
 
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world);

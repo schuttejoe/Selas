@@ -197,9 +197,9 @@ namespace Selas
             state.throughput      = sample.radiance * (1.0f / sample.emissionPdfW);
             state.dVCM            = sample.directionPdfA / sample.emissionPdfW;
             state.dVC             = sample.cosThetaLight / sample.emissionPdfW;
-            state.dVM             = state.dVC * vcWeight;
+            state.dVM             = sample.cosThetaLight / sample.emissionPdfW * vcWeight;
             state.pathLength      = 1;
-            state.isAreaMeasure   = 0; // -- this would be true for any non infinite light source. false since for ibl-only.
+            state.isAreaMeasure   = 0; // -- this would be true for any non infinite light source. false here since we only sample the ibl.
         }
 
         //==============================================================================
@@ -210,14 +210,15 @@ namespace Selas
             Ray cameraRay = JitteredCameraRay(camera, context->twister, (float)x, (float)y);
 
             float cosThetaCamera = Dot(camera->forward, cameraRay.direction);
-            float imagePointToCameraDistance = camera->imagePlaneDistance / cosThetaCamera;
-            float imageToSolidAngle = imagePointToCameraDistance * imagePointToCameraDistance / cosThetaCamera;
+            float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;
+            float invSolidAngleMeasure = imagePointToCameraDistance * imagePointToCameraDistance / cosThetaCamera;
+            float revCameraPdfW = (1.0f / invSolidAngleMeasure);
 
             state.position      = cameraRay.origin;
             state.direction     = cameraRay.direction;
             state.throughput    = float3::One_;
 
-            state.dVCM          = lightPathCount / imageToSolidAngle;
+            state.dVCM          = lightPathCount * revCameraPdfW;
             state.dVC           = 0;
             state.dVM           = 0;
             state.pathLength    = 1;
@@ -253,11 +254,10 @@ namespace Selas
             float cosThetaSurface = Math::Absf(Dot(surface.geometricNormal, -toPosition));
             float cosThetaCamera  = Dot(camera->forward, toPosition);
 
-            float imagePointToCameraDistance = camera->imagePlaneDistance / cosThetaCamera;
+            float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;
             float imageToSolidAngle = imagePointToCameraDistance * imagePointToCameraDistance / cosThetaCamera;
             float imageToSurface = imageToSolidAngle * cosThetaCamera;
             float surfaceToImage = 1.0f / imageToSurface;
-
             float cameraPdfA = imageToSurface;
 
             float lightPartialWeight = (cameraPdfA / lightPathCount) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdf);
@@ -286,8 +286,8 @@ namespace Selas
             }
 
             float cameraWeight = directPdfA * state.dVCM + emissionPdfW * state.dVC;
-
             float misWeight = 1.0f / (1.0f + cameraWeight);
+
             return misWeight * radiance;
         }
 
@@ -319,8 +319,8 @@ namespace Selas
 
             float lightWeight = bsdfForwardPdfW / sample.directionPdfA;
             float cameraWeight = (sample.emissionPdfW * cosThetaSurface / (sample.directionPdfA * sample.cosThetaLight)) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdfW);
-
             float misWeight = 1.0f / (lightWeight + 1 + cameraWeight);
+
             float3 pathContribution = (misWeight * cosThetaSurface / sample.directionPdfA) * sample.radiance * bsdf;
             if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
                 return float3::Zero_;
@@ -391,10 +391,8 @@ namespace Selas
             // -- convert pdfs from solid angle to area measure
             float cameraBsdfPdfA = cameraBsdfForwardPdfW * Math::Absf(cosThetaLight) / distanceSquared;
             float lightBsdfPdfA = lightBsdfForwardPdfW * Math::Absf(cosThetaCamera) / distanceSquared;
-
             float lightWeight = cameraBsdfPdfA * (vmWeight + lightVertex.dVCM + lightVertex.dVC * lightBsdfReversePdfW);
             float cameraWeight = lightBsdfPdfA * (vmWeight + cameraState.dVCM + cameraState.dVC * cameraBsdfReversePdfW);
-
             float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
 
             float3 pathContribution = misWeight * geometryTerm * cameraBsdf * lightBsdf;
@@ -447,6 +445,7 @@ namespace Selas
 
             float lightWeight = lightVertex.dVCM * vmData->vcWeight + lightVertex.dVM * bsdfForwardPdfW;
             float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
+            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
 
             Assert_(!Math::IsNaN(bsdf.x));
             Assert_(!Math::IsNaN(bsdf.y));
@@ -454,8 +453,7 @@ namespace Selas
             Assert_(!Math::IsNaN(lightVertex.throughput.x));
             Assert_(!Math::IsNaN(lightVertex.throughput.y));
             Assert_(!Math::IsNaN(lightVertex.throughput.z));
-
-            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
+            
             vmData->result += misWeight * bsdf * lightVertex.throughput;
         }
 
@@ -543,9 +541,6 @@ namespace Selas
                 for(uint x = 0; x < width; ++x) {
                     uint index = y * width + x;
 
-                    if(x == 830 && y == 375) {
-                        index = index;
-                    }
                     PathState cameraPathState;
                     GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
 
@@ -574,7 +569,8 @@ namespace Selas
                         float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
                         float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
 
-                        // -- Update accumulated MIS parameters with info from our new hit position
+                        // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done at the previous vertex to 
+                        // -- convert the solid angle pdf to the area pdf of the outermost term.
                         cameraPathState.dVCM *= connectionLengthSqr;
                         cameraPathState.dVCM /= absDotNL;
                         cameraPathState.dVC  /= absDotNL;

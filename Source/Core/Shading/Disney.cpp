@@ -65,7 +65,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool DisneyWithIblSamplingShader(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleIblWithDisneyBrdf(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float r0 = Random::MersenneTwisterFloat(context->twister);
         float r1 = Random::MersenneTwisterFloat(context->twister);

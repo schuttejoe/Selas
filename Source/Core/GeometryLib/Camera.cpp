@@ -71,14 +71,14 @@ namespace Selas
         float4x4 imageToClip = Matrix4x4::ScaleTranslate(2.0f / widthf, -2.0f / heightf, 0, -1, 1, 0);
         float4x4 clipToImage = MatrixMultiply(Matrix4x4::ScaleTranslate(0.5f, -0.5f, 0, 1, -1, 0), Matrix4x4::Scale(widthf, heightf, 1.0f));
         
-        camera.imageToWorld       = MatrixMultiply(imageToClip, clipToWorld);
-        camera.worldToClip        = worldToClip;
-        camera.forward            = Normalize(settings.lookAt - settings.position);
-        camera.viewportWidth      = widthf;
-        camera.viewportHeight     = heightf;
-        camera.position           = settings.position;
-        camera.znear              = settings.znear;
-        camera.zfar               = settings.zfar;
-        camera.imagePlaneDistance = widthf / (2.0f * Math::Tanf(horizontalFov));
+        camera.imageToWorld              = MatrixMultiply(imageToClip, clipToWorld);
+        camera.worldToClip               = worldToClip;
+        camera.forward                   = Normalize(settings.lookAt - settings.position);
+        camera.viewportWidth             = widthf;
+        camera.viewportHeight            = heightf;
+        camera.position                  = settings.position;
+        camera.znear                     = settings.znear;
+        camera.zfar                      = settings.zfar;
+        camera.virtualImagePlaneDistance = widthf / (2.0f * Math::Tanf(horizontalFov));
     }
 }
