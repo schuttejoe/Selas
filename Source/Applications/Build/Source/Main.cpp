@@ -16,6 +16,7 @@
 #include <TextureLib/TextureResource.h>
 #include <IoLib/File.h>
 #include <IoLib/Directory.h>
+#include <IoLib/Environment.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/SphericalHarmonic.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -30,9 +31,12 @@ using namespace Selas;
 //=================================================================================================
 int main(int argc, char *argv[])
 {
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Scenes\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\IBLs\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Textures\\");
+    Environment environment;
+    Environment_Initialize(&environment, ProjectRootName_, argv[0]);
+
+    Environment_RegisterAssetType(&environment, "Scene");
+    Environment_RegisterAssetType(&environment, "IBL");
+    Environment_RegisterAssetType(&environment, "Texture");
 
     #define ExportModel_ 1
     #define ExportIbl_ 0

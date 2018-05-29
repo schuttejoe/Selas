@@ -167,6 +167,16 @@ namespace Selas
         }
 
         //==============================================================================
+        void ReplaceAll(char* str, char charToReplace, char replacement)
+        {
+            char* nextChar = strchr(str, charToReplace);
+            while(nextChar) {
+                *nextChar = replacement;
+                nextChar = strchr(nextChar, charToReplace);
+            }
+        }
+
+        //==============================================================================
         int32 to_int(char const* text)
         {
             Assert_(text);
@@ -189,6 +199,28 @@ namespace Selas
             }
 
             *last = 0;
+        }
+
+        //=================================================================================================
+        const char* LastFileOrFolderName(char* path)
+        {
+            const char* searchCharacters = "/\\";
+            int last = StringUtil::FindLastIndexOfAny(path, searchCharacters) + 1;
+            if(last == -1) {
+                return nullptr;
+            }
+
+            return &path[last];
+        }
+
+        //=================================================================================================
+        void RemoveLastFileOrFolder(char* path)
+        {
+            const char* searchCharacters = "/\\";
+            int last = StringUtil::FindLastIndexOfAny(path, searchCharacters);
+            if(last != -1) {
+                path[last] = '\0';
+            }
         }
 
         //=================================================================================================

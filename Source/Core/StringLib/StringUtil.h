@@ -38,10 +38,15 @@ namespace Selas
         void Copy(char* destString, int32 destMaxLength, char const* srcString);
         void CopyN(char* destString, int32 destMaxLength, char const* srcString, int32 srcStringLength);
 
+        void ReplaceAll(char* str, char charToReplace, char replacement);
+
         int32 ToInt32(char const* text);
         float ToFloat(char const* text);
 
         // -- file name utilities
+        const char* LastFileOrFolderName(char* path);
+        void RemoveLastFileOrFolder(char* path);
+
         void RemoveExtension(char* str);
         void GetFolderPath(const char* inpath, char* outDirectory, uint32 maxLength);
         bool GetExtension(cpointer path, char* extension, uint32 maxLength);

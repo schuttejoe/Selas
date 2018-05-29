@@ -1,7 +1,8 @@
 
 --=================================================================================================
 -- Root directory set by running SetEnvironmentVariable in the scripts directory
-RootDirectory   = os.getenv("Selas")
+RootDirectoryName = "Selas"
+RootDirectory   = os.getenv(RootDirectoryName)
 
 --=================================================================================================
 -- Main directory locations
@@ -46,6 +47,8 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   location(ProjectsTempDir .. solutionName)
 
+  projectRootDef = "ProjectRootName_=\"" .. RootDirectoryName .. "\""
+
   -- enable multiprocessor builds for MSBuild on windows
   configuration { "windows" }
     flags { "NoMinimalRebuild" }
@@ -53,11 +56,11 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   -- common debug defines
   configuration { "Debug" }
-    defines { "Debug_", "_DEBUG=1" }
+    defines { projectRootDef, "Debug_", "_DEBUG=1" }
 
   -- common release defines
   configuration { "Release" }
-    defines "Release_"
+    defines { projectRootDef, "Release_" }
     optimize "Full"
 
     -- common windows defines
