@@ -4,7 +4,7 @@
 //==============================================================================
 
 #include <Shading/Disney.h>
-#include <Shading/Shading.h>
+#include <Shading/Lighting.h>
 #include <Shading/SurfaceParameters.h>
 #include <Shading/IntegratorContexts.h>
 
