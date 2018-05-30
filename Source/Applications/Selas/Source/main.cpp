@@ -67,7 +67,7 @@ int main()
     SystemTime::GetCycleCounter(&timer);
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere", &sceneResource) == false) {
+    if(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin", &sceneResource) == false) {
         retvalue = -1;
         goto cleanup;
     }

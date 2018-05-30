@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
         Free_(textureData.texture);
     }
 
-    BakeScene(builtScene, "D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere");
+    BakeScene(builtScene, "D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin");
 #endif
 
 #if ExportIbl_
