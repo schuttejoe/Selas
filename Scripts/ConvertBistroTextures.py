@@ -16,17 +16,49 @@ def GatherMaterials(materials):
     for file in glob.glob("*.dds"):
         name = os.path.splitext(file)[0]
         if "_BaseColor" in name:
-            name = name.replace("_BaseColor", "")
+            name = name.replace("_0_BaseColor", "")
             materials.append(name)
+
+## ------------------------------------------------------------------------------------------------
+def CreateAlbedoAssetName(materialName):
+    return dstSubDir + materialName + "_Albedo.png"
+
+## ------------------------------------------------------------------------------------------------
+def CreateAlbedoSourcePath(materialName):
+    return textureSourceDir + materialName + "_0_BaseColor.dds"
+
+## ------------------------------------------------------------------------------------------------
+def CreateAlbedoDestPath(materialName):
+    return textureDestDir + materialName + "_Albedo.png"
+
+## ------------------------------------------------------------------------------------------------
+def CreateSpecularAssetName(materialName):
+    return dstSubDir + materialName + "_Specular.png"
+
+## ------------------------------------------------------------------------------------------------
+def CreateSpecularSourcePath(materialName):
+    return textureSourceDir + materialName + "_0_Specular.dds"
+
+## ------------------------------------------------------------------------------------------------
+def CreateSpecularDestPath(materialName):
+    return textureDestDir + materialName + "_Specular.png"
+
 
 ## ------------------------------------------------------------------------------------------------
 def CreateMaterialAssets(materials):
     for materialName in materials:
         material = {}
-        material["albedo"] = dstSubDir + materialName + "_Albedo.png"
-        material["normal"] = dstSubDir + materialName + "_Normal.png"
-        # material["specular"] = dstSubDir + materialName + "_Specular.png"
-        material["MetalnessScale"] = 0.1
+        material["Metalness"] = 0.1
+        material["AlbedoTexture"] = CreateAlbedoAssetName(materialName)
+
+        specSrc = CreateSpecularSourcePath(materialName)
+        if os.path.isfile(specSrc):
+            material["SpecularTexture"] = CreateSpecularAssetName(materialName)
+
+        if "glass" in materialName.lower():
+            material["ShaderName"] = "TransparentGGX"
+            material["Ior"] = 1.52
+            material["Roughness"] = 0.03
 
         filePath = materialDestDir + materialName + ".json"
         with open(filePath, 'w') as file:
@@ -34,30 +66,29 @@ def CreateMaterialAssets(materials):
             file.write(prettyJson)
 
 ## ------------------------------------------------------------------------------------------------
+def ConvertTexture(src, dst):
+    cmd = "\"" + imageMagick + "\" " + src + " " + dst
+    if os.path.isfile(src):
+        print(cmd)
+        os.system(cmd)
+
+## ------------------------------------------------------------------------------------------------
 def ConvertTextures(materials):
     for materialName in materials:
+        albedoSrc = CreateAlbedoSourcePath(materialName)
+        albedoDst = CreateAlbedoDestPath(materialName)
+        ConvertTexture(albedoSrc, albedoDst)
 
-        albedoSrc = textureSourceDir + materialName + "_BaseColor.dds"
-        albedoDst = textureDestDir + materialName + "_Albedo.png"
-
-        normalSrc = textureSourceDir + materialName + "_Normal.dds"
-        normalDst = textureDestDir + materialName + "_Normal.png"
-
-        # specularDst = textureSourceDir + materialName + "_Specular.png"
-
-        albedoCmd = "\"" + imageMagick + "\" " + albedoSrc + " " + albedoDst
-        normalCmd = "\"" + imageMagick + "\" " + normalSrc + " " + normalDst
-        print(albedoCmd)
-        # os.system(albedoCmd)
-        print(normalCmd)
-        os.system(normalCmd)
+        specSrc = CreateSpecularSourcePath(materialName)
+        specDst = CreateSpecularDestPath(materialName)
+        ConvertTexture(specSrc, specDst)
 
 ## ------------------------------------------------------------------------------------------------
 def main(argv):
 
     materials = []
     GatherMaterials(materials)
-    # CreateMaterialAssets(materials)
+    CreateMaterialAssets(materials)
 
     # UGH - Normal maps are BC5 which is not supported by imagemagick. Guess I'll have to use DirectxTex
     # ConvertTextures(materials)

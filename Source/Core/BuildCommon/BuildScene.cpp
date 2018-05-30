@@ -135,7 +135,11 @@ namespace Selas
         built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
             ImportedMaterialData importedMaterialData;
-            ReturnFailure_(ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData));
+            bool success = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
+            if(success == false) {
+                const char* name = imported->materials[scan].Ascii();
+                ReturnFailure_(ImportMaterial("Default", &importedMaterialData));
+            }
 
             Material& material = built->materials[scan];
             material = Material();

@@ -101,18 +101,7 @@ namespace Selas
         uint count = width * height;
         output = AllocArray_(float, count);
 
-        if(channels == 1) {
-            Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
-        }
-        else if(channels == 3) {
-            // -- stb reports the original but will successfully convert to 1 channel in that case.
-            // -- verified for jpg at least
-            Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
-        }
-        else {
-            Free_(rawData);
-            return false;
-        }
+        Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
 
         Free_(rawData);
 
@@ -131,29 +120,10 @@ namespace Selas
 
         bool isHdr = StringUtil::EndsWithIgnoreCase(filepath, "hdr");
         if(isHdr) {
-            if(channels == 3) {
-                Memory::Copy(output, rawData, sizeof(float3)*width*height);
-            }
-            else if(channels == 4) {
-                Float4ToLinearFloat3(false, width, height, (float4*)rawData, output);
-            }
-            else {
-                Free_(rawData);
-                return false;
-            }
+            Memory::Copy(output, rawData, sizeof(float3)*width*height);           
         }
         else {
-            if(channels == 3) {
-                Uint24ToLinearFloat3(!isSrcSrgb, width, height, (uint8*)rawData, output);
-            }
-            else if(channels == 4) {
-                Uint32ToLinearFloat3(!isSrcSrgb, width, height, (uint32*)rawData, output);
-            }
-            else {
-                Free_(rawData);
-                return false;
-            }
-            
+            Uint24ToLinearFloat3(!isSrcSrgb, width, height, (uint8*)rawData, output);
         }
         Free_(rawData);
 

@@ -13,10 +13,10 @@
 #include "assimp/Scene.h"
 #include "assimp/postprocess.h"
 
+#include <stdio.h>
+
 namespace Selas
 {
-
-    #define ReturnFailure_(x) if(!x) { return false; }
     #define AssImpVec3ToFloat3_(v) float3(v.x, v.y, v.z)
 
     //==============================================================================
