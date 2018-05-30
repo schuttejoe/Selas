@@ -56,12 +56,15 @@ int main()
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     int retvalue = 0;
+    int64 timer;
 
     TextureFiltering::InitializeEWAFilterWeights();
 
     RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
     RTCScene rtcScene = rtcNewScene(rtcDevice);
     uint32 meshHandle = -1;
+
+    SystemTime::GetCycleCounter(&timer);
 
     SceneResource sceneResource;
     if(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere", &sceneResource) == false) {
@@ -79,11 +82,18 @@ int main()
         goto cleanup;
     }
 
-    int64 timer;
+    float loadms = SystemTime::ElapsedMs(timer);
+    FixedString64 loadlog;
+    sprintf_s(loadlog.Ascii(), loadlog.Capcaity(), "Scene load time %fms\n", loadms);
+    OutputDebugStringA(loadlog.Ascii());
 
     SystemTime::GetCycleCounter(&timer);
     meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
+    
     float buildms = SystemTime::ElapsedMs(timer);
+    FixedString64 buildlog;
+    sprintf_s(buildlog.Ascii(), buildlog.Capcaity(), "Scene build time %fms\n", buildms);
+    OutputDebugStringA(buildlog.Ascii());
 
     //sceneResource.data->camera.fov = 0.7f;
     //uint width = 256;
@@ -110,13 +120,8 @@ int main()
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);
     Free_(imageData);
 
-    FixedString64 buildlog;
-    sprintf_s(buildlog.Ascii(), buildlog.Capcaity(), "Scene build time %fms\n", buildms);
-
     FixedString64 renderlog;
     sprintf_s(renderlog.Ascii(), renderlog.Capcaity(), "Scene render time %fms\n", renderms);
-
-    OutputDebugStringA(buildlog.Ascii());
     OutputDebugStringA(renderlog.Ascii());
 
 cleanup:
