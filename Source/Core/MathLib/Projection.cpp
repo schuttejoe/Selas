@@ -40,7 +40,7 @@ namespace Selas
             case 5: return Normalize(float3(-u, -v, -1.0f)); // -z
             }
 
-            Error_("Invalid face index");
+            AssertMsg_(false, "Invalid face index");
             return float3(0.0f, 0.0f, 0.0f);
         }
 

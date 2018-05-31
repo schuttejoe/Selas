@@ -27,6 +27,15 @@
 
 using namespace Selas;
 
+#define ExitOnError_(error_)                    \
+    {                                           \
+        Error exitOnErrError = error_;          \
+        if(Failed_(exitOnErrError)) {           \
+            printf(exitOnErrError.Message());   \
+            return -1;                          \
+        }                                       \
+    }
+
 //=================================================================================================
 int main(int argc, char *argv[])
 {
@@ -39,12 +48,9 @@ int main(int argc, char *argv[])
 
 #if ExportModel_
     ImportedModel importedModel;
-    if (!ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel)) {
-        Error_("Error importing model.");
-        return -1;
-    }
+    ExitOnError_(ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel));
 
-    BuiltScene builtScene;
+    BuiltScene builtScene;    
     if (!BuildScene(&importedModel, &builtScene)) {
         Error_("Error building imported scene");
         return -1;

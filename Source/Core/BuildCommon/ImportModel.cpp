@@ -20,15 +20,15 @@ namespace Selas
     #define AssImpVec3ToFloat3_(v) float3(v.x, v.y, v.z)
 
     //==============================================================================
-    static bool CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count)
+    static Error CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count)
     {
         count += node->mNumMeshes;
 
         for(uint scan = 0; scan < node->mNumChildren; ++scan) {
-            ReturnFailure_(CountMeshes(aiscene, node->mChildren[scan], count));
+            ReturnError_(CountMeshes(aiscene, node->mChildren[scan], count));
         }
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
@@ -44,8 +44,8 @@ namespace Selas
     static void ExtractQuad(const aiFace* face, CArray<uint32>& indices)
     {
         Assert_(face->mNumIndices == 4);
+        AssertMsg_(false, "Not tested");
 
-        Error_("Not tested");
         indices.Add(face->mIndices[0]);
         indices.Add(face->mIndices[1]);
         indices.Add(face->mIndices[2]);
@@ -70,7 +70,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static bool ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* scene, uint& meshIndex)
+    static Error ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* scene, uint& meshIndex)
     {
         for(uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
             const struct aiMesh* aimesh = aiscene->mMeshes[node->mMeshes[meshscan]];
@@ -79,9 +79,7 @@ namespace Selas
 
             mesh->materialIndex = aimesh->mMaterialIndex;
             if(mesh->materialIndex > scene->materials.Length()) {
-                // -- JSTODO - Error reporting system
-                Assert_(0);
-                return false;
+                return Error_("Invalid material index found in scene");
             }
 
             // -- extract vertices
@@ -133,20 +131,20 @@ namespace Selas
                     ExtractQuad(face, mesh->indices);
                 }
                 else {
-                    return false;
+                    return Error_("Unsupported index count %d", face->mNumIndices);
                 }
             }
         }
 
         for(uint scan = 0; scan < node->mNumChildren; ++scan) {
-            ReturnFailure_(ExtractMeshes(aiscene, node->mChildren[scan], scene, meshIndex));
+            ReturnError_(ExtractMeshes(aiscene, node->mChildren[scan], scene, meshIndex));
         }
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    static bool ExtractCamera(const aiScene* aiscene, ImportedModel* scene)
+    static Error ExtractCamera(const aiScene* aiscene, ImportedModel* scene)
     {
         // -- prepare defaults
         scene->camera.position = float3(0.0f, 0.0f, 5.0f);
@@ -167,11 +165,11 @@ namespace Selas
             scene->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
         }
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    bool ImportModel(const char* filename, ImportedModel* scene)
+    Error ImportModel(const char* filename, ImportedModel* scene)
     {
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
@@ -187,12 +185,11 @@ namespace Selas
                                                    | aiProcess_OptimizeGraph);
         if(!aiscene) {
             const char* errstr = importer.GetErrorString();
-            (void)errstr; // JSTODO - Error reporting
-            return false;
+            return Error_("AssetImporter failed with error: %s", errstr);
         }
 
         uint meshcount = 0;
-        ReturnFailure_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
+        ReturnError_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
 
         scene->meshes.Resize((uint32)meshcount);
         for(uint scan = 0; scan < meshcount; ++scan) {
@@ -202,11 +199,11 @@ namespace Selas
         ExtractMaterials(aiscene, scene);
 
         uint mesh_index = 0;
-        ReturnFailure_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
-        ReturnFailure_(ExtractCamera(aiscene, scene));
+        ReturnError_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
+        ReturnError_(ExtractCamera(aiscene, scene));
 
         // aiscene is cleaned up by the importer's destructor
-        return true;
+        return Success_;
     }
 
     //==============================================================================

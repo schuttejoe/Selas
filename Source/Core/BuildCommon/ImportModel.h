@@ -5,10 +5,11 @@
 //==============================================================================
 
 #include <BuildCommon/SceneBuildPipeline.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
 {
-    bool ImportModel(const char* filename, ImportedModel* scene);
+    Error ImportModel(const char* filename, ImportedModel* scene);
     void ShutdownImportedModel(ImportedModel* scene);
 }
