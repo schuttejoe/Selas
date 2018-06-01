@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -11,6 +12,6 @@ namespace Selas
     struct TextureResourceData;
 
     //==============================================================================
-    bool BakeTexture(const TextureResourceData* data, cpointer filepath);
+    Error BakeTexture(const TextureResourceData* data, cpointer filepath);
 
 }

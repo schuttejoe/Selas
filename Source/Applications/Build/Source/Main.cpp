@@ -27,15 +27,6 @@
 
 using namespace Selas;
 
-#define ExitOnError_(error_)                    \
-    {                                           \
-        Error exitOnErrError = error_;          \
-        if(Failed_(exitOnErrError)) {           \
-            printf(exitOnErrError.Message());   \
-            return -1;                          \
-        }                                       \
-    }
-
 //=================================================================================================
 int main(int argc, char *argv[])
 {
@@ -44,32 +35,22 @@ int main(int argc, char *argv[])
     Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Textures\\");
 
     #define ExportModel_ 1
-    #define ExportIbl_ 0
+    #define ExportIbl_ 1
 
 #if ExportModel_
     ImportedModel importedModel;
-    ExitOnError_(ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel));
+    ExitMainOnError_(ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel));
 
     BuiltScene builtScene;    
-    if (!BuildScene(&importedModel, &builtScene)) {
-        Error_("Error building imported scene");
-        return -1;
-    }
+    ExitMainOnError_(BuildScene(&importedModel, &builtScene));
     ShutdownImportedModel(&importedModel);
 
     for(uint scan = 0, count = builtScene.textures.Length(); scan < count; ++scan) {
         TextureResourceData textureData;
         cpointer textureName = builtScene.textures[scan].Ascii();
 
-        if(!ImportTexture(textureName, Box, &textureData)) {
-            Error_("Error importing texture");
-            return -1;
-        }
-
-        if(!BakeTexture(&textureData, textureName)) {
-            Error_("Error writing texture asset");
-            return -1;
-        }
+        ExitMainOnError_(ImportTexture(textureName, Box, &textureData));
+        ExitMainOnError_(BakeTexture(&textureData, textureName));
 
         Free_(textureData.texture);
     }
@@ -79,12 +60,9 @@ int main(int argc, char *argv[])
 
 #if ExportIbl_
     ImageBasedLightResourceData iblData;
-    if(!ImportImageBasedLight("D:\\Shooty\\Selas\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData)) {
-        Error_("Error importing hdr");
-        return -1;
-    }
+    ExitMainOnError_(ImportImageBasedLight("D:\\Shooty\\Selas\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData));
+    ExitMainOnError_(BakeImageBasedLight(&iblData, "D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin"));
 
-    BakeImageBasedLight(&iblData, "D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin");
     SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);

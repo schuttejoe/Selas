@@ -4,11 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
 {
     struct ImageBasedLightResourceData;
 
-    bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl);
+    Error ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl);
 }

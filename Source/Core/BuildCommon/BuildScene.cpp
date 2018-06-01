@@ -130,15 +130,15 @@ namespace Selas
     }
 
     //==============================================================================
-    static bool ImportMaterials(ImportedModel* imported, BuiltScene* built)
+    static Error ImportMaterials(ImportedModel* imported, BuiltScene* built)
     {
         built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
             ImportedMaterialData importedMaterialData;
-            bool success = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
-            if(success == false) {
+            Error err = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
+            if(Failed_(err)) {
                 const char* name = imported->materials[scan].Ascii();
-                ReturnFailure_(ImportMaterial("Default", &importedMaterialData));
+                ReturnError_(ImportMaterial("Default", &importedMaterialData));
             }
 
             Material& material = built->materials[scan];
@@ -179,18 +179,18 @@ namespace Selas
             }
         }
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    bool BuildScene(ImportedModel* imported, BuiltScene* built)
+    Error BuildScene(ImportedModel* imported, BuiltScene* built)
     {
-        ReturnFailure_(ImportMaterials(imported, built));
+        ReturnError_(ImportMaterials(imported, built));
 
         BuildMeshes(imported, built);
 
         built->camera = imported->camera;
 
-        return true;
+        return Success_;
     }
 }

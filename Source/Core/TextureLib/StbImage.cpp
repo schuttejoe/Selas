@@ -20,7 +20,7 @@
 namespace Selas
 {
     //==============================================================================
-    bool StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba)
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba)
     {
         int32 w_;
         int32 h_;
@@ -33,18 +33,18 @@ namespace Selas
             raw = (void*)stbi_load(filepath, &w_, &h_, &c_, (int)requestedChannels);
 
         if(raw == nullptr)
-            return false;
+            return Error_("Failed to load texture file: %s", filepath);
 
         width = (uint)w_;
         height = (uint)h_;
         channels = (uint)c_;
         rgba = raw;
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    bool StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba)
+    Error StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba)
     {
         int32 ret = 0;
         switch(format) {
@@ -65,6 +65,10 @@ namespace Selas
             break;
         };
 
-        return ret != 0;
+        if(ret == 0) {
+            return Error_("Failed writing texture to file: %s", filepath);
+        }
+
+        return Success_;
     }
 }

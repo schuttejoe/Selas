@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -11,8 +12,8 @@ namespace Selas
     //==============================================================================
     namespace File
     {
-        bool ReadWholeFile(cpointer filepath, void** fileData, uint32* fileSize);
-        bool ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize);
-        bool WriteWholeFile(cpointer filepath, void* data, uint32 size);
+        Error ReadWholeFile(cpointer filepath, void** fileData, uint32* fileSize);
+        Error ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize);
+        Error WriteWholeFile(cpointer filepath, void* data, uint32 size);
     };
 }

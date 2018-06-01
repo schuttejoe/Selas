@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -11,5 +12,5 @@ namespace Selas
     struct ImageBasedLightResourceData;
 
     //==============================================================================
-    bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath);
+    Error BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath);
 }

@@ -4,8 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/BasicTypes.h>
 #include <ContainersLib/CArray.h>
+#include <SystemLib/Error.h>
+#include <SystemLib/BasicTypes.h>
 
 namespace Selas
 {
@@ -34,16 +35,16 @@ namespace Selas
     };
 
     // Write interface
-    bool SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea = 0, uint32 sizeb = 0);
-    bool SerializerEnd(BinaryWriter* serializer);
-    bool SerializerWrite(BinaryWriter* serializer, const void* data, uint size);
+    Error SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea = 0, uint32 sizeb = 0);
+    Error SerializerEnd(BinaryWriter* serializer);
+    void SerializerWrite(BinaryWriter* serializer, const void* data, uint size);
 
-    bool SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size);
-    bool SerializerWritePointerOffsetX64(BinaryWriter* serializer);
+    void SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size);
+    void SerializerWritePointerOffsetX64(BinaryWriter* serializer);
 
     // Read interface
     void SerializerStart(BinaryReader* serializer, void* data, uint32 size);
-    bool SerializerEnd(BinaryReader* serializer);
+    void SerializerEnd(BinaryReader* serializer);
     void SerializerRead(BinaryReader* serializer, void* data, uint32 size);
     void SerializerAttach(BinaryReader* serializer, void** data, uint32 size);
 

@@ -4,11 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
 {
     struct ImportedMaterialData;
 
-    bool ImportMaterial(cpointer materialName, ImportedMaterialData* material);
+    Error ImportMaterial(cpointer materialName, ImportedMaterialData* material);
 }

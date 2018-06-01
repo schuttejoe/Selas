@@ -44,12 +44,12 @@ namespace Selas
     }
 
     //==============================================================================
-    bool BakeScene(const BuiltScene& sceneData, cpointer filepath)
+    Error BakeScene(const BuiltScene& sceneData, cpointer filepath)
     {
         uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
 
         BinaryWriter writer;
-        ReturnFailure_(SerializerStart(&writer, filepath, 0, presize));
+        ReturnError_(SerializerStart(&writer, filepath, 0, presize));
 
         SerializerWrite(&writer, &sceneData.camera, sizeof(sceneData.camera));
         SerializerWrite(&writer, &sceneData.aaBox, sizeof(sceneData.aaBox));
@@ -58,8 +58,8 @@ namespace Selas
         SerializeMaterials(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 
-        ReturnFailure_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer));
 
-        return true;
+        return Success_;
     }
 }

@@ -8,6 +8,7 @@
 #include <GeometryLib/AxisAlignedBox.h>
 #include <GeometryLib/Camera.h>
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -108,8 +109,8 @@ namespace Selas
         SceneResource();
     };
 
-    bool ReadSceneResource(cpointer filepath, SceneResource* scene);
-    bool InitializeSceneResource(SceneResource* scene);
+    Error ReadSceneResource(cpointer filepath, SceneResource* scene);
+    Error InitializeSceneResource(SceneResource* scene);
     void ShutdownSceneResource(SceneResource* scene);
 
     void CalculateSurfaceParams(const SceneResourceData* scene, uint32 primitiveId, float2 barycentric, HitParameters& hitParameters);

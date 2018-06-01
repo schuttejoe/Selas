@@ -10,7 +10,7 @@
 namespace Selas
 {
     //==============================================================================
-    bool SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea, uint32 sizeb)
+    Error SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea, uint32 sizeb)
     {
         Directory::EnsureDirectoryExists(filename);
 
@@ -22,7 +22,7 @@ namespace Selas
         FILE* file = nullptr;
         fopen_s(&file, filename, "wb");
         if(file == nullptr) {
-            return false;
+            return Error_("Failed to open file: %s", filename);
         }
 
         serializer->file = static_cast<void*>(file);
@@ -36,11 +36,11 @@ namespace Selas
         else if(sizea != 0) {
             serializer->pointerData.Reserve(sizea);
         }
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    bool SerializerEnd(BinaryWriter* serializer)
+    Error SerializerEnd(BinaryWriter* serializer)
     {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
@@ -62,11 +62,15 @@ namespace Selas
         int ret = fclose(static_cast<FILE*>(serializer->file));
         serializer->file = nullptr;
 
-        return (ret == 0);
+        if(ret != 0) {
+            return Error_("Failed to close file with code: %d", ret);
+        }
+
+        return Success_;
     }
 
     //==============================================================================
-    bool SerializerWrite(BinaryWriter* serializer, const void* data, uint size)
+    void SerializerWrite(BinaryWriter* serializer, const void* data, uint size)
     {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
@@ -75,12 +79,10 @@ namespace Selas
         for(uint scan = 0; scan < size; ++scan) {
             serializer->rawData.Add(cdata[scan]);
         }
-
-        return true;
     }
 
     //==============================================================================
-    bool SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size)
+    void SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size)
     {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
@@ -89,12 +91,10 @@ namespace Selas
         for(uint scan = 0; scan < size; ++scan) {
             serializer->pointerData.Add(cdata[scan]);
         }
-
-        return true;
     }
 
     //==============================================================================
-    bool SerializerWritePointerOffsetX64(BinaryWriter* serializer)
+    void SerializerWritePointerOffsetX64(BinaryWriter* serializer)
     {
         Assert_(serializer);
         Assert_(serializer->file != nullptr);
@@ -105,7 +105,7 @@ namespace Selas
         serializer->pointers.Add(desc);
 
         uint64 null = 0;
-        return SerializerWrite(serializer, &null, sizeof(uint64));
+        SerializerWrite(serializer, &null, sizeof(uint64));
     }
 
     //==============================================================================
@@ -119,13 +119,11 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SerializerEnd(BinaryReader* serializer)
+    void SerializerEnd(BinaryReader* serializer)
     {
         serializer->data = nullptr;
         serializer->size = 0;
         serializer->offset = 0;
-
-        return true;
     }
 
     //==============================================================================

@@ -6,6 +6,7 @@
 
 #include <MathLib/ImportanceSampling.h>
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -31,7 +32,7 @@ namespace Selas
 
     //==============================================================================
     // -- reading image based light resource data from disk
-    bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource);
+    Error ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource);
 
     //==============================================================================
     // -- functions used in build to set up the conditional and marginal density functions

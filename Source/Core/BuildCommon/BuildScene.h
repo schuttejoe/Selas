@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -11,5 +12,5 @@ namespace Selas
     struct ImportedModel;
 
     struct BuiltScene;
-    bool BuildScene(ImportedModel* imported, BuiltScene* built);
+    Error BuildScene(ImportedModel* imported, BuiltScene* built);
 }

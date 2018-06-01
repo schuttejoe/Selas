@@ -21,12 +21,12 @@ namespace Selas
     }
 
     //==============================================================================
-    bool ReadSceneResource(cpointer filepath, SceneResource* data)
+    Error ReadSceneResource(cpointer filepath, SceneResource* data)
     {
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        ReturnFailure_(File::ReadWholeFile(filepath, &fileData, &fileSize));
+        ReturnError_(File::ReadWholeFile(filepath, &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);
@@ -40,11 +40,11 @@ namespace Selas
         FixupPointerX64(fileData, data->data->positions);
         FixupPointerX64(fileData, data->data->vertexData);
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    bool InitializeSceneResource(SceneResource* scene)
+    Error InitializeSceneResource(SceneResource* scene)
     {
         // -- JSTODO - Should be fetching other resource data from some asset mgr here rather than directly loading it
 
@@ -52,10 +52,10 @@ namespace Selas
         scene->textures = AllocArray_(TextureResource, textureCount);
 
         for(uint scan = 0, count = scene->data->textureCount; scan < count; ++scan) {
-            ReturnFailure_(ReadTextureResource(scene->data->textureResourceNames[scan].Ascii(), &scene->textures[scan]));
+            ReturnError_(ReadTextureResource(scene->data->textureResourceNames[scan].Ascii(), &scene->textures[scan]));
         }
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================

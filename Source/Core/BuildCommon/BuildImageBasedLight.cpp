@@ -96,14 +96,13 @@ namespace Selas
     }
 
     //==============================================================================
-    bool ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl)
+    Error ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl)
     {
         uint width;
         uint height;
         uint channels;
         void* raw;
-        if(StbImageRead(filename, 3, width, height, channels, raw) == false)
-            return false;
+        ReturnError_(StbImageRead(filename, 3, width, height, channels, raw));
 
         ibl->hdrData = reinterpret_cast<float3*>(raw);
 
@@ -113,6 +112,6 @@ namespace Selas
 
         Free_(intensities);
 
-        return true;
+        return Success_;
     }
 }

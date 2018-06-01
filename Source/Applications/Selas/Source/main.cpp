@@ -13,6 +13,7 @@
 #include <TextureLib/TextureFiltering.h>
 #include <TextureLib/TextureResource.h>
 #include <StringLib/FixedString.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/Memory.h>
@@ -67,20 +68,11 @@ int main()
     SystemTime::GetCycleCounter(&timer);
 
     SceneResource sceneResource;
-    if(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin", &sceneResource) == false) {
-        retvalue = -1;
-        goto cleanup;
-    }
-    if(InitializeSceneResource(&sceneResource) == false) {
-        retvalue = -1;
-        goto cleanup;
-    }
+    ExitMainOnError_(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin", &sceneResource));
+    ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
-    if(ReadImageBasedLightResource("D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce) == false) {
-        retvalue = -1;
-        goto cleanup;
-    }
+    ExitMainOnError_(ReadImageBasedLightResource("D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce));
 
     float loadms = SystemTime::ElapsedMs(timer);
     FixedString64 loadlog;
@@ -124,7 +116,6 @@ int main()
     sprintf_s(renderlog.Ascii(), renderlog.Capcaity(), "Scene render time %fms\n", renderms);
     OutputDebugStringA(renderlog.Ascii());
 
-cleanup:
     // -- delete the scene
     ShutdownSceneResource(&sceneResource);
     SafeFreeAligned_(iblResouce.data);

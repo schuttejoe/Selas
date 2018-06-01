@@ -19,7 +19,7 @@ namespace Selas
     cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
 
     //==============================================================================
-    bool ReadTextureResource(cpointer textureName, TextureResource* texture)
+    Error ReadTextureResource(cpointer textureName, TextureResource* texture)
     {
         FixedString256 typelessName;
         typelessName.Copy(textureName);
@@ -30,7 +30,7 @@ namespace Selas
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        ReturnFailure_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
+        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);
@@ -39,7 +39,7 @@ namespace Selas
         SerializerEnd(&reader);
 
         FixupPointerX64(fileData, texture->data->texture);
-        return true;
+        return Success_;
     }
 
     //==============================================================================

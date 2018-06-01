@@ -14,7 +14,7 @@ namespace Selas
     cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
 
     //==============================================================================
-    bool BakeTexture(const TextureResourceData* data, cpointer textureName)
+    Error BakeTexture(const TextureResourceData* data, cpointer textureName)
     {
         uint32 pad = 0;
 
@@ -27,7 +27,7 @@ namespace Selas
         sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
 
         BinaryWriter writer;
-        ReturnFailure_(SerializerStart(&writer, filepath.Ascii(), data->dataSize + sizeof(*data)));
+        ReturnError_(SerializerStart(&writer, filepath.Ascii(), data->dataSize + sizeof(*data)));
 
         SerializerWrite(&writer, &data->mipCount, sizeof(data->mipCount));
         SerializerWrite(&writer, &data->dataSize, sizeof(data->dataSize));
@@ -42,8 +42,8 @@ namespace Selas
         SerializerWritePointerOffsetX64(&writer);
         SerializerWritePointerData(&writer, data->texture, data->dataSize);
 
-        ReturnFailure_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer));
 
-        return true;
+        return Success_;
     }
 }

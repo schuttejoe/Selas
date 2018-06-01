@@ -92,11 +92,11 @@ namespace Selas
     }
 
     //==============================================================================
-    static bool LoadLinearFloatData(const char* filepath, float*& output, uint& width, uint& height)
+    static Error LoadLinearFloatData(const char* filepath, float*& output, uint& width, uint& height)
     {
         uint channels;
         void* rawData;
-        ReturnFailure_(StbImageRead(filepath, 1, width, height, channels, rawData));
+        ReturnError_(StbImageRead(filepath, 1, width, height, channels, rawData));
 
         uint count = width * height;
         output = AllocArray_(float, count);
@@ -105,15 +105,15 @@ namespace Selas
 
         Free_(rawData);
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
-    static bool LoadLinearFloat3Data(const char* filepath, bool isSrcSrgb, float3*& output, uint& width, uint& height)
+    static Error  LoadLinearFloat3Data(const char* filepath, bool isSrcSrgb, float3*& output, uint& width, uint& height)
     {
         uint channels;
         void* rawData;
-        ReturnFailure_(StbImageRead(filepath, 3, width, height, channels, rawData));
+        ReturnError_(StbImageRead(filepath, 3, width, height, channels, rawData));
 
         uint count = width * height;
         output = AllocArray_(float3, count);
@@ -127,7 +127,7 @@ namespace Selas
         }
         Free_(rawData);
 
-        return true;
+        return Success_;
     }
 
     //==============================================================================
@@ -263,7 +263,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
+    Error ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
     {
         FixedString512 filepath;
         sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
@@ -280,7 +280,7 @@ namespace Selas
             float* linear = nullptr;
             uint width;
             uint height;
-            ReturnFailure_(LoadLinearFloatData(filepath.Ascii(), linear, width, height));
+            ReturnError_(LoadLinearFloatData(filepath.Ascii(), linear, width, height));
 
             float* textureData;
             texture->dataSize = 0;
@@ -297,7 +297,7 @@ namespace Selas
             float3* linear = nullptr;
             uint width;
             uint height;
-            ReturnFailure_(LoadLinearFloat3Data(filepath.Ascii(), isSrcSrgb, linear, width, height));
+            ReturnError_(LoadLinearFloat3Data(filepath.Ascii(), isSrcSrgb, linear, width, height));
 
             float3* textureData;
             texture->dataSize = 0;
@@ -309,6 +309,6 @@ namespace Selas
         }
 
 
-        return result;
+        return Success_;
     }
 }

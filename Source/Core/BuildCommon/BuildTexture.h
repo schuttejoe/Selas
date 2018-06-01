@@ -5,6 +5,7 @@
 //==============================================================================
 
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -18,5 +19,5 @@ namespace Selas
         Lanczos
     };
 
-    bool ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture);
+    Error ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture);
 }

@@ -10,7 +10,7 @@
 namespace Selas
 {
     //==============================================================================
-    bool BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath)
+    Error BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath)
     {
         uint64 width = data->densityfunctions.width;
         uint64 height = data->densityfunctions.height;
@@ -20,7 +20,7 @@ namespace Selas
         uint hdrDataSize = sizeof(float3) * width * height;
 
         BinaryWriter writer;
-        ReturnFailure_(SerializerStart(&writer, filepath, 64, (uint32)(marginalDensityFunctionSize + conditionalDensityFunctionSize + hdrDataSize)));
+        ReturnError_(SerializerStart(&writer, filepath, 64, (uint32)(marginalDensityFunctionSize + conditionalDensityFunctionSize + hdrDataSize)));
 
         SerializerWrite(&writer, &width, sizeof(width));
         SerializerWrite(&writer, &height, sizeof(height));
@@ -32,8 +32,8 @@ namespace Selas
         SerializerWritePointerOffsetX64(&writer);
         SerializerWritePointerData(&writer, data->hdrData, hdrDataSize);
 
-        ReturnFailure_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer));
 
-        return true;
+        return Success_;
     }
 }

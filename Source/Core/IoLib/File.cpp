@@ -14,12 +14,12 @@ namespace Selas
     namespace File
     {
         //==============================================================================
-        bool ReadWholeFile(const char* filepath, void** __restrict fileData, uint32* __restrict fileSize)
+        Error ReadWholeFile(const char* filepath, void** __restrict fileData, uint32* __restrict fileSize)
         {
             FILE* file = nullptr;
             fopen_s(&file, filepath, "rb");
             if(file == nullptr) {
-                return false;
+                return Error_("Failed to open file: %s", filepath);
             }
 
             fseek(file, 0, SEEK_END);
@@ -28,7 +28,7 @@ namespace Selas
 
             *fileData = AllocAligned_(*fileSize, 16);
             if(*fileData == nullptr) {
-                return false;
+                return Error_("Failed to make allocation of size %u for file %s:", fileSize, filepath);
             }
 
             size_t bytesRead = fread(*fileData, 1, *fileSize, file);
@@ -37,16 +37,16 @@ namespace Selas
             Assert_(bytesRead == *fileSize);
             Unused_(bytesRead);
 
-            return true;
+            return Success_;
         }
 
         //==============================================================================
-        bool ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize)
+        Error ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize)
         {
             FILE* file = nullptr;
             fopen_s(&file, filepath, "rb");
             if(file == nullptr) {
-                return false;
+                return Error_("Failed to open file %s", filepath);
             }
 
             fseek(file, 0, SEEK_END);
@@ -55,7 +55,7 @@ namespace Selas
 
             *string = (char*)AllocAligned_(fileSize + 1, 16);
             if(*string == nullptr) {
-                return false;
+                return Error_("Failed to make allocation of size %u for file %s:", fileSize + 1, filepath);
             }
 
             size_t bytesRead = fread(*string, 1, fileSize, file);
@@ -67,16 +67,16 @@ namespace Selas
             // -- null terminate
             (*string)[fileSize] = '\0';
 
-            return true;
+            return Success_;
         }
 
         //==============================================================================
-        bool WriteWholeFile(const char* fileepath, void* data, uint32 size)
+        Error WriteWholeFile(const char* filepath, void* data, uint32 size)
         {
             FILE* file = nullptr;
-            fopen_s(&file, fileepath, "wb");
+            fopen_s(&file, filepath, "wb");
             if(file == nullptr) {
-                return false;
+                return Error_("Failed to open file: %s", filepath);
             }
 
             size_t bytes_written = fwrite(data, 1, size, file);
@@ -85,7 +85,7 @@ namespace Selas
             Assert_(bytes_written == size);
             (void)bytes_written;
 
-            return true;
+            return Success_;
         }
     }
 }

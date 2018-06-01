@@ -14,16 +14,20 @@ namespace Selas
     namespace Json
     {
         //==============================================================================
-        bool OpenJsonDocument(cpointer filepath, rapidjson::Document& document)
+        Error OpenJsonDocument(cpointer filepath, rapidjson::Document& document)
         {
             char* jsonString;
             uint32 jsonStringSize;
-            ReturnFailure_(File::ReadWhileFileAsString(filepath, &jsonString, &jsonStringSize));
+            ReturnError_(File::ReadWhileFileAsString(filepath, &jsonString, &jsonStringSize));
 
             rapidjson::ParseResult result = document.Parse(jsonString);
             FreeAligned_(jsonString);
 
-            return result.IsError() == false;
+            if(result.IsError()) {
+                return Error_("Json parsing of %s failed with code %u", filepath, result.Code());
+            }
+
+            return Success_;
         }
 
         //==============================================================================

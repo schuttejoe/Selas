@@ -48,4 +48,13 @@ namespace Selas
             return returnErrorErr;              \
         }                                       \
     }
+    #define ExitMainOnError_(error_)            \
+    {                                           \
+        Error exitOnErrError = error_;          \
+        if(Failed_(exitOnErrError)) {           \
+            printf(exitOnErrError.Message());   \
+            return -1;                          \
+        }                                       \
+    }
+
 };

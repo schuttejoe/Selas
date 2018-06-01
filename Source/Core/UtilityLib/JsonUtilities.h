@@ -15,6 +15,7 @@
 
 #include <StringLib/FixedString.h>
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 // -- middleware
@@ -24,7 +25,7 @@ namespace Selas
 {
     namespace Json
     {
-        bool OpenJsonDocument(cpointer filepath, rapidjson::Document& document);
+        Error OpenJsonDocument(cpointer filepath, rapidjson::Document& document);
 
         bool ReadInt32(const rapidjson::Value& element, cpointer key, int32& value, int32 defaultValue);
         bool ReadFloat(const rapidjson::Value& element, cpointer key, float& value, float defaultValue);

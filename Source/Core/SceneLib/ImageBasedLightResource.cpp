@@ -13,12 +13,12 @@
 namespace Selas
 {
     //==============================================================================
-    bool ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)
+    Error ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)
     {
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        File::ReadWholeFile(filepath, &fileData, &fileSize);
+        ReturnError_(File::ReadWholeFile(filepath, &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);
@@ -31,7 +31,7 @@ namespace Selas
 
         SerializerEnd(&reader);
 
-        return true;
+        return Success_;;
     }
 
     //==============================================================================

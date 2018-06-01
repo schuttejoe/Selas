@@ -5,6 +5,7 @@
 //==============================================================================
 
 #include <MathLib/FloatStructs.h>
+#include <SystemLib/Error.h>
 #include <SystemLib/BasicTypes.h>
 
 namespace Selas
@@ -38,7 +39,7 @@ namespace Selas
         TextureResourceData* data;
     };
 
-    bool ReadTextureResource(cpointer filepath, TextureResource* texture);
+    Error ReadTextureResource(cpointer filepath, TextureResource* texture);
     void ShutdownTextureResource(TextureResource* texture);
     void DebugWriteTextureMips(TextureResource* texture, cpointer folder, cpointer name);
 }
