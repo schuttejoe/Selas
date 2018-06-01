@@ -10,7 +10,6 @@
 
 namespace Selas
 {
-
     //==============================================================================
     // Events
     //==============================================================================
@@ -58,13 +57,13 @@ namespace Selas
     //==============================================================================
 
     //==============================================================================
-    void* CreateSemaphore(uint32 initialCount, uint32 maxCount)
+    void* CreateOSSemaphore(uint32 initialCount, uint32 maxCount)
     {
         return ::CreateSemaphore(nullptr, initialCount, maxCount, nullptr);
     }
 
     //==============================================================================
-    void CloseSemaphore(void* semaphore)
+    void CloseOSSemaphore(void* semaphore)
     {
         ::CloseHandle(semaphore);
     }

@@ -6,7 +6,6 @@
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/Atomic.h>
 #include <SystemLib/Memory.h>
-#include <memory.h>
 
 namespace Selas
 {
@@ -33,7 +32,7 @@ namespace Selas
     void CJobMgr::Initialize(void)
     {
         jobSpinlock = CreateSpinLock();
-        jobSemaphore = CreateSemaphore(0, MaxJobs);
+        jobSemaphore = CreateOSSemaphore(0, MaxJobs);
 
         Memory::Set(allJobs, 0, MaxJobs * sizeof(Job));
         CreateWorkerThreads();
@@ -50,7 +49,7 @@ namespace Selas
             ShutdownThread(workerThreads[scan]);
         }
 
-        CloseSemaphore(jobSemaphore);
+        CloseOSSemaphore(jobSemaphore);
         CloseSpinlock(jobSpinlock);
 
         jobSemaphore = nullptr;

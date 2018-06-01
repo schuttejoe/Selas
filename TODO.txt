@@ -3,10 +3,12 @@ Obviously there's an infinite list of things that can be done here. This is just
 
 Short term goals
 ---------------------
-Deferred path tracing / Ray batching and sorting
+Dependency system in Build
+Environment
 
 Features:
 ---------
+Deferred path tracing / Ray batching and sorting
 More advanced material models + vet existing models
 Depth of field
 
@@ -17,5 +19,3 @@ Russian Roulette path termination
 Engine:
 -------
 Serialization
-Dependency system in Build
-Error handling for build

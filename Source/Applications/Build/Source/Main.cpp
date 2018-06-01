@@ -3,6 +3,8 @@
 //=================================================================================================
 
 // -- Build
+#include <BuildCore/BuildCore.h>
+
 #include <BuildCommon/BuildImageBasedLight.h>
 #include <BuildCommon/BakeImageBasedLight.h>
 #include <BuildCommon/ImportModel.h>
@@ -14,6 +16,7 @@
 // -- engine
 #include <SceneLib/ImageBasedLightResource.h>
 #include <TextureLib/TextureResource.h>
+#include <ThreadingLib/JobMgr.h>
 #include <IoLib/File.h>
 #include <IoLib/Directory.h>
 #include <MathLib/FloatFuncs.h>
@@ -30,12 +33,18 @@ using namespace Selas;
 //=================================================================================================
 int main(int argc, char *argv[])
 {
+    CJobMgr jobMgr;
+    jobMgr.Initialize();
+
+    CBuildCore buildCore;
+    buildCore.Initialize(&jobMgr);
+
     Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Scenes\\");
     Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\IBLs\\");
     Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Textures\\");
 
-    #define ExportModel_ 1
-    #define ExportIbl_ 1
+    #define ExportModel_ 0
+    #define ExportIbl_ 0
 
 #if ExportModel_
     ImportedModel importedModel;
@@ -67,6 +76,9 @@ int main(int argc, char *argv[])
     SafeFree_(iblData.densityfunctions.marginalDensityFunction);
     SafeFree_(iblData.hdrData);
 #endif
+
+    buildCore.Shutdown();
+    jobMgr.Shutdown();
 
     return 0;
 }

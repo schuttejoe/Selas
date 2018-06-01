@@ -3,7 +3,7 @@ includedirs { MiddlewareDir .. "assimp-4.1.0\\include" }
 includedirs { MiddlewareDir .. "rapidjson\\include" }
 includedirs { MiddlewareDir .. "DirextXTex\\" }
 
-table.insert(middlewareLinkDirectories, "DirectXTex\\Bin\\Desktop_2017_Win10\\Win32\\Release")
+table.insert(middlewareLinkDirectories, "DirectXTex\\Bin\\Desktop_2017\\x64\\Release")
 table.insert(middlewareLinkDirectories, "assimp-4.1.0\\lib\\Release")
 table.insert(middlewareLibraries, "assimp-vc140-mt")
 table.insert(middlewareLibraries, "DirectxTex")

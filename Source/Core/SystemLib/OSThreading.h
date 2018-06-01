@@ -8,7 +8,6 @@
 
 namespace Selas
 {
-
     #define CacheLineSize_ 64
 
     // Events
@@ -20,8 +19,8 @@ namespace Selas
     bool     WaitForAllObjects(uint32 handleCount, void** handles, uint32 milliseconds);
 
     // Semaphores
-    void*    CreateSemaphore(uint32 initialCount, uint32 maxCount);
-    void     CloseSemaphore(void* semaphore);
+    void*    CreateOSSemaphore(uint32 initialCount, uint32 maxCount);
+    void     CloseOSSemaphore(void* semaphore);
     void     PostSemaphore(void* semaphore, uint32 count);
     bool     WaitForSemaphore(void* semaphore, uint32 milliseconds);
 
