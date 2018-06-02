@@ -31,12 +31,11 @@ using namespace Selas;
 //=================================================================================================
 int main(int argc, char *argv[])
 {
-    Environment environment;
-    Environment_Initialize(&environment, ProjectRootName_, argv[0]);
+    Environment_Initialize(ProjectRootName_, argv[0]);
 
-    Environment_RegisterAssetType(&environment, "Scene");
-    Environment_RegisterAssetType(&environment, "IBL");
-    Environment_RegisterAssetType(&environment, "Texture");
+    //Environment_RegisterAssetType(&environment, "Scene");
+    //Environment_RegisterAssetType(&environment, "IBL");
+    //Environment_RegisterAssetType(&environment, "Texture");
 
     #define ExportModel_ 1
     #define ExportIbl_ 0

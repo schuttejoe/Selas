@@ -3,47 +3,42 @@
 //==============================================================================
 
 #include <IoLib/Environment.h>
-#include <IoLib/Directory.h>
 #include <StringLib/StringUtil.h>
 
 #include <stdio.h>
 
 namespace Selas
 {
+    static FixedString128 rootDirectory;
+
     //==============================================================================
-    void Environment_Initialize(Environment* env, cpointer rootDirectoryName, cpointer exeDir)
+    void Environment_Initialize(cpointer projectName, cpointer exeDir)
     {
-        FixedString256 dir;
-        dir.Copy(exeDir);
+        FixedString256 sanitized;
+        StringUtil::FullPathName(exeDir, sanitized.Ascii(), sanitized.Capcaity());
 
-        int32 length = StringUtil::Length(dir.Ascii());
-        while(length > 0) {
-            const char* lastDir = StringUtil::LastFileOrFolderName(dir.Ascii());
-            if(StringUtil::EqualsIgnoreCase(lastDir, rootDirectoryName)) {
-                break;
-            }
+        char pathSep = StringUtil::PathSeperator();
 
-            StringUtil::RemoveLastFileOrFolder(dir.Ascii());
-            length = StringUtil::Length(dir.Ascii());
-        }
+        FixedString64 keyDir;
+        sprintf_s(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
 
-        if(length > 0) {
-            env->engineRoot.Copy(dir.Ascii());
+        // -- If we find this key then we're probably running from a dev environment.
+        // -- Otherwise, we use the root
+        cpointer root = StringUtil::FindSubString(sanitized.Ascii(), keyDir.Ascii());
+        if(root) {
+            uint32 toProjectDirSize = (uint32)(root - sanitized.Ascii());
+            uint32 projectNameSize = StringUtil::Length(projectName);
+
+            StringUtil::CopyN(rootDirectory.Ascii(), (int32)rootDirectory.Capcaity(), sanitized.Ascii(), (int32)(toProjectDirSize + projectNameSize + 1));
         }
         else {
-            env->engineRoot.Copy(exeDir);
+            StringUtil::GetFolderPath(sanitized.Ascii(), rootDirectory.Ascii(), (uint32)rootDirectory.Capcaity());
         }
-        StringUtil::ReplaceAll(env->engineRoot.Ascii(), '\\', '/');
-
-        sprintf_s(env->assetsDir.Ascii(), env->assetsDir.Capcaity(), "%s/Assets_", env->engineRoot.Ascii());
     }
 
     //==============================================================================
-    void Environment_RegisterAssetType(Environment* env, cpointer typeName)
+    FixedString128 Environment_Root()
     {
-        FixedString256 assetDir;
-        sprintf_s(assetDir.Ascii(), assetDir.Capcaity(), "%s/%s/", env->assetsDir.Ascii(), typeName);
-
-        Directory::EnsureDirectoryExists(assetDir.Ascii());
+        return rootDirectory;
     }
 }

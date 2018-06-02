@@ -12,6 +12,7 @@
 #include <TextureLib/StbImage.h>
 #include <TextureLib/TextureFiltering.h>
 #include <TextureLib/TextureResource.h>
+#include <IoLib/Environment.h>
 #include <StringLib/FixedString.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/BasicTypes.h>
@@ -50,10 +51,12 @@ static uint32 PopulateEmbreeScene(SceneResourceData* sceneData, RTCDevice& rtcDe
 }
 
 //==============================================================================
-int main()
+int main(int argc, char *argv[])
 {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+
+    Environment_Initialize(ProjectRootName_, argv[0]);
 
     int retvalue = 0;
     int64 timer;

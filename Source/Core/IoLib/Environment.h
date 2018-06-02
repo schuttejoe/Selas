@@ -9,14 +9,7 @@
 
 namespace Selas
 {
-    struct Environment
-    {
-        FixedString256 engineRoot;
-        FixedString256 assetsDir;
-    };
+    void Environment_Initialize(cpointer projectName, cpointer exeDir);
 
-
-    void Environment_Initialize(Environment* env, cpointer rootDirectoryName, cpointer exeDir);
-
-    void Environment_RegisterAssetType(Environment* env, cpointer typeName);
+    FixedString128 Environment_Root();
 }
