@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 namespace Selas
 {
     namespace StringUtil
@@ -22,7 +25,7 @@ namespace Selas
         }
 
         //==============================================================================
-        int32 Length(const char* text)
+        int32 Length(cpointer text)
         {
             Assert_(text != nullptr);
             return (int32)strlen(text);
@@ -41,7 +44,7 @@ namespace Selas
         }
 
         //==============================================================================
-        int32 FindLastIndexOfAny(const char* text, const char* searchCharacters)
+        int32 FindLastIndexOfAny(cpointer text, cpointer searchCharacters)
         {
             if(text == nullptr || searchCharacters == nullptr) {
                 return -1;
@@ -137,7 +140,7 @@ namespace Selas
         }
 
         //==============================================================================
-        bool EndsWithIgnoreCase(const char* lhs, const char* rhs)
+        bool EndsWithIgnoreCase(cpointer lhs, cpointer rhs)
         {
             uint lhsLength = Length(lhs);
             uint rhsLength = Length(rhs);
@@ -167,6 +170,16 @@ namespace Selas
         }
 
         //==============================================================================
+        void ReplaceAll(char* str, char charToReplace, char replacement)
+        {
+            char* nextChar = strchr(str, charToReplace);
+            while(nextChar) {
+                *nextChar = replacement;
+                nextChar = strchr(nextChar, charToReplace);
+            }
+        }
+
+        //==============================================================================
         int32 to_int(char const* text)
         {
             Assert_(text);
@@ -192,7 +205,53 @@ namespace Selas
         }
 
         //=================================================================================================
-        void GetFolderPath(const char* inpath, char* outDirectory, uint32 maxLength)
+        bool FullPathName(cpointer src, char* dst, uint maxLength)
+        {
+            #if IsWindows_
+            if(GetFullPathNameA(src, (DWORD)maxLength, dst, nullptr) == 0) {
+                return false;
+            }
+            #else
+                static_assert("you want realpath");
+            #endif
+
+            return true;
+        }
+
+        //=================================================================================================
+        char PathSeperator()
+        {
+            #if IsWindows_
+                return '\\';
+            #else
+                static_assert("you want realpath");
+            #endif
+        }
+
+        //=================================================================================================
+        cpointer LastFileOrFolderName(char* path)
+        {
+            cpointer searchCharacters = "/\\";
+            int last = StringUtil::FindLastIndexOfAny(path, searchCharacters) + 1;
+            if(last == -1) {
+                return nullptr;
+            }
+
+            return &path[last];
+        }
+
+        //=================================================================================================
+        void RemoveLastFileOrFolder(char* path)
+        {
+            cpointer searchCharacters = "/\\";
+            int last = StringUtil::FindLastIndexOfAny(path, searchCharacters);
+            if(last != -1) {
+                path[last] = '\0';
+            }
+        }
+
+        //=================================================================================================
+        void GetFolderPath(cpointer inpath, char* outDirectory, uint32 maxLength)
         {
             int32 found = FindLastIndexOfAny(inpath, ".");
             if(found == -1) {
@@ -200,7 +259,7 @@ namespace Selas
                 return;
             }
 
-            const char* searchCharacters = "/\\";
+            cpointer searchCharacters = "/\\";
             int last = StringUtil::FindLastIndexOfAny(inpath, searchCharacters) + 1;
             StringUtil::CopyN(outDirectory, maxLength, inpath, last);
         }

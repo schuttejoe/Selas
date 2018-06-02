@@ -19,6 +19,7 @@
 #include <ThreadingLib/JobMgr.h>
 #include <IoLib/File.h>
 #include <IoLib/Directory.h>
+#include <IoLib/Environment.h>
 #include <MathLib/FloatFuncs.h>
 #include <MathLib/SphericalHarmonic.h>
 #include <SystemLib/MemoryAllocation.h>
@@ -33,6 +34,8 @@ using namespace Selas;
 //=================================================================================================
 int main(int argc, char *argv[])
 {
+    Environment_Initialize(ProjectRootName_, argv[0]);
+
     CJobMgr jobMgr;
     jobMgr.Initialize();
 

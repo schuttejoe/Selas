@@ -1,2 +1,2 @@
 
-This is not really meant for or useful for consumption from anyone atm. Just pushing remotely as a backup. Come back in 1-2 months for a more complete setup and description :).
+This is not currently meant to be very useful for consumption outside of looking for implementation details about topics covered during my blog posts at http://schuttejoe.com.
