@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include <StringLib/StringUtil.h>
+#include <IoLib/Environment.h>
 #include <SystemLib/JsAssert.h>
 #include <SystemLib/CheckedCast.h>
 #include <string.h>
@@ -12,6 +13,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+// -- for vsnprintf_s
+#include <stdio.h>
 
 namespace Selas
 {
@@ -194,6 +198,17 @@ namespace Selas
         }
 
         //==============================================================================
+        void Sprintf(char* dst, uint32 dstSize, const char* message, ...)
+        {
+            va_list varg;
+            va_start(varg, message);
+
+            vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+
+            va_end(varg);
+        }
+
+        //==============================================================================
         void RemoveExtension(char* str)
         {
             char* last = FindLastChar(str, '.');
@@ -226,6 +241,29 @@ namespace Selas
             #else
                 static_assert("you want realpath");
             #endif
+        }
+
+        //=================================================================================================
+        bool SanitizePath(cpointer src, char* dst, uint maxLength)
+        {
+            FixedString128 projectRoot = Environment_Root();
+
+            FixedString256 temp;
+            ReturnFailure_(FullPathName(src, temp.Ascii(), temp.Capcaity()));
+
+            uint offset = 0;
+
+            const char* root = FindSubString(temp.Ascii(), projectRoot.Ascii());
+            if(root != nullptr) {
+                offset = Length(projectRoot.Ascii());
+            }
+
+            char pathSep = PathSeperator();
+            ReplaceAll(temp.Ascii(), pathSep, '|');
+
+            Copy(dst, (uint32)maxLength, temp.Ascii() + offset);
+
+            return true;
         }
 
         //=================================================================================================

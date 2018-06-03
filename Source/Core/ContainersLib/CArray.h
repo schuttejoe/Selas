@@ -33,7 +33,7 @@ namespace Selas
         inline uint32 Capacity(void) const { return _capacity; }
         inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
 
-        uint32 Add(void);
+        Type_& Add(void);
         uint32 Add(const Type_& element);
         void   Append(const CArray<Type_>& addend);
 
@@ -102,14 +102,15 @@ namespace Selas
     }
 
     template<typename Type_>
-    uint32 CArray<Type_>::Add(void)
+    Type_& CArray<Type_>::Add(void)
     {
         if(_count == _capacity) {
             GrowArray();
         }
 
         Assert_(_count < _capacity);
-        return _count++;
+        uint32 index = _count++;
+        return _data[index];
     }
 
     template<typename Type_>

@@ -42,11 +42,17 @@ namespace Selas
         int32 ToInt32(char const* text);
         float ToFloat(char const* text);
 
+        void Sprintf(char* dst, uint32 dstSize, const char* message, ...);
+
+        // -- file name utilities
+
         // -- Calls realpath(linux) or GetFullPathName (windows)
         bool FullPathName(cpointer src, char* dst, uint maxLength);
         char PathSeperator();
 
-        // -- file name utilities
+        // -- unify paths so the same asset receives the same has across multiple platforms
+        bool SanitizePath(cpointer src, char* dst, uint maxLength);
+
         cpointer LastFileOrFolderName(char* path);
         void RemoveLastFileOrFolder(char* path);
 

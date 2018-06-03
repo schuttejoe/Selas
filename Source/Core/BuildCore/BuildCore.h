@@ -13,12 +13,14 @@ namespace Selas
     class CJobMgr;
     class CBuildProcessor;
 
+    struct BuildCoreData;
+
     class CBuildCore
     {
     private:
 
         CJobMgr*                _jobMgr;
-        CArray<CBuildProcessor*> _processors;
+        BuildCoreData*          _coreData;
 
     public:
         CBuildCore();

@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 namespace Selas
 {
     namespace File
@@ -71,7 +74,7 @@ namespace Selas
         }
 
         //==============================================================================
-        Error WriteWholeFile(const char* filepath, void* data, uint32 size)
+        Error WriteWholeFile(const char* filepath, const void* data, uint32 size)
         {
             FILE* file = nullptr;
             fopen_s(&file, filepath, "wb");
@@ -86,6 +89,13 @@ namespace Selas
             (void)bytes_written;
 
             return Success_;
+        }
+
+        //==============================================================================
+        bool Exists(cpointer filepath)
+        {
+            DWORD dwAttrib = GetFileAttributesA(filepath);
+            return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
         }
     }
 }
