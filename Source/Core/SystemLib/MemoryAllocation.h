@@ -26,9 +26,9 @@ namespace Selas
     #define FreeAligned_(Var_)                             Selas::SelasAlignedFree(Var_)
     #define SafeFreeAligned_(Var_)                         if(Var_) { Selas::SelasAlignedFree(Var_); Var_ = nullptr; }
 
-    extern void* SelasAlignedMalloc(uint32 size, uint32 alignment, const char* name, const char* file, int line);
-    extern void* SelasMalloc(uint32 size, const char* name, const char* file, int line);
-    extern void* SelasRealloc(void* address, uint32 size, const char* name, const char* file, int line);
+    extern void* SelasAlignedMalloc(uint size, uint alignment, const char* name, const char* file, int line);
+    extern void* SelasMalloc(uint size, const char* name, const char* file, int line);
+    extern void* SelasRealloc(void* address, uint size, const char* name, const char* file, int line);
     extern void  SelasAlignedFree(void* address);
     extern void  SelasFree(void* address);
 

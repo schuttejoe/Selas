@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#if IsWindows_
+#if IsLinux_
 
 #include <ThreadingLib/Thread.h>
 #include <SystemLib/BasicTypes.h>

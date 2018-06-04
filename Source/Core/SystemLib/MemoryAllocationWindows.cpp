@@ -165,7 +165,7 @@ namespace Selas
     #endif
 
     //==============================================================================
-    void* SelasAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line)
+    void* SelasAlignedMalloc(uint size, uint alignment, const char* name, const char* file, int line)
     {
 
         void* address = _aligned_malloc(size, alignment);
@@ -178,7 +178,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void* SelasMalloc(size_t size, const char* name, const char* file, int line)
+    void* SelasMalloc(uint size, const char* name, const char* file, int line)
     {
         void* address = malloc(size);
 
@@ -190,7 +190,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void* SelasRealloc(void* address, size_t size, const char* name, const char* file, int line)
+    void* SelasRealloc(void* address, uint size, const char* name, const char* file, int line)
     {
         #if EnableManualAllocationTracking_
             if(address)
