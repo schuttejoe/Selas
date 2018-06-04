@@ -26,7 +26,11 @@ namespace Selas
         StringUtil::RemoveExtension(typelessName.Ascii());
 
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #else
+            sprintf(filepath.Ascii(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #endif
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
@@ -76,7 +80,11 @@ namespace Selas
     {
         for(uint scan = 0, count = texture->data->mipCount; scan < count; ++scan) {
             FixedString256 path;
-            sprintf_s(path.Ascii(), path.Capcaity(), "%s/%s_mip_%llu.hdr", folder, name, scan);
+            #if IsWindows_
+                sprintf_s(path.Ascii(), path.Capcaity(), "%s/%s_mip_%llu.hdr", folder, name, scan);
+            #else
+                sprintf(path.Ascii(), "%s/%s_mip_%llu.hdr", folder, name, scan);
+            #endif
 
             Directory::EnsureDirectoryExists(path.Ascii());
 

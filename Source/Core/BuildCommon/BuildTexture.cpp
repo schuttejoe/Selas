@@ -266,7 +266,11 @@ namespace Selas
     Error ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
     {
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
+        #else
+            sprintf(filepath.Ascii(), "%s%s", TextureBaseDirectory, textureName);
+        #endif
 
         //LoadLinearFloaData
         FixedString32 extension;

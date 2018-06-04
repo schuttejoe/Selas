@@ -18,7 +18,11 @@ namespace Selas
     Error ImportMaterial(cpointer materialName, ImportedMaterialData* material)
     {
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #else
+            sprintf(filepath.Ascii(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #endif
 
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));

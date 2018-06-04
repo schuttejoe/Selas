@@ -20,7 +20,11 @@ namespace Selas
         char pathSep = StringUtil::PathSeperator();
 
         FixedString64 keyDir;
-        sprintf_s(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
+        #if IsWindows_
+            sprintf_s(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
+        #elif IsLinux_
+            snprintf(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
+        #endif
 
         // -- If we find this key then we're probably running from a dev environment.
         // -- Otherwise, we use the root

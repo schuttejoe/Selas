@@ -14,10 +14,23 @@ namespace Selas
     namespace File
     {
         //==============================================================================
+        static FILE* OpenFile_(const char* filepath, const char* mode)
+        {
+            FILE* result = nullptr;
+
+            #if IsWindows_
+                fopen_s(&result, filepath, mode);
+            #elif IsLinux_
+                result = fopen(filepath, mode);
+            #endif
+
+            return result;
+        }
+
+        //==============================================================================
         Error ReadWholeFile(const char* filepath, void** __restrict fileData, uint32* __restrict fileSize)
         {
-            FILE* file = nullptr;
-            fopen_s(&file, filepath, "rb");
+            FILE* file = OpenFile_(filepath, "rb");
             if(file == nullptr) {
                 return Error_("Failed to open file: %s", filepath);
             }
@@ -43,8 +56,7 @@ namespace Selas
         //==============================================================================
         Error ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize)
         {
-            FILE* file = nullptr;
-            fopen_s(&file, filepath, "rb");
+            FILE* file = OpenFile_(filepath, "rb");
             if(file == nullptr) {
                 return Error_("Failed to open file %s", filepath);
             }
@@ -73,8 +85,7 @@ namespace Selas
         //==============================================================================
         Error WriteWholeFile(const char* filepath, void* data, uint32 size)
         {
-            FILE* file = nullptr;
-            fopen_s(&file, filepath, "wb");
+            FILE* file = OpenFile_(filepath, "wb");
             if(file == nullptr) {
                 return Error_("Failed to open file: %s", filepath);
             }

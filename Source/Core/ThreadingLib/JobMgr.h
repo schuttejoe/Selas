@@ -5,7 +5,7 @@
 //==============================================================================
 
 #include <ThreadingLib/Thread.h>
-#include <SystemLib/OsThreading.h>
+#include <SystemLib/OSThreading.h>
 #include <SystemLib/BasicTypes.h>
 #include <SystemLib/JsAssert.h>
 

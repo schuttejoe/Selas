@@ -11,7 +11,9 @@
 #define STBI_FREE       Free_
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBI_MSC_SECURE_CRT
+#if IsWindows_
+    #define STBI_MSC_SECURE_CRT
+#endif
 #include <stb_image_write.h>
 
 #define STB_IMAGE_IMPLEMENTATION

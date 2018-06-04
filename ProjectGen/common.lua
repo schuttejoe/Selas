@@ -2,7 +2,7 @@
 --=================================================================================================
 -- Root directory set by running SetEnvironmentVariable in the scripts directory
 RootDirectoryName = "Selas"
-RootDirectory   = os.getenv(RootDirectoryName)
+RootDirectory     = os.getenv(RootDirectoryName)
 
 --=================================================================================================
 -- Main directory locations
@@ -40,6 +40,7 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   -- common flags
   flags { "ShadowedVariables", "FatalWarnings", "NoIncrementalLink", "StaticRuntime", "No64BitChecks" }
+  cppdialect "C++14"
   exceptionhandling ("off")
   rtti ("off")
   symbols "On"

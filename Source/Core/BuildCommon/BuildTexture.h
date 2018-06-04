@@ -14,9 +14,9 @@ namespace Selas
 
     enum TextureMipFilters
     {
-        Box,
-        Mitchell,
-        Lanczos
+        Box
+        //Mitchell,
+        //Lanczos
     };
 
     Error ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture);

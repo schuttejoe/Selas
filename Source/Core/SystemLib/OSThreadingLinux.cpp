@@ -2,13 +2,14 @@
 // Joe Schutte
 //==============================================================================
 
-#if IsWindows_
+#if IsLinux_
 
 #include <SystemLib/OSThreading.h>
-#include <SystemLib/JsAssert.h>
 #include <SystemLib/MemoryAllocation.h>
 #include <SystemLib/Memory.h>
-#include <windows.h>
+
+#include <pthread.h>
+#include <dispatch/dispatch.h>
 
 namespace Selas
 {
@@ -16,42 +17,40 @@ namespace Selas
     // Events
     //==============================================================================
 
-    //==============================================================================
+    // //==============================================================================
     // void* CreateEvent(bool manualReset, bool initialState)
     // {
-    //     return ::CreateEvent(nullptr, manualReset, initialState, nullptr);
+        
     // }
 
     // //==============================================================================
     // bool CloseEvent(void* handle)
     // {
-    //     return CloseHandle(reinterpret_cast<HANDLE>(handle)) ? true : false;
+        
     // }
 
     // //==============================================================================
     // bool SetEvent(void* handle)
     // {
-    //     return ::SetEvent(reinterpret_cast<HANDLE>(handle)) ? true : false;
+        
     // }
 
     // //==============================================================================
     // bool ResetEvent(void* handle)
     // {
-    //     return ::ResetEvent(reinterpret_cast<HANDLE>(handle)) ? true : false;
+        
     // }
 
     // //==============================================================================
     // bool WaitForSingleObject(void* handle, uint32 milliseconds)
     // {
-    //     uint32 retval = ::WaitForSingleObject(reinterpret_cast<HANDLE>(handle), milliseconds);
-    //     return (retval == WAIT_OBJECT_0);
+        
     // }
 
     // //==============================================================================
     // bool WaitForAllObjects(uint32 numHandles, void** handles, uint32 milliseconds)
     // {
-    //     uint32 retval = ::WaitForMultipleObjects(numHandles, static_cast<const HANDLE*>(handles), /*wait_for_all*/true, milliseconds);
-    //     return (retval == 0);
+        
     // }
 
     //==============================================================================
@@ -61,25 +60,28 @@ namespace Selas
     //==============================================================================
     void* CreateOSSemaphore(uint32 initialCount, uint32 maxCount)
     {
-        return ::CreateSemaphore(nullptr, initialCount, maxCount, nullptr);
+    	dispatch_semaphore_t semaphore = dispatch_semaphore_create(initialCount);
+    	return semaphore;
     }
 
     //==============================================================================
     void CloseOSSemaphore(void* semaphore)
     {
-        ::CloseHandle(semaphore);
+        dispatch_release((dispatch_semaphore_t)semaphore);
     }
 
     //==============================================================================
     void PostSemaphore(void* semaphore, uint32 count)
     {
-        ::ReleaseSemaphore(semaphore, count, nullptr);
+        for(uint scan = 0; scan < count; ++scan) {
+        	dispatch_semaphore_signal((dispatch_semaphore_t)semaphore);
+        }
     }
 
     //==============================================================================
     bool WaitForSemaphore(void* semaphore, uint32 milliseconds)
     {
-        return (::WaitForSingleObject(semaphore, milliseconds) == 0);
+        return (dispatch_semaphore_wait((dispatch_semaphore_t)semaphore, DISPATCH_TIME_FOREVER) == 0);
     }
 
     //==============================================================================
@@ -87,9 +89,10 @@ namespace Selas
     //==============================================================================
     void* CreateSpinLock(void)
     {
-        uint8* spin = AllocArrayAligned_(uint8, CacheLineSize_, CacheLineSize_);
-        Memory::Zero(spin, CacheLineSize_);
-        return spin;
+        uint8* spinlock = AllocArrayAligned_(uint8, CacheLineSize_, CacheLineSize_);
+        Memory::Zero(spinlock, CacheLineSize_);
+
+        return (void*)spinlock;
     }
 
     //==============================================================================
@@ -101,21 +104,21 @@ namespace Selas
     //==============================================================================
     void CloseSpinlock(void* spinlock)
     {
-        FreeAlign_(spinlock);
+        FreeAligned_(spinlock);
     }
 
     //==============================================================================
     void EnterSpinLock(void* spinlock)
     {
-        volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
-        while(InterlockedCompareExchange64(atom, 1, 0) != 0) {};
+        volatile int32* address = (volatile int32*)(spinlock);
+        while(__sync_val_compare_and_swap(address, 0, 1) == 1) { };
     }
 
     //==============================================================================
     void LeaveSpinLock(void* spinlock)
     {
-        volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
-        *atom = 0;
+     	volatile int32* address = (volatile int32*)(spinlock);
+        *address = 0;
     }
 }
 

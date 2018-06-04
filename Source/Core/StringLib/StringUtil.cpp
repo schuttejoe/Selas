@@ -10,8 +10,12 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#if IsWindows_
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+    #include <windows.h>
+#endif
+
+#define SelasPathMax_ 256
 
 namespace Selas
 {
@@ -118,7 +122,11 @@ namespace Selas
         //==============================================================================
         int32 CompareNIgnoreCase(char const* lhs, char const* rhs, int32 compareLength)
         {
-            return _strnicmp(lhs, rhs, compareLength);
+            #if IsWindows_
+                return _strnicmp(lhs, rhs, compareLength);
+            #elif IsLinux_
+                return strncmp(lhs, rhs, compareLength);
+            #endif
         }
 
         //==============================================================================
@@ -136,7 +144,11 @@ namespace Selas
         //==============================================================================
         bool EqualsIgnoreCase(char const* lhs, char const* rhs)
         {
-            return (_stricmp(lhs, rhs) == 0);
+            #if IsWindows_
+                return (_stricmp(lhs, rhs) == 0);
+            #elif IsLinux_
+                return (strcmp(lhs, rhs) == 0);
+            #endif
         }
 
         //==============================================================================
@@ -151,13 +163,22 @@ namespace Selas
             }
 
             uint startIndex = lhsLength - rhsLength;
-            return _stricmp(lhs + startIndex, rhs) == 0;
+
+            #if IsWindows_
+                return _stricmp(lhs + startIndex, rhs) == 0;
+            #elif IsLinux_
+                return strcmp(lhs + startIndex, rhs) == 0;
+            #endif
         }
 
         //==============================================================================
         void Copy(char* destString, int32 destMaxLength, char const* sourceString)
         {
-            strcpy_s(destString, destMaxLength, sourceString);
+            #if IsWindows_
+                strcpy_s(destString, destMaxLength, sourceString);
+            #elif IsLinux_
+                strncpy(destString, sourceString, destMaxLength);
+            #endif
         }
 
         //==============================================================================
@@ -165,7 +186,12 @@ namespace Selas
         {
             int32 copyLength = (srcStringLength < destMaxLength) ? srcStringLength : destMaxLength - 1;
 
-            strncpy_s(destString, destMaxLength, sourceString, copyLength);
+            #if IsWindows_
+                strncpy_s(destString, destMaxLength, sourceString, copyLength);
+            #elif IsLinux_
+                strncpy(destString, sourceString, copyLength);
+            #endif
+
             destString[copyLength] = '\0';
         }
 
@@ -207,12 +233,17 @@ namespace Selas
         //=================================================================================================
         bool FullPathName(cpointer src, char* dst, uint maxLength)
         {
+            // -- Don't be stringy.
+            Assert_(maxLength >= SelasPathMax_);
+
             #if IsWindows_
-            if(GetFullPathNameA(src, (DWORD)maxLength, dst, nullptr) == 0) {
-                return false;
-            }
-            #else
-                static_assert("you want realpath");
+                if(GetFullPathNameA(src, (DWORD)maxLength, dst, nullptr) == 0) {
+                    return false;
+                }
+            #elif IsLinux_
+                if(realpath(src, dst) == 0) {
+                    return false;
+                }
             #endif
 
             return true;
@@ -224,7 +255,7 @@ namespace Selas
             #if IsWindows_
                 return '\\';
             #else
-                static_assert("you want realpath");
+                return '/';
             #endif
         }
 

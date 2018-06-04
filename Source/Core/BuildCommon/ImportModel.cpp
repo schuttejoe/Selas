@@ -10,7 +10,7 @@
 
 // -- middleware
 #include "assimp/Importer.hpp"
-#include "assimp/Scene.h"
+#include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
 #include <stdio.h>

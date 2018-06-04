@@ -19,8 +19,13 @@ namespace Selas
         serializer->pointers.Close();
         serializer->pointerData.Close();
 
-        FILE* file = nullptr;
-        fopen_s(&file, filename, "wb");
+        #if IsWindows_
+            FILE* file = nullptr;
+            fopen_s(&file, filename, "wb");
+        #elif IsLinux_
+            FILE* file = fopen(filename, "wb");
+        #endif
+
         if(file == nullptr) {
             return Error_("Failed to open file: %s", filename);
         }

@@ -5,9 +5,13 @@
 #include <SystemLib/Error.h>
 #include <SystemLib/MemoryAllocation.h>
 
-// -- for DebugBreak
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#if IsWindows_
+    // -- for DebugBreak
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+#elif IsLinux_
+    #include <stdarg.h>
+#endif
 
 // -- for vsnprintf_s
 #include <stdio.h>
@@ -41,20 +45,36 @@ namespace Selas
         va_list varg;
         va_start(varg, message);
 
-        uint32 errorStrLength = _vscprintf(message, varg) + 1;
+        #if IsWindows_
+            uint32 errorStrLength = _vscprintf(message, varg) + 1;
+        #elif IsLinux_
+            uint32 errorStrLength = vsnprintf(NULL, 0, message, varg) + 1;
+        #endif
 
         errorMessage = AllocArray_(char, errorStrLength);
         refCountPtr = AllocArray_(uint32, 1);
         *refCountPtr = 1;
 
-        vsnprintf_s(errorMessage, errorStrLength, _TRUNCATE, message, varg);
+        #if IsWindows_
+            vsnprintf_s(errorMessage, errorStrLength, _TRUNCATE, message, varg);
+        #elif IsLinux_
+            vsnprintf(errorMessage, errorStrLength, message, varg);
+        #endif
 
         va_end(varg);
 
-        OutputDebugStringA(errorMessage);
-        OutputDebugStringA("\n");
+        #if IsWindows_
+            OutputDebugStringA(errorMessage);
+            OutputDebugStringA("\n");
+        #elif IsLinux_
+            printf("%s\n", errorMessage);
+        #endif
 
-        DebugBreak();
+        #if IsWindows_
+            DebugBreak();
+        #elif IsLinux_
+            __builtin_trap();
+        #endif
     }
 
     //==============================================================================

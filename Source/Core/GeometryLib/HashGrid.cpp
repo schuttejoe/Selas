@@ -80,9 +80,9 @@ namespace Selas
         // -- This sets each cellRangeEnds[x] to the cell's start index.
         uint32 sum = 0;
         for(uint scan = 0; scan < cellCount; ++scan) {
-            uint32 cellCount = hashGrid->cellRangeEnds[scan];
+            uint32 rangeCount = hashGrid->cellRangeEnds[scan];
             hashGrid->cellRangeEnds[scan] = sum;
-            sum += cellCount;
+            sum += rangeCount;
         }
 
         // -- Assign each point to an index. This sums up each cell such that each cellRangeEnds[x] will now be the exclusive end index of that cell's range
@@ -130,8 +130,6 @@ namespace Selas
             --xyzMin.y;
         if(fractional.z < 0.5f)
             --xyzMin.z;
-
-        uint cellIndex = CalculateCellIndex(hashGrid, position);
 
         for(int32 z = 0; z <= 1; ++z) {
             for(int32 y = 0; y <= 1; ++y) {

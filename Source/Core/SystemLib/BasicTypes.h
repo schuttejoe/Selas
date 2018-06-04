@@ -16,7 +16,12 @@ typedef unsigned long long uint64;
 
 typedef const char*        cpointer;
 
-#define ForceInline_        __forceinline
+#if IsWindows_
+	#define ForceInline_    __forceinline
+#elif IsLinux_
+	#define ForceInline_ 	__attribute__((always_inline))
+#endif
+
 #define Unused_(x)          (void)x;
 #define FloatMax_           3.402823466e+38F
 #define MinFloatEpsilon_    1.192092896e-07F

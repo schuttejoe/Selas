@@ -6,8 +6,13 @@
 
 #if AllowAsserts_
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#if IsWindows_
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+#else
+	#include <assert.h>
+#endif
+
 namespace Selas
 {
     void AssertHandler(const char* message, const char* filename, int line)
@@ -16,8 +21,11 @@ namespace Selas
         (void)line;
         (void)message;
 
-        DebugBreak();
-        //assert(0);
+        #if IsWindows_
+        	DebugBreak();
+        #else
+        	assert(0);		
+    	#endif
     }
 }
 
