@@ -1,4 +1,6 @@
 
+local platform = ...
+
 includedirs { MiddlewareDir .. "Embree-3.0/include" }
 
 table.insert(middlewareLinkDirectories, "Embree-3.0/lib")
