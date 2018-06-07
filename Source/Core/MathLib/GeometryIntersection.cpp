@@ -2,12 +2,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/GeometryIntersection.h>
-#include <MathLib/FloatFuncs.h>
+#include "MathLib/GeometryIntersection.h"
+#include "MathLib/FloatFuncs.h"
 
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MinMax.h>
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

@@ -3,11 +3,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Bsdf/Ggx.h>
+#include "Bsdf/Ggx.h"
 
-#include <MathLib/Trigonometric.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/MinMax.h>
+#include "MathLib/Trigonometric.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

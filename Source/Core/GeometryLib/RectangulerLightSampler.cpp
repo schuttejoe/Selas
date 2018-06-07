@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/RectangulerLightSampler.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/MinMax.h>
+#include "GeometryLib/RectangulerLightSampler.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/MinMax.h"
 
 // -- Taken from:
 // https://www.solidangle.com/research/egsr2013_spherical_rectangle.pdf

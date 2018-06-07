@@ -2,13 +2,13 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SceneLib/SceneResource.h>
-#include <TextureLib/TextureResource.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/FloatStructs.h>
-#include <IoLib/BinarySerializer.h>
-#include <IoLib/File.h>
-#include <SystemLib/BasicTypes.h>
+#include "SceneLib/SceneResource.h"
+#include "TextureLib/TextureResource.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/FloatStructs.h"
+#include "IoLib/BinarySerializer.h"
+#include "IoLib/File.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

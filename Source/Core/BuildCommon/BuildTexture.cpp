@@ -2,19 +2,19 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BuildTexture.h>
-#include <TextureLib/StbImage.h>
-#include <TextureLib/TextureResource.h>
-#include <UtilityLib/Color.h>
-#include <StringLib/FixedString.h>
-#include <StringLib/StringUtil.h>
-#include <MathLib/ColorSpace.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
-#include <SystemLib/MinMax.h>
+#include "BuildCommon/BuildTexture.h"
+#include "TextureLib/StbImage.h"
+#include "TextureLib/TextureResource.h"
+#include "UtilityLib/Color.h"
+#include "StringLib/FixedString.h"
+#include "StringLib/StringUtil.h"
+#include "MathLib/ColorSpace.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
+#include "SystemLib/MinMax.h"
 
 #include <stdio.h>
 

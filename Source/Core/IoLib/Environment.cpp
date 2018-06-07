@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <IoLib/Environment.h>
-#include <StringLib/StringUtil.h>
+#include "IoLib/Environment.h"
+#include "StringLib/StringUtil.h"
 
 #include <stdio.h>
 

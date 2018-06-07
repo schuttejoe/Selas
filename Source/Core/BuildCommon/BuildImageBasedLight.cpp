@@ -2,12 +2,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BuildImageBasedLight.h>
-#include <SceneLib/ImageBasedLightResource.h>
-#include <TextureLib/StbImage.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
+#include "BuildCommon/BuildImageBasedLight.h"
+#include "SceneLib/ImageBasedLightResource.h"
+#include "TextureLib/StbImage.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {

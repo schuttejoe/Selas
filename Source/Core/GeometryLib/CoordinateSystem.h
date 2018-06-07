@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/FloatStructs.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
+#include "MathLib/FloatStructs.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
 
 namespace Selas
 {

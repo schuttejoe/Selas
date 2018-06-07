@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/Error.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "SystemLib/Error.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #if IsWindows_
     // -- for DebugBreak

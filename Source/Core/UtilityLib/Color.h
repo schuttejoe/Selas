@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/FloatStructs.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/CheckedCast.h>
+#include "MathLib/FloatStructs.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/CheckedCast.h"
 
 namespace Selas
 {

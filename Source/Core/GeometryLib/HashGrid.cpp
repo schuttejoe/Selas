@@ -2,11 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/HashGrid.h>
-#include <MathLib/IntStructs.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/Memory.h>
+#include "GeometryLib/HashGrid.h"
+#include "MathLib/IntStructs.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {

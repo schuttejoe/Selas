@@ -2,10 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <IoLib/File.h>
+#include "IoLib/File.h"
 
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MemoryAllocation.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 

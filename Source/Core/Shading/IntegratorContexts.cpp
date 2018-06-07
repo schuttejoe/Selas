@@ -3,9 +3,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Shading/IntegratorContexts.h>
-#include <Shading/SurfaceParameters.h>
-#include <MathLib/FloatFuncs.h>
+#include "Shading/IntegratorContexts.h"
+#include "Shading/SurfaceParameters.h"
+#include "MathLib/FloatFuncs.h"
 
 namespace Selas
 {

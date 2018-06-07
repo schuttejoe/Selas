@@ -2,11 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/ImportModel.h>
-#include <MathLib/FloatFuncs.h>
-#include <StringLib/FixedString.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/JsAssert.h>
+#include "BuildCommon/ImportModel.h"
+#include "MathLib/FloatFuncs.h"
+#include "StringLib/FixedString.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/JsAssert.h"
 
 // -- middleware
 #include "assimp/Importer.hpp"

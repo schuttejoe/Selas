@@ -1,6 +1,6 @@
 #pragma once
 
-#include <StringLib/StringUtil.h>
+#include "StringLib/StringUtil.h"
 
 //==============================================================================
 // Joe Schutte

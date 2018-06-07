@@ -4,10 +4,10 @@
 
 #if IsLinux_
 
-#include <ThreadingLib/Thread.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/JsAssert.h>
+#include "ThreadingLib/Thread.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/JsAssert.h"
 
 #include <pthread.h>
 

@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BakeTexture.h>
-#include <TextureLib/TextureResource.h>
-#include <StringLib/FixedString.h>
-#include <IoLib/BinarySerializer.h>
+#include "BuildCommon/BakeTexture.h"
+#include "TextureLib/TextureResource.h"
+#include "StringLib/FixedString.h"
+#include "IoLib/BinarySerializer.h"
 
 #include <stdio.h>
 

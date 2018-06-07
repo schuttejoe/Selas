@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BakeScene.h>
-#include <IoLib/BinarySerializer.h>
+#include "BuildCommon/BakeScene.h"
+#include "IoLib/BinarySerializer.h"
 
 namespace Selas
 {

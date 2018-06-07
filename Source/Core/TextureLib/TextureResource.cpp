@@ -2,14 +2,14 @@
 // Joe Schutte
 //==============================================================================
 
-#include <TextureLib/TextureResource.h>
-#include <TextureLib/StbImage.h>
-#include <StringLib/FixedString.h>
-#include <StringLib/StringUtil.h>
-#include <IoLib/BinarySerializer.h>
-#include <IoLib/File.h>
-#include <IoLib/Directory.h>
-#include <SystemLib/BasicTypes.h>
+#include "TextureLib/TextureResource.h"
+#include "TextureLib/StbImage.h"
+#include "StringLib/FixedString.h"
+#include "StringLib/StringUtil.h"
+#include "IoLib/BinarySerializer.h"
+#include "IoLib/File.h"
+#include "IoLib/Directory.h"
+#include "SystemLib/BasicTypes.h"
 
 #include <stdio.h>
 

@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <TextureLib/StbImage.h>
-#include <StringLib/StringUtil.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "TextureLib/StbImage.h"
+#include "StringLib/StringUtil.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #define STBI_MALLOC     Alloc_
 #define STBI_REALLOC    Realloc_

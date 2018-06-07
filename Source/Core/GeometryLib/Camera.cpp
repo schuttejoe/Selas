@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/Camera.h>
-#include <GeometryLib/Ray.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Random.h>
+#include "GeometryLib/Camera.h"
+#include "GeometryLib/Ray.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Random.h"
 
 namespace Selas
 {

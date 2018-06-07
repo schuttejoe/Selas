@@ -4,11 +4,11 @@
 
 #if IsWindows_
 
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/OSThreading.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/Memory.h>
-#include <SystemLib/JsAssert.h>
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/OSThreading.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/Memory.h"
+#include "SystemLib/JsAssert.h"
 
 #include <stdio.h>
 #include <windows.h>

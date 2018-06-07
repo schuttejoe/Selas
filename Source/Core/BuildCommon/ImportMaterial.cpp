@@ -2,11 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/ImportMaterial.h>
-#include <BuildCommon/SceneBuildPipeline.h>
-#include <UtilityLib/JsonUtilities.h>
-#include <StringLib/StringUtil.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "BuildCommon/ImportMaterial.h"
+#include "BuildCommon/SceneBuildPipeline.h"
+#include "UtilityLib/JsonUtilities.h"
+#include "StringLib/StringUtil.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #include <stdio.h>
 

@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/Ray.h>
-#include <MathLib/FloatStructs.h>
-#include <MathLib/IntStructs.h>
+#include "GeometryLib/Ray.h"
+#include "MathLib/FloatStructs.h"
+#include "MathLib/IntStructs.h"
 
 namespace Selas
 {

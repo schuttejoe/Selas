@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/Error.h>
-#include <SystemLib/BasicTypes.h>
+#include "SystemLib/Error.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

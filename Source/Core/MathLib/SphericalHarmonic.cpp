@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/SphericalHarmonic.h>
-#include <SystemLib/Memory.h>
+#include "MathLib/SphericalHarmonic.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {

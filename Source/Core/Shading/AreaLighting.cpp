@@ -3,22 +3,22 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Shading/AreaLighting.h>
-#include <Shading/SurfaceParameters.h>
-#include <Shading/Lighting.h>
-#include <Shading/IntegratorContexts.h>
+#include "Shading/AreaLighting.h"
+#include "Shading/SurfaceParameters.h"
+#include "Shading/Lighting.h"
+#include "Shading/IntegratorContexts.h"
 
-#include <SceneLib/SceneResource.h>
-#include <GeometryLib/RectangulerLightSampler.h>
-#include <GeometryLib/CoordinateSystem.h>
-#include <GeometryLib/Disc.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
-#include <MathLib/ImportanceSampling.h>
-#include <MathLib/Random.h>
-#include <MathLib/Projection.h>
-#include <MathLib/Quaternion.h>
-#include <MathLib/GeometryIntersection.h>
+#include "SceneLib/SceneResource.h"
+#include "GeometryLib/RectangulerLightSampler.h"
+#include "GeometryLib/CoordinateSystem.h"
+#include "GeometryLib/Disc.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
+#include "MathLib/ImportanceSampling.h"
+#include "MathLib/Random.h"
+#include "MathLib/Projection.h"
+#include "MathLib/Quaternion.h"
+#include "MathLib/GeometryIntersection.h"
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>

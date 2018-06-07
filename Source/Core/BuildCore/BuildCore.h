@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <ContainersLib/CArray.h>
-#include <SystemLib/Error.h>
-#include <SystemLib/BasicTypes.h>
+#include "ContainersLib/CArray.h"
+#include "SystemLib/Error.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

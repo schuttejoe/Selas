@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BakeImageBasedLight.h>
-#include <SceneLib/ImageBasedLightResource.h>
-#include <MathLib/ImportanceSampling.h>
-#include <IoLib/BinarySerializer.h>
+#include "BuildCommon/BakeImageBasedLight.h"
+#include "SceneLib/ImageBasedLightResource.h"
+#include "MathLib/ImportanceSampling.h"
+#include "IoLib/BinarySerializer.h"
 
 namespace Selas
 {

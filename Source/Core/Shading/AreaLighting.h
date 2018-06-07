@@ -4,7 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/FloatStructs.h>
+#include "MathLib/FloatStructs.h"
 
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;

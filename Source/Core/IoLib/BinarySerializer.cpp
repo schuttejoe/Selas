@@ -2,9 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <IoLib/BinarySerializer.h>
-#include <IoLib/Directory.h>
-#include <SystemLib/JsAssert.h>
+#include "IoLib/BinarySerializer.h"
+#include "IoLib/Directory.h"
+#include "SystemLib/JsAssert.h"
+
 #include <stdio.h>
 
 namespace Selas

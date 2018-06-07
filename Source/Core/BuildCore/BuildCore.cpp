@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCore/BuildCore.h>
-#include <ThreadingLib/JobMgr.h>
-#include <SystemLib/JsAssert.h>
+#include "BuildCore/BuildCore.h"
+#include "ThreadingLib/JobMgr.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {

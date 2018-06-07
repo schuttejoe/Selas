@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/Frustum.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/FloatStructs.h>
+#include "MathLib/Frustum.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/FloatStructs.h"
 
 namespace Selas
 {

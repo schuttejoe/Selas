@@ -2,14 +2,14 @@
 // Joe Schutte
 //==============================================================================
 
-#include <TextureLib/TextureFiltering.h>
-#include <TextureLib/TextureResource.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/IntStructs.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MinMax.h>
+#include "TextureLib/TextureFiltering.h"
+#include "TextureLib/TextureResource.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/IntStructs.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

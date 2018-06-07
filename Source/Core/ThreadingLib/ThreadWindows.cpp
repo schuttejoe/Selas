@@ -4,8 +4,9 @@
 
 #if IsWindows_
 
-#include <ThreadingLib/Thread.h>
-#include <SystemLib/BasicTypes.h>
+#include "ThreadingLib/Thread.h"
+#include "SystemLib/BasicTypes.h"
+
 #include <Windows.h>
 
 namespace Selas

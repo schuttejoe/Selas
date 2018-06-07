@@ -3,9 +3,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/JsAssert.h>
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
+
 #include <math.h>
 
 namespace Selas

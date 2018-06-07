@@ -2,13 +2,13 @@
 // StringUtil
 //==============================================================================
 
-#include <StringLib/StringUtil.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/CheckedCast.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
+#include "StringLib/StringUtil.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/CheckedCast.h"
+#include "string.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "ctype.h"
 
 #if IsWindows_
 #define WIN32_LEAN_AND_MEAN

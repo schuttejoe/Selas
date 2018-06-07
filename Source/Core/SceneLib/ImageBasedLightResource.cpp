@@ -2,13 +2,13 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SceneLib/ImageBasedLightResource.h>
-#include <IoLib/BinarySerializer.h>
-#include <IoLib/File.h>
-#include <MathLib/Projection.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/MinMax.h>
+#include "SceneLib/ImageBasedLightResource.h"
+#include "IoLib/BinarySerializer.h"
+#include "IoLib/File.h"
+#include "MathLib/Projection.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <ThreadingLib/JobMgr.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/Atomic.h>
-#include <SystemLib/Memory.h>
+#include "ThreadingLib/JobMgr.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/Atomic.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {

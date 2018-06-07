@@ -4,9 +4,9 @@
 
 #if IsLinux_
 
-#include <SystemLib/OSThreading.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
+#include "SystemLib/OSThreading.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
 
 #include <pthread.h>
 #include <dispatch/dispatch.h>

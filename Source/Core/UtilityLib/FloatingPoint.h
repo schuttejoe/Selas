@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SysteMlib/BasicTypes.h>
-#include <SystemLib/Memory.h>
+#include "SysteMlib/BasicTypes.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {

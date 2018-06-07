@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/JsAssert.h>
+#include "SystemLib/JsAssert.h"
 
 #if AllowAsserts_
 
