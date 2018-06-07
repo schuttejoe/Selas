@@ -14,10 +14,10 @@
 #if IsWindows_
     #define STBI_MSC_SECURE_CRT
 #endif
-#include <stb_image_write.h>
+#include "stb_image_write.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+#include "stb/stb_image.h"
 
 namespace Selas
 {

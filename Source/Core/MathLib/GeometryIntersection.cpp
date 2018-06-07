@@ -17,7 +17,6 @@ namespace Selas
         void RaySphereNearest(float3 o, float3 d, float3 center, float r, float3& p)
         {
             float3 x = o - center;
-            float dotOD = Dot(o, d);
             float dotDX = Dot(d, x);
 
             float a = 1;
@@ -48,7 +47,6 @@ namespace Selas
         bool RaySphere(float3 o, float3 d, float3 center, float r, float3& p)
         {
             float3 x = o - center;
-            float dotOD = Dot(o, d);
             float dotDX = Dot(d, x);
 
             float a = 1;

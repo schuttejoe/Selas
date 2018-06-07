@@ -7,7 +7,7 @@
 #include "SystemLib/MemoryAllocation.h"
 
 // -- middleware
-#include <rapidjson/document.h>
+#include "rapidjson/document.h"
 
 namespace Selas
 {

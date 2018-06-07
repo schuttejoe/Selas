@@ -137,7 +137,6 @@ namespace Selas
             ImportedMaterialData importedMaterialData;
             Error err = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
             if(Failed_(err)) {
-                const char* name = imported->materials[scan].Ascii();
                 ReturnError_(ImportMaterial("Default", &importedMaterialData));
             }
 

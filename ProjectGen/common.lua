@@ -40,7 +40,7 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   -- common flags
   flags { "ShadowedVariables", "FatalWarnings", "NoIncrementalLink", "StaticRuntime", "No64BitChecks" }
-  -- cppdialect "C++11"
+  cppdialect "c++11"
   exceptionhandling ("off")
   rtti ("off")
   symbols "On"

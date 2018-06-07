@@ -205,7 +205,6 @@ namespace Selas
             uint dstHeight = Max<uint>(srcHeight >> 1, 1);
 
             uint srcTexelCount = srcWidth * srcHeight;
-            uint dstTexelCount = dstWidth * dstHeight;
 
             switch(prefilter) {
             case Box:
