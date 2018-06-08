@@ -57,7 +57,7 @@ namespace Selas
             uint pathsPerPixel;
             uint maxBounceCount;
             float integrationSeconds;
-            int64 integrationStartTime;
+            std::chrono::high_resolution_clock::time_point integrationStartTime;
 
             volatile int64* pathsEvaluatedPerPixel;
             volatile int64* completedThreads;
@@ -74,7 +74,7 @@ namespace Selas
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
-            __declspec(align(16)) RTCRayHit rayhit;
+            Align_(16) RTCRayHit rayhit;
             rayhit.ray.org_x = ray.origin.x;
             rayhit.ray.org_y = ray.origin.y;
             rayhit.ray.org_z = ray.origin.z;
@@ -192,13 +192,12 @@ namespace Selas
             if(integratorContext->integrationSeconds > 0.0f) {
 
                 int64 pathsTracedPerPixel = 0;
-                float elapsedMs = 0.0f;
-                while(elapsedMs < integratorContext->integrationSeconds) {
+                float elapsedSeconds = 0.0f;
+                while(elapsedSeconds < integratorContext->integrationSeconds) {
                     PathTracing(&kernelContext, 1, width, height);
                     ++pathsTracedPerPixel;
 
-                    int64 startTime = integratorContext->integrationStartTime;
-                    elapsedMs = SystemTime::ElapsedMs(startTime) / 1000.0f;
+                    elapsedSeconds = SystemTime::ElapsedSecondsF(integratorContext->integrationStartTime);
                 }
 
                 Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
@@ -255,7 +254,7 @@ namespace Selas
             integratorContext.height                 = height;
             integratorContext.maxBounceCount         = MaxBounceCount_;
             integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
-            SystemTime::GetCycleCounter(&integratorContext.integrationStartTime);
+            integratorContext.integrationStartTime   = SystemTime::Now();
             integratorContext.integrationSeconds     = IntegrationSeconds_;
             integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
             integratorContext.completedThreads       = &completedThreads;

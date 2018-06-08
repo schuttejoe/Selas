@@ -40,7 +40,7 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   -- common flags
   flags { "ShadowedVariables", "FatalWarnings", "NoIncrementalLink", "StaticRuntime", "No64BitChecks" }
-  cppdialect "c++11"
+  cppdialect "c++14"
   exceptionhandling ("off")
   rtti ("off")
   symbols "On"
@@ -154,7 +154,7 @@ function SetupConsoleApplication (solutionName, architecture, platform, extraDef
 
     project "Application"
       for i, middlewareLinkDir in ipairs(middlewareLinkDirectories) do
-        print("Middleware Link Directory: " .. middlewareLinkDir)
+        print("Middleware Link Directory: " .. MiddlewareDir .. middlewareLinkDir)
         libdirs { MiddlewareDir .. middlewareLinkDir }
       end
 

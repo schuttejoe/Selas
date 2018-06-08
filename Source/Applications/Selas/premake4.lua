@@ -5,9 +5,9 @@ local SolutionName = "Selas"
 local Architecture = "x64"
 local ExtraLibraries = { "SceneLib", "TextureLib", "GeometryLib", "Bsdf", "Shading" }
 
-if _ARGS[1] == "linux64" then
+if _ARGS[1] == "osx" then
 	ExtraDefines = { "IsLinux_=1" }
-	Platform = "linux64"
+	Platform = "osx"
 else
 	ExtraDefines = { "IsWindows_=1" }
 	Platform = "Win64"

@@ -41,20 +41,20 @@ namespace Selas
     #define Failed_(error)      (error.Failed())
 
     #define Error_(messageStr, ...) Error(messageStr, ##__VA_ARGS__)
-    #define ReturnError_(error_)                \
-    {                                           \
-        Error returnErrorErr = error_;          \
-        if(Failed_(returnErrorErr)) {           \
-            return returnErrorErr;              \
-        }                                       \
+    #define ReturnError_(error_)                     \
+    {                                                \
+        Error returnErrorErr = error_;               \
+        if(Failed_(returnErrorErr)) {                \
+            return returnErrorErr;                   \
+        }                                            \
     }
-    #define ExitMainOnError_(error_)            \
-    {                                           \
-        Error exitOnErrError = error_;          \
-        if(Failed_(exitOnErrError)) {           \
-            printf(exitOnErrError.Message());   \
-            return -1;                          \
-        }                                       \
+    #define ExitMainOnError_(error_)                 \
+    {                                                \
+        Error exitOnErrError = error_;               \
+        if(Failed_(exitOnErrError)) {                \
+            printf("%s", exitOnErrError.Message());  \
+            return -1;                               \
+        }                                            \
     }
 
 };

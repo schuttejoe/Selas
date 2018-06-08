@@ -18,8 +18,10 @@ typedef const char*        cpointer;
 
 #if IsWindows_
 	#define ForceInline_    __forceinline
+	#define Align_(x)       __declspec(align(x))
 #elif IsLinux_
-	#define ForceInline_ 	__attribute__((always_inline))
+	#define ForceInline_ 	inline
+	#define Align_(x)       __attribute__ ((aligned(x)))
 #endif
 
 #define Unused_(x)          (void)x;

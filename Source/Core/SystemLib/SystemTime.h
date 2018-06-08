@@ -6,12 +6,17 @@
 
 #include "SystemLib/BasicTypes.h"
 
+// -- JSTODO - check the headers later and make sure we're not pulling too much in
+#include <ctime>
+#include <chrono>
+
 namespace Selas
 {
     namespace SystemTime
     {
-        void GetCycleFrequency(int64* frequency);
-        void GetCycleCounter(int64* cycles);
-        float ElapsedMs(int64& prevTimestamp);
+		std::chrono::high_resolution_clock::time_point Now();
+
+        float ElapsedMillisecondsF(std::chrono::high_resolution_clock::time_point& since);
+        float ElapsedSecondsF(std::chrono::high_resolution_clock::time_point& since);
     }
 }

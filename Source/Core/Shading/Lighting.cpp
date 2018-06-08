@@ -30,9 +30,6 @@
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/MinMax.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
-
 namespace Selas
 {
     //==============================================================================

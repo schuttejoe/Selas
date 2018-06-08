@@ -61,7 +61,7 @@ namespace Selas
             uint height;
             uint maxBounceCount;
             float integrationSeconds;
-            int64 integrationStartTime;
+            std::chrono::high_resolution_clock::time_point integrationStartTime;
 
             float vcmRadius;
             float vcmRadiusAlpha;
@@ -95,7 +95,7 @@ namespace Selas
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
-            __declspec(align(16)) RTCRay ray;
+            Align_(16) RTCRay ray;
             ray.org_x = origin.x;
             ray.org_y = origin.y;
             ray.org_z = origin.z;
@@ -120,7 +120,7 @@ namespace Selas
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
-            __declspec(align(16)) RTCRay ray;
+            Align_(16) RTCRay ray;
             ray.org_x = origin.x;
             ray.org_y = origin.y;
             ray.org_z = origin.z;
@@ -142,7 +142,7 @@ namespace Selas
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
-            __declspec(align(16)) RTCRayHit rayhit;
+            Align_(16) RTCRayHit rayhit;
             rayhit.ray.org_x = ray.origin.x;
             rayhit.ray.org_y = ray.origin.y;
             rayhit.ray.org_z = ray.origin.z;
@@ -672,8 +672,8 @@ namespace Selas
             CArray<VcmVertex> lightVertices;
 
             int64 pathsTracedPerPixel = 0;
-            float elapsedMs = 0.0f;
-            while(elapsedMs < integratorContext->integrationSeconds) {
+            float elapsedSeconds = 0.0f;
+            while(elapsedSeconds < integratorContext->integrationSeconds) {
                 int64 index = Atomic::Increment64(integratorContext->vcmPassCount);
                 float iterationIndex = index + 1.0f;
 
@@ -682,8 +682,7 @@ namespace Selas
                 VertexConnectionAndMerging(&kernelContext, lightVertices, hashGrid, vcmKernelRadius, width, height);
                 ++pathsTracedPerPixel;
 
-                int64 startTime = integratorContext->integrationStartTime;
-                elapsedMs = SystemTime::ElapsedMs(startTime) / 1000.0f;
+                elapsedSeconds = SystemTime::ElapsedSecondsF(integratorContext->integrationStartTime);
             }
 
             ShutdownHashGrid(&hashGrid);
@@ -736,7 +735,7 @@ namespace Selas
             integratorContext.width                  = width;
             integratorContext.height                 = height;
             integratorContext.maxBounceCount         = MaxBounceCount_;
-            SystemTime::GetCycleCounter(&integratorContext.integrationStartTime);
+            integratorContext.integrationStartTime   = SystemTime::Now();
             integratorContext.integrationSeconds     = IntegrationSeconds_;
             integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
             integratorContext.vcmPassCount           = &vcmPassCount;
