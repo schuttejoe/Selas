@@ -13,13 +13,13 @@
 // Joe Schutte
 //==============================================================================
 
-#include <StringLib/FixedString.h>
-#include <MathLib/FloatStructs.h>
-#include <SystemLib/Error.h>
-#include <SystemLib/BasicTypes.h>
+#include "StringLib/FixedString.h"
+#include "MathLib/FloatStructs.h"
+#include "SystemLib/Error.h"
+#include "SystemLib/BasicTypes.h"
 
 // -- middleware
-#include <rapidjson/document.h>
+#include "rapidjson/document.h"
 
 namespace Selas
 {

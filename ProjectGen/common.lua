@@ -2,7 +2,7 @@
 --=================================================================================================
 -- Root directory set by running SetEnvironmentVariable in the scripts directory
 RootDirectoryName = "Selas"
-RootDirectory   = os.getenv(RootDirectoryName)
+RootDirectory     = os.getenv(RootDirectoryName)
 
 --=================================================================================================
 -- Main directory locations
@@ -40,6 +40,7 @@ function CommonSetup (architecture, solutionName, extraDefines)
 
   -- common flags
   flags { "ShadowedVariables", "FatalWarnings", "NoIncrementalLink", "StaticRuntime", "No64BitChecks" }
+  cppdialect "c++14"
   exceptionhandling ("off")
   rtti ("off")
   symbols "On"
@@ -93,20 +94,20 @@ function AddStaticLibrary (libraryName, libraryRootPath, solutionName)
 end
 
 --=================================================================================================
-function GatherLibraryDependencies(rootPath, middlewareLinkDirectories, middlewareLibraries, postBuildCopies)
+function GatherLibraryDependencies(rootPath, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
     librarySetupPath = rootPath .. "/LibraryDependencies.lua"
     if FileExists(librarySetupPath) then
-      dofile(librarySetupPath)
+      loadfile(librarySetupPath)(platform)
     end
 end
 
 --=================================================================================================
-function AddCoreLibraries (solutionName, libs, middlewareLinkDirectories, middlewareLibraries, postBuildCopies)
+function AddCoreLibraries (solutionName, libs, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
   configuration {}
   for i, lib in ipairs(libs) do
     libraryRootPath = CoreDir .. lib
     AddStaticLibrary(lib, libraryRootPath, solutionName)
-    GatherLibraryDependencies(libraryRootPath)
+    GatherLibraryDependencies(libraryRootPath, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
   end
 end
 
@@ -119,7 +120,7 @@ function LinkLibraries (libs)
 end
 
 --=================================================================================================
-function SetupConsoleApplication (solutionName, architecture, extraDefines, extraLibraries)
+function SetupConsoleApplication (solutionName, architecture, platform, extraDefines, extraLibraries)
   solution(solutionName)
     platforms { architecture }
     configurations { "Debug", "Release" }
@@ -137,7 +138,7 @@ function SetupConsoleApplication (solutionName, architecture, extraDefines, extr
 
       files { "Source/**.c", "Source/**.cpp", "Source/**.h" }
       libraryRootPath = "Source/"
-      GatherLibraryDependencies(libraryRootPath, middlewareLinkDirectories, middlewareLibraries, postBuildCopies)
+      GatherLibraryDependencies(libraryRootPath, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
 
       LinkLibraries(EssentialLibraries)
       if extraLibraries ~= nil then
@@ -145,15 +146,15 @@ function SetupConsoleApplication (solutionName, architecture, extraDefines, extr
       end
 
     -- LIB PROJECTS
-    AddCoreLibraries(solutionName, EssentialLibraries, middlewareLinkDirectories, middlewareLibraries, postBuildCopies)
+    AddCoreLibraries(solutionName, EssentialLibraries, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
     if extraLibraries ~= nil then
-      AddCoreLibraries(solutionName, extraLibraries, middlewareLinkDirectories, middlewareLibraries, postBuildCopies)
+      AddCoreLibraries(solutionName, extraLibraries, middlewareLinkDirectories, middlewareLibraries, postBuildCopies, platform)
     end
     configuration {}
 
     project "Application"
       for i, middlewareLinkDir in ipairs(middlewareLinkDirectories) do
-        print("Middleware Link Directory: " .. middlewareLinkDir)
+        print("Middleware Link Directory: " .. MiddlewareDir .. middlewareLinkDir)
         libdirs { MiddlewareDir .. middlewareLinkDir }
       end
 

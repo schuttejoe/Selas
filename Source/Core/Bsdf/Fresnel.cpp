@@ -3,10 +3,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Bsdf/Fresnel.h>
+#include "Bsdf/Fresnel.h"
 
-#include <MathLib/Trigonometric.h>
-#include <MathLib/FloatFuncs.h>
+#include "MathLib/Trigonometric.h"
+#include "MathLib/FloatFuncs.h"
 
 namespace Selas
 {

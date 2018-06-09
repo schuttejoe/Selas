@@ -5,13 +5,13 @@
 #include "SurfaceParameters.h"
 #include "IntegratorContexts.h"
 
-#include <TextureLib/TextureFiltering.h>
-#include <TextureLib/TextureResource.h>
-#include <SceneLib/SceneResource.h>
-#include <GeometryLib/Ray.h>
-#include <GeometryLib/CoordinateSystem.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/ColorSpace.h>
+#include "TextureLib/TextureFiltering.h"
+#include "TextureLib/TextureResource.h"
+#include "SceneLib/SceneResource.h"
+#include "GeometryLib/Ray.h"
+#include "GeometryLib/CoordinateSystem.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/ColorSpace.h"
 
 #define ForceNoMips_ true
 #define EnableEWA_ true

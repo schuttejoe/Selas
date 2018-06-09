@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MinMax.h>
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

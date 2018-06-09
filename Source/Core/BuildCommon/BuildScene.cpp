@@ -2,16 +2,16 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BuildScene.h>
-#include <BuildCommon/SceneBuildPipeline.h>
-#include <BuildCommon/ImportMaterial.h>
-#include <UtilityLib/Color.h>
-#include <GeometryLib/AxisAlignedBox.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/CheckedCast.h>
-#include <SystemLib/MinMax.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/CountOf.h>
+#include "BuildCommon/BuildScene.h"
+#include "BuildCommon/SceneBuildPipeline.h"
+#include "BuildCommon/ImportMaterial.h"
+#include "UtilityLib/Color.h"
+#include "GeometryLib/AxisAlignedBox.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/CheckedCast.h"
+#include "SystemLib/MinMax.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/CountOf.h"
 
 namespace Selas
 {
@@ -137,7 +137,6 @@ namespace Selas
             ImportedMaterialData importedMaterialData;
             Error err = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
             if(Failed_(err)) {
-                const char* name = imported->materials[scan].Ascii();
                 ReturnError_(ImportMaterial("Default", &importedMaterialData));
             }
 

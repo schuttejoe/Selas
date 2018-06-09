@@ -4,10 +4,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/FloatStructs.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/JsAssert.h>
+#include "MathLib/FloatStructs.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {

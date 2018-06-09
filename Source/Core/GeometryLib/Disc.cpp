@@ -2,8 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/Disc.h>
-#include <MathLib/Trigonometric.h>
+#include "GeometryLib/Disc.h"
+#include "MathLib/Trigonometric.h"
 
 namespace Selas
 {

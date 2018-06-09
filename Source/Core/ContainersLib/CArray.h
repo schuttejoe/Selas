@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
-#include <SystemLib/JsAssert.h>
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {

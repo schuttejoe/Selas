@@ -4,7 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCore/BuildDependencyGraph.h>
+#include "BuildCore/BuildDependencyGraph.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

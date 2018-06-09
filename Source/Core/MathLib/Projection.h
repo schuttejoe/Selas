@@ -3,8 +3,8 @@
 //==============================================================================
 // Joe Schutte
 //==============================================================================
-#include <MathLib/FloatStructs.h>
-#include <SystemLib/BasicTypes.h>
+#include "MathLib/FloatStructs.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

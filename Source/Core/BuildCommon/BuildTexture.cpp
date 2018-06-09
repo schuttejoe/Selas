@@ -2,19 +2,19 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BuildTexture.h>
-#include <TextureLib/StbImage.h>
-#include <TextureLib/TextureResource.h>
-#include <UtilityLib/Color.h>
-#include <StringLib/FixedString.h>
-#include <StringLib/StringUtil.h>
-#include <MathLib/ColorSpace.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/BasicTypes.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
-#include <SystemLib/MinMax.h>
+#include "BuildCommon/BuildTexture.h"
+#include "TextureLib/StbImage.h"
+#include "TextureLib/TextureResource.h"
+#include "UtilityLib/Color.h"
+#include "StringLib/FixedString.h"
+#include "StringLib/StringUtil.h"
+#include "MathLib/ColorSpace.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
+#include "SystemLib/MinMax.h"
 
 #include <stdio.h>
 
@@ -205,7 +205,6 @@ namespace Selas
             uint dstHeight = Max<uint>(srcHeight >> 1, 1);
 
             uint srcTexelCount = srcWidth * srcHeight;
-            uint dstTexelCount = dstWidth * dstHeight;
 
             switch(prefilter) {
             case Box:
@@ -266,7 +265,11 @@ namespace Selas
     Error ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
     {
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
+        #else
+            sprintf(filepath.Ascii(), "%s%s", TextureBaseDirectory, textureName);
+        #endif
 
         //LoadLinearFloaData
         FixedString32 extension;

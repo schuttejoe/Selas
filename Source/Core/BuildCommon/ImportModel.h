@@ -4,9 +4,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/SceneBuildPipeline.h>
-#include <SystemLib/Error.h>
-#include <SystemLib/BasicTypes.h>
+#include "BuildCommon/SceneBuildPipeline.h"
+#include "SystemLib/Error.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

@@ -2,11 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/ImportMaterial.h>
-#include <BuildCommon/SceneBuildPipeline.h>
-#include <UtilityLib/JsonUtilities.h>
-#include <StringLib/StringUtil.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "BuildCommon/ImportMaterial.h"
+#include "BuildCommon/SceneBuildPipeline.h"
+#include "UtilityLib/JsonUtilities.h"
+#include "StringLib/StringUtil.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #include <stdio.h>
 
@@ -18,7 +18,11 @@ namespace Selas
     Error ImportMaterial(cpointer materialName, ImportedMaterialData* material)
     {
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #else
+            sprintf(filepath.Ascii(), "%s%s.json", MaterialBaseDirectory, materialName);
+        #endif
 
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));

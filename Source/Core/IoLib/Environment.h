@@ -4,8 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <StringLib/FixedString.h>
-#include <SystemLib/BasicTypes.h>
+#include "StringLib/FixedString.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

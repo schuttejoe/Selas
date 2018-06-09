@@ -2,12 +2,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/Projection.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/FloatStructs.h>
-#include <MathLib/Trigonometric.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MinMax.h>
+#include "MathLib/Projection.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/FloatStructs.h"
+#include "MathLib/Trigonometric.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MinMax.h"
 
 #include <math.h>
 

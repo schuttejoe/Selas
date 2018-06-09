@@ -3,7 +3,14 @@ dofile("../../../ProjectGen/common.lua")
 
 local SolutionName = "Build"
 local Architecture = "x64"
-local ExtraDefines = { "IsWindows_=1" }
 local ExtraLibraries = { "SceneLib", "TextureLib", "GeometryLib", "BuildCore", "BuildCommon" }
 
-SetupConsoleApplication(SolutionName, Architecture, ExtraDefines, ExtraLibraries)
+if _ARGS[1] == "osx" then
+	ExtraDefines = { "IsOsx_=1" }
+	Platform = "osx"
+else
+	ExtraDefines = { "IsWindows_=1" }
+	Platform = "Win64"
+end
+
+SetupConsoleApplication(SolutionName, Architecture, Platform, ExtraDefines, ExtraLibraries)

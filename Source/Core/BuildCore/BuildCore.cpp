@@ -2,13 +2,13 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCore/BuildCore.h>
-#include <BuildCore/BuildProcessor.h>
-#include <UtilityLib/MurmurHash.h>
-#include <ThreadingLib/JobMgr.h>
-#include <StringLib/StringUtil.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "BuildCore/BuildCore.h"
+#include "BuildCore/BuildProcessor.h"
+#include "UtilityLib/MurmurHash.h"
+#include "ThreadingLib/JobMgr.h"
+#include "StringLib/StringUtil.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #include <map>
 

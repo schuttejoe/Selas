@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/Ray.h>
-#include <GeometryLib/SurfaceDifferentials.h>
-#include <MathLib/FloatFuncs.h>
+#include "GeometryLib/Ray.h"
+#include "GeometryLib/SurfaceDifferentials.h"
+#include "MathLib/FloatFuncs.h"
 
 namespace Selas
 {

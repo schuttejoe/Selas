@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCore/BuildDependencyGraph.h>
-#include <StringLib/StringUtil.h>
-#include <IoLib/Environment.h>
-#include <IoLib/File.h>
+#include "BuildCore/BuildDependencyGraph.h"
+#include "StringLib/StringUtil.h"
+#include "IoLib/Environment.h"
+#include "IoLib/File.h"
 
 #include <map>
 

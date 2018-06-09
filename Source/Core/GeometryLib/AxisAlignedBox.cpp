@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/AxisAlignedBox.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/MinMax.h>
+#include "GeometryLib/AxisAlignedBox.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/MinMax.h"
 
 namespace Selas
 {

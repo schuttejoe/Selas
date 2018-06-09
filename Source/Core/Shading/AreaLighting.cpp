@@ -3,25 +3,22 @@
 // Joe Schutte
 //==============================================================================
 
-#include <Shading/AreaLighting.h>
-#include <Shading/SurfaceParameters.h>
-#include <Shading/Lighting.h>
-#include <Shading/IntegratorContexts.h>
+#include "Shading/AreaLighting.h"
+#include "Shading/SurfaceParameters.h"
+#include "Shading/Lighting.h"
+#include "Shading/IntegratorContexts.h"
 
-#include <SceneLib/SceneResource.h>
-#include <GeometryLib/RectangulerLightSampler.h>
-#include <GeometryLib/CoordinateSystem.h>
-#include <GeometryLib/Disc.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
-#include <MathLib/ImportanceSampling.h>
-#include <MathLib/Random.h>
-#include <MathLib/Projection.h>
-#include <MathLib/Quaternion.h>
-#include <MathLib/GeometryIntersection.h>
-
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "SceneLib/SceneResource.h"
+#include "GeometryLib/RectangulerLightSampler.h"
+#include "GeometryLib/CoordinateSystem.h"
+#include "GeometryLib/Disc.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
+#include "MathLib/ImportanceSampling.h"
+#include "MathLib/Random.h"
+#include "MathLib/Projection.h"
+#include "MathLib/Quaternion.h"
+#include "MathLib/GeometryIntersection.h"
 
 namespace Selas
 {
@@ -30,26 +27,29 @@ namespace Selas
     //==============================================================================
     bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
     {
-        // -- Why does this need to be so "large" to avoid artifacts when lighting from a point light?
-        float3 origin = OffsetRayOrigin(surface, direction, 64.0f);
+        // // -- Why does this need to be so "large" to avoid artifacts when lighting from a point light?
+        // float3 origin = OffsetRayOrigin(surface, direction, 64.0f);
 
-        RTCIntersectContext context;
-        rtcInitIntersectContext(&context);
+        // RTCIntersectContext context;
+        // rtcInitIntersectContext(&context);
 
-        __declspec(align(16)) RTCRay ray;
-        ray.org_x = origin.x;
-        ray.org_y = origin.y;
-        ray.org_z = origin.z;
-        ray.dir_x = direction.x;
-        ray.dir_y = direction.y;
-        ray.dir_z = direction.z;
-        ray.tnear = surface.error;
-        ray.tfar  = distance;
+        // Align_(16) RTCRay ray;
+        // ray.org_x = origin.x;
+        // ray.org_y = origin.y;
+        // ray.org_z = origin.z;
+        // ray.dir_x = direction.x;
+        // ray.dir_y = direction.y;
+        // ray.dir_z = direction.z;
+        // ray.tnear = surface.error;
+        // ray.tfar  = distance;
 
-        rtcOccluded1(rtcScene, &context, &ray);
+        // rtcOccluded1(rtcScene, &context, &ray);
 
-        // -- ray.tfar == -inf when hit occurs
-        return (ray.tfar >= 0.0f);
+        // // -- ray.tfar == -inf when hit occurs
+        // return (ray.tfar >= 0.0f);
+
+        // JSTODO - Purge this and it's usages from here. Let the integrator handle occlusion rays and batched shading.
+        return true;
     }
 
     //==============================================================================

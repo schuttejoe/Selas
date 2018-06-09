@@ -4,12 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SceneLib/SceneResource.h>
-#include <ContainersLib/CArray.h>
-#include <StringLib/FixedString.h>
-#include <GeometryLib/AxisAlignedBox.h>
-#include <MathLib/FloatStructs.h>
-#include <SystemLib/BasicTypes.h>
+#include "SceneLib/SceneResource.h"
+#include "ContainersLib/CArray.h"
+#include "StringLib/FixedString.h"
+#include "GeometryLib/AxisAlignedBox.h"
+#include "MathLib/FloatStructs.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

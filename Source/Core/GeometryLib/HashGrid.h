@@ -4,10 +4,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <GeometryLib/AxisAlignedBox.h>
-#include <MathLib/FloatStructs.h>
-#include <ContainersLib/CArray.h>
-#include <SystemLib/BasicTypes.h>
+#include "GeometryLib/AxisAlignedBox.h"
+#include "MathLib/FloatStructs.h"
+#include "ContainersLib/CArray.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

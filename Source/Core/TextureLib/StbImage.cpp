@@ -2,20 +2,22 @@
 // Joe Schutte
 //==============================================================================
 
-#include <TextureLib/StbImage.h>
-#include <StringLib/StringUtil.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "TextureLib/StbImage.h"
+#include "StringLib/StringUtil.h"
+#include "SystemLib/MemoryAllocation.h"
 
 #define STBI_MALLOC     Alloc_
 #define STBI_REALLOC    Realloc_
 #define STBI_FREE       Free_
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBI_MSC_SECURE_CRT
-#include <stb_image_write.h>
+#if IsWindows_
+    #define STBI_MSC_SECURE_CRT
+#endif
+#include "stb_image_write.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+#include "stb/stb_image.h"
 
 namespace Selas
 {

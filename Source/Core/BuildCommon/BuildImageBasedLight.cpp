@@ -2,12 +2,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BuildImageBasedLight.h>
-#include <SceneLib/ImageBasedLightResource.h>
-#include <TextureLib/StbImage.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/MemoryAllocation.h>
-#include <SystemLib/Memory.h>
+#include "BuildCommon/BuildImageBasedLight.h"
+#include "SceneLib/ImageBasedLightResource.h"
+#include "TextureLib/StbImage.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/Memory.h"
 
 namespace Selas
 {
@@ -21,7 +21,6 @@ namespace Selas
     //==============================================================================
     static float* CalculateIntensityMap(uint width, uint height, float3* __restrict hdr)
     {
-
         float* intensities = AllocArray_(float, width * height);
 
         for(uint y = 0; y < height; ++y) {

@@ -2,17 +2,21 @@
 // StringUtil
 //==============================================================================
 
-#include <StringLib/StringUtil.h>
-#include <IoLib/Environment.h>
-#include <SystemLib/JsAssert.h>
-#include <SystemLib/CheckedCast.h>
+#include "StringLib/StringUtil.h"
+#include "IoLib/Environment.h"
+#include "SystemLib/JsAssert.h"
+#include "SystemLib/CheckedCast.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
+#if IsWindows_
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+    #include <windows.h>
+#endif
+
+#define SelasPathMax_ 256
 
 // -- for vsnprintf_s
 #include <stdio.h>
@@ -122,7 +126,11 @@ namespace Selas
         //==============================================================================
         int32 CompareNIgnoreCase(char const* lhs, char const* rhs, int32 compareLength)
         {
+            #if IsWindows_
             return _strnicmp(lhs, rhs, compareLength);
+            #elif IsOsx_
+                return strncmp(lhs, rhs, compareLength);
+            #endif
         }
 
         //==============================================================================
@@ -140,7 +148,11 @@ namespace Selas
         //==============================================================================
         bool EqualsIgnoreCase(char const* lhs, char const* rhs)
         {
+            #if IsWindows_
             return (_stricmp(lhs, rhs) == 0);
+            #elif IsOsx_
+                return (strcmp(lhs, rhs) == 0);
+            #endif
         }
 
         //==============================================================================
@@ -155,13 +167,22 @@ namespace Selas
             }
 
             uint startIndex = lhsLength - rhsLength;
+
+            #if IsWindows_
             return _stricmp(lhs + startIndex, rhs) == 0;
+            #elif IsOsx_
+                return strcmp(lhs + startIndex, rhs) == 0;
+            #endif
         }
 
         //==============================================================================
         void Copy(char* destString, int32 destMaxLength, char const* sourceString)
         {
+            #if IsWindows_
             strcpy_s(destString, destMaxLength, sourceString);
+            #elif IsOsx_
+                strncpy(destString, sourceString, destMaxLength);
+            #endif
         }
 
         //==============================================================================
@@ -169,7 +190,12 @@ namespace Selas
         {
             int32 copyLength = (srcStringLength < destMaxLength) ? srcStringLength : destMaxLength - 1;
 
+            #if IsWindows_
             strncpy_s(destString, destMaxLength, sourceString, copyLength);
+            #elif IsOsx_
+                strncpy(destString, sourceString, copyLength);
+            #endif
+
             destString[copyLength] = '\0';
         }
 
@@ -222,12 +248,17 @@ namespace Selas
         //=================================================================================================
         bool FullPathName(cpointer src, char* dst, uint maxLength)
         {
+            // -- Don't be stringy.
+            Assert_(maxLength >= SelasPathMax_);
+
             #if IsWindows_
             if(GetFullPathNameA(src, (DWORD)maxLength, dst, nullptr) == 0) {
                 return false;
             }
-            #else
-                static_assert("you want realpath");
+            #elif IsOsx_
+                if(realpath(src, dst) == 0) {
+                    return false;
+                }
             #endif
 
             return true;
@@ -239,7 +270,7 @@ namespace Selas
             #if IsWindows_
                 return '\\';
             #else
-                static_assert("you want realpath");
+                return '/';
             #endif
         }
 

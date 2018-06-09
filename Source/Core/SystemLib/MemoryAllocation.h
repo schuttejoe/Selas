@@ -4,6 +4,8 @@
 // Joe Schutte
 //==============================================================================
 
+#include "SystemLib/BasicTypes.h"
+
 namespace Selas
 {
     #define PlacementNew_(Type_, Var_)                     new(Var_) Type_()
@@ -24,9 +26,9 @@ namespace Selas
     #define FreeAligned_(Var_)                             Selas::SelasAlignedFree(Var_)
     #define SafeFreeAligned_(Var_)                         if(Var_) { Selas::SelasAlignedFree(Var_); Var_ = nullptr; }
 
-    extern void* SelasAlignedMalloc(size_t size, size_t alignment, const char* name, const char* file, int line);
-    extern void* SelasMalloc(size_t size, const char* name, const char* file, int line);
-    extern void* SelasRealloc(void* address, size_t size, const char* name, const char* file, int line);
+    extern void* SelasAlignedMalloc(uint size, uint alignment, const char* name, const char* file, int line);
+    extern void* SelasMalloc(uint size, const char* name, const char* file, int line);
+    extern void* SelasRealloc(void* address, uint size, const char* name, const char* file, int line);
     extern void  SelasAlignedFree(void* address);
     extern void  SelasFree(void* address);
 

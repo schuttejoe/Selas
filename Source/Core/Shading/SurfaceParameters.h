@@ -4,10 +4,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SceneLib/SceneResource.h>
-#include <GeometryLib/SurfaceDifferentials.h>
-#include <MathLib/FloatStructs.h>
-#include <SystemLib/BasicTypes.h>
+#include "SceneLib/SceneResource.h"
+#include "GeometryLib/SurfaceDifferentials.h"
+#include "MathLib/FloatStructs.h"
+#include "SystemLib/BasicTypes.h"
 
 #define EnableDifferentials_ 0
 

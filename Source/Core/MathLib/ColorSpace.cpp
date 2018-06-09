@@ -2,9 +2,9 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/ColorSpace.h>
-#include <MathLib/FloatFuncs.h>
-#include <MathLib/Trigonometric.h>
+#include "MathLib/ColorSpace.h"
+#include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
 
 namespace Selas
 {

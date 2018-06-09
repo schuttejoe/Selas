@@ -4,12 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <SceneLib/SceneResource.h>
-#include <SceneLib/ImageBasedLightResource.h>
-#include <GeometryLib/Camera.h>
-#include <GeometryLib/Ray.h>
-#include <MathLib/Random.h>
-#include <SystemLib/BasicTypes.h>
+#include "SceneLib/SceneResource.h"
+#include "SceneLib/ImageBasedLightResource.h"
+#include "GeometryLib/Camera.h"
+#include "GeometryLib/Ray.h"
+#include "MathLib/Random.h"
+#include "SystemLib/BasicTypes.h"
 
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;

@@ -4,12 +4,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <UtilityLib/MurmurHash.h>
-#include <StringLib/FixedString.h>
-#include <ContainersLib/CArray.h>
-#include <IoLib/FileTime.h>
-#include <SystemLib/Error.h>
-#include <SystemLib/BasicTypes.h>
+#include "UtilityLib/MurmurHash.h"
+#include "StringLib/FixedString.h"
+#include "ContainersLib/CArray.h"
+#include "IoLib/FileTime.h"
+#include "SystemLib/Error.h"
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

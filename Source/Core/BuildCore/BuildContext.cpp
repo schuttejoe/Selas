@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCore/BuildContext.h>
-#include <IoLib/File.h>
-#include <IoLib/Environment.h>
-#include <StringLib/StringUtil.h>
+#include "BuildCore/BuildContext.h"
+#include "IoLib/File.h"
+#include "IoLib/Environment.h"
+#include "StringLib/StringUtil.h"
 
 #include <stdio.h>
 

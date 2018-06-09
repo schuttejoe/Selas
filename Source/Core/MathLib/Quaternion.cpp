@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/Quaternion.h>
-#include <MathLib/Trigonometric.h>
-#include <MathLib/FloatFuncs.h>
-#include <SystemLib/JsAssert.h>
+#include "MathLib/Quaternion.h"
+#include "MathLib/Trigonometric.h"
+#include "MathLib/FloatFuncs.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {

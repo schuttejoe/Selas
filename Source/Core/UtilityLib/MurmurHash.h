@@ -5,7 +5,7 @@
 
 // Exposes Austin Appleby's MurmurHash3 functions.
 
-#include <SystemLib/BasicTypes.h>
+#include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {

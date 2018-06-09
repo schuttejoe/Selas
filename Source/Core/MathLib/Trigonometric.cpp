@@ -2,7 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include <MathLib/Trigonometric.h>
+#include "MathLib/Trigonometric.h"
+
 #include <math.h>
 #include <cmath>
 

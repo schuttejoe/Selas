@@ -2,10 +2,10 @@
 // Joe Schutte
 //==============================================================================
 
-#include <BuildCommon/BakeTexture.h>
-#include <TextureLib/TextureResource.h>
-#include <StringLib/FixedString.h>
-#include <IoLib/BinarySerializer.h>
+#include "BuildCommon/BakeTexture.h"
+#include "TextureLib/TextureResource.h"
+#include "StringLib/FixedString.h"
+#include "IoLib/BinarySerializer.h"
 
 #include <stdio.h>
 
@@ -24,7 +24,11 @@ namespace Selas
 
         // JSTODO - Unify all assets using .bin extension
         FixedString512 filepath;
-        sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #if IsWindows_
+            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #else
+            sprintf(filepath.Ascii(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
+        #endif
 
         BinaryWriter writer;
         ReturnError_(SerializerStart(&writer, filepath.Ascii(), data->dataSize + sizeof(*data)));

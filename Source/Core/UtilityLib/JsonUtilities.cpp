@@ -2,12 +2,12 @@
 // Joe Schutte
 //==============================================================================
 
-#include <UtilityLib/JsonUtilities.h>
-#include <IoLib/File.h>
-#include <SystemLib/MemoryAllocation.h>
+#include "UtilityLib/JsonUtilities.h"
+#include "IoLib/File.h"
+#include "SystemLib/MemoryAllocation.h"
 
 // -- middleware
-#include <rapidjson/document.h>
+#include "rapidjson/document.h"
 
 namespace Selas
 {

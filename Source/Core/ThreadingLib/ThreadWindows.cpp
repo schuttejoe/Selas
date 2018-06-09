@@ -2,8 +2,11 @@
 // Joe Schutte
 //==============================================================================
 
-#include <ThreadingLib/Thread.h>
-#include <SystemLib/BasicTypes.h>
+#if IsWindows_
+
+#include "ThreadingLib/Thread.h"
+#include "SystemLib/BasicTypes.h"
+
 #include <Windows.h>
 
 namespace Selas
@@ -22,3 +25,5 @@ namespace Selas
         CloseHandle((HANDLE)threadHandle);
     }
 }
+
+#endif
