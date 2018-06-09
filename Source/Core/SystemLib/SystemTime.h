@@ -16,6 +16,7 @@ namespace Selas
     {
 		std::chrono::high_resolution_clock::time_point Now();
 
+        float ElapsedMicrosecondsF(std::chrono::high_resolution_clock::time_point& since);
         float ElapsedMillisecondsF(std::chrono::high_resolution_clock::time_point& since);
         float ElapsedSecondsF(std::chrono::high_resolution_clock::time_point& since);
     }

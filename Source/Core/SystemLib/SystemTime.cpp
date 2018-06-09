@@ -16,11 +16,21 @@ namespace Selas
     }
 
     //==============================================================================
+    float ElapsedMicrosecondsF(std::chrono::high_resolution_clock::time_point& since)
+    {
+        auto current = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<float, std::micro> elapsed = current - since;
+        return elapsed.count();
+    }
+
+    //==============================================================================
     float SystemTime::ElapsedMillisecondsF(std::chrono::high_resolution_clock::time_point& since)
     {
         auto current = std::chrono::high_resolution_clock::now();
 
-        return std::chrono::duration_cast<std::chrono::milliseconds>(current - since).count();
+        std::chrono::duration<float, std::milli> elapsed = current - since;
+        return elapsed.count();
     }
 
     //==============================================================================
@@ -28,6 +38,7 @@ namespace Selas
     {
         auto current = std::chrono::high_resolution_clock::now();
 
-        return std::chrono::duration_cast<std::chrono::seconds>(current - since).count();
+        std::chrono::duration<float> elapsed = current - since;
+        return elapsed.count();
     }
 }
