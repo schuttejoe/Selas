@@ -22,7 +22,7 @@ namespace Selas
         FixedString64 keyDir;
         #if IsWindows_
             sprintf_s(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
-        #elif IsLinux_
+        #elif IsOsx_
             snprintf(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
         #endif
 

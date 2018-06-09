@@ -124,7 +124,7 @@ namespace Selas
         {
             #if IsWindows_
                 return _strnicmp(lhs, rhs, compareLength);
-            #elif IsLinux_
+            #elif IsOsx_
                 return strncmp(lhs, rhs, compareLength);
             #endif
         }
@@ -146,7 +146,7 @@ namespace Selas
         {
             #if IsWindows_
                 return (_stricmp(lhs, rhs) == 0);
-            #elif IsLinux_
+            #elif IsOsx_
                 return (strcmp(lhs, rhs) == 0);
             #endif
         }
@@ -166,7 +166,7 @@ namespace Selas
 
             #if IsWindows_
                 return _stricmp(lhs + startIndex, rhs) == 0;
-            #elif IsLinux_
+            #elif IsOsx_
                 return strcmp(lhs + startIndex, rhs) == 0;
             #endif
         }
@@ -176,7 +176,7 @@ namespace Selas
         {
             #if IsWindows_
                 strcpy_s(destString, destMaxLength, sourceString);
-            #elif IsLinux_
+            #elif IsOsx_
                 strncpy(destString, sourceString, destMaxLength);
             #endif
         }
@@ -188,7 +188,7 @@ namespace Selas
 
             #if IsWindows_
                 strncpy_s(destString, destMaxLength, sourceString, copyLength);
-            #elif IsLinux_
+            #elif IsOsx_
                 strncpy(destString, sourceString, copyLength);
             #endif
 
@@ -240,7 +240,7 @@ namespace Selas
                 if(GetFullPathNameA(src, (DWORD)maxLength, dst, nullptr) == 0) {
                     return false;
                 }
-            #elif IsLinux_
+            #elif IsOsx_
                 if(realpath(src, dst) == 0) {
                     return false;
                 }

@@ -42,7 +42,6 @@ namespace Selas
         int32 ToInt32(char const* text);
         float ToFloat(char const* text);
 
-        // -- Calls realpath(linux) or GetFullPathName (windows)
         bool FullPathName(cpointer src, char* dst, uint maxLength);
         char PathSeperator();
 

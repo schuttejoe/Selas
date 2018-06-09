@@ -19,7 +19,7 @@ typedef const char*        cpointer;
 #if IsWindows_
 	#define ForceInline_    __forceinline
 	#define Align_(x)       __declspec(align(x))
-#elif IsLinux_
+#elif IsOsx_
 	#define ForceInline_ 	inline
 	#define Align_(x)       __attribute__ ((aligned(x)))
 #endif

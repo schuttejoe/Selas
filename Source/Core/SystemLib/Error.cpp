@@ -9,7 +9,7 @@
     // -- for DebugBreak
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
-#elif IsLinux_
+#elif IsOsx_
     #include <stdarg.h>
 #endif
 
@@ -47,7 +47,7 @@ namespace Selas
 
         #if IsWindows_
             uint32 errorStrLength = _vscprintf(message, varg) + 1;
-        #elif IsLinux_
+        #elif IsOsx_
             uint32 errorStrLength = vsnprintf(NULL, 0, message, varg) + 1;
         #endif
 
@@ -57,7 +57,7 @@ namespace Selas
 
         #if IsWindows_
             vsnprintf_s(errorMessage, errorStrLength, _TRUNCATE, message, varg);
-        #elif IsLinux_
+        #elif IsOsx_
             vsnprintf(errorMessage, errorStrLength, message, varg);
         #endif
 
@@ -66,13 +66,13 @@ namespace Selas
         #if IsWindows_
             OutputDebugStringA(errorMessage);
             OutputDebugStringA("\n");
-        #elif IsLinux_
+        #elif IsOsx_
             printf("%s\n", errorMessage);
         #endif
 
         #if IsWindows_
             DebugBreak();
-        #elif IsLinux_
+        #elif IsOsx_
             __builtin_trap();
         #endif
     }

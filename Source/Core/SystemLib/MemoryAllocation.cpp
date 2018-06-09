@@ -175,7 +175,7 @@ namespace Selas
     {
         #if IsWindows_
             void* address = _aligned_malloc(size, alignment);
-        #elif IsLinux_
+        #elif IsOsx_
             void* address = nullptr;
             if(posix_memalign(&address, alignment, size) != 0) {
                 return nullptr;
@@ -228,7 +228,7 @@ namespace Selas
 
         #if IsWindows_
             _aligned_free(address);
-        #elif IsLinux_
+        #elif IsOsx_
             // -- posix_memalign just pairs with free.
             free(address);
         #endif

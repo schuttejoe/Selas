@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#if IsLinux_
+#if IsOsx_
 
 #include "IoLib/Directory.h"
 #include "StringLib/FixedString.h"

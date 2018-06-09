@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#if IsLinux_
+#if IsOsx_
 
 #include "SystemLib/OSThreading.h"
 #include "SystemLib/MemoryAllocation.h"

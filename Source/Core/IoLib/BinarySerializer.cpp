@@ -23,7 +23,7 @@ namespace Selas
         #if IsWindows_
             FILE* file = nullptr;
             fopen_s(&file, filename, "wb");
-        #elif IsLinux_
+        #elif IsOsx_
             FILE* file = fopen(filename, "wb");
         #endif
 

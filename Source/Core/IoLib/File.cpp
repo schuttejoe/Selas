@@ -21,7 +21,7 @@ namespace Selas
 
             #if IsWindows_
                 fopen_s(&result, filepath, mode);
-            #elif IsLinux_
+            #elif IsOsx_
                 result = fopen(filepath, mode);
             #endif
 

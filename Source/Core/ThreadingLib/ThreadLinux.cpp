@@ -2,7 +2,7 @@
 // Joe Schutte
 //==============================================================================
 
-#if IsLinux_
+#if IsOsx_
 
 #include "ThreadingLib/Thread.h"
 #include "SystemLib/BasicTypes.h"
