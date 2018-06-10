@@ -226,8 +226,12 @@ namespace Selas
     }
 
     //==============================================================================
-    bool CBuildDependencyGraph::UpToDate(BuildProcessDependencies* __restrict deps)
+    bool CBuildDependencyGraph::UpToDate(BuildProcessDependencies* __restrict deps, uint32 version)
     {
+        if(deps->version != version) {
+            return false;
+        }
+
         for(uint scan = 0, count = deps->contentDependencies.Length(); scan < count; ++scan) {
             ReturnFailure_(FileUpToDate(deps->contentDependencies[scan]));
         }

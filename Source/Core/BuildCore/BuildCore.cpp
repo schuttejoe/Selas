@@ -8,6 +8,7 @@
 #include "UtilityLib/MurmurHash.h"
 #include "ThreadingLib/JobMgr.h"
 #include "StringLib/StringUtil.h"
+#include "ContainersLib/QueueList.h"
 #include "SystemLib/JsAssert.h"
 #include "SystemLib/MemoryAllocation.h"
 
@@ -24,6 +25,7 @@ namespace Selas
     {
          ProcessorMap buildProcessors;
          CBuildDependencyGraph* __restrict depGraph;
+         QueueList pendingQueue;
     };
 
     CBuildCore::CBuildCore()
@@ -47,6 +49,7 @@ namespace Selas
 
         _coreData = New_(BuildCoreData);
         _coreData->depGraph = depGraph;
+        QueueList_Initialize(&_coreData->pendingQueue, /*maxFreeListSize=*/64);
     }
 
     //==============================================================================
@@ -55,6 +58,8 @@ namespace Selas
         for(ProcessorIterator it = _coreData->buildProcessors.begin(); it != _coreData->buildProcessors.end(); ++it) {
             Delete_(it->second);
         }
+
+        QueueList_Shutdown(&_coreData->pendingQueue);
 
         SafeDelete_(_coreData);
 
@@ -79,15 +84,22 @@ namespace Selas
         Assert_(_coreData != nullptr);
         Assert_(_coreData->depGraph != nullptr);
 
-        ProcessDependency processDep;
-        processDep.id = id;
+        BuildProcessDependencies* deps = _coreData->depGraph->Find(id);
+        if(deps == nullptr) {
+            deps = _coreData->depGraph->Create(id);
+        }
 
-        
+        QueueList_Push(&_coreData->pendingQueue, deps);
     }
 
     //==============================================================================
     Error CBuildCore::Execute()
     {
+        BuildProcessDependencies* next = QueueList_Pop<BuildProcessDependencies*>(&_coreData->pendingQueue);
+        while(next != nullptr) {
+            next = QueueList_Pop<BuildProcessDependencies*>(&_coreData->pendingQueue);
+        }
+
         return Success_;
     }
 }

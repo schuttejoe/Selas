@@ -57,6 +57,8 @@ namespace Selas
     //==============================================================================
     struct BuildProcessDependencies
     {
+        BuildProcessDependencies() : version(InvalidIndex32) {}
+
         uint32  version;
 
         CArray<ContentDependency> contentDependencies;
@@ -76,13 +78,13 @@ namespace Selas
 
         BuildProcessDependencies* Find(AssetId id);
         BuildProcessDependencies* Find(ContentId id);
-        BuildProcessDependencies* Create(ContentId id);
 
     private:
         BuildGraphData* _data;
 
         friend class CBuildCore;
 
-        bool UpToDate(BuildProcessDependencies* deps);
+        BuildProcessDependencies* Create(ContentId id);
+        bool UpToDate(BuildProcessDependencies* deps, uint32 version);
     };
 }
