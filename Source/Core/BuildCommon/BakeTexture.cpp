@@ -23,7 +23,7 @@ namespace Selas
         StringUtil::RemoveExtension(typelessName.Ascii());
 
         // JSTODO - Unify all assets using .bin extension
-        FixedString512 filepath;
+        FilePathString filepath;
         #if IsWindows_
             sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
         #else

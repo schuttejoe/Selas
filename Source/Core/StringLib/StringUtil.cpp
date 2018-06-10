@@ -235,6 +235,17 @@ namespace Selas
         }
 
         //==============================================================================
+        void Sprintf(char* dst, uint dstSize, const char* message, ...)
+        {
+            va_list varg;
+            va_start(varg, message);
+
+            vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+
+            va_end(varg);
+        }
+
+        //==============================================================================
         void RemoveExtension(char* str)
         {
             char* last = FindLastChar(str, '.');

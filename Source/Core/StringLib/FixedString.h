@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StringLib/StringUtil.h"
+#include "IoLib/File.h"
 
 //==============================================================================
 // Joe Schutte
@@ -29,5 +30,6 @@ namespace Selas
     typedef FixedString<128> FixedString128;
     typedef FixedString<256> FixedString256;
     typedef FixedString<512> FixedString512;
+    typedef FixedString<MaxPath_> FilePathString;
 }
 

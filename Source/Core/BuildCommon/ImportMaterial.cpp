@@ -17,7 +17,7 @@ namespace Selas
 
     Error ImportMaterial(cpointer materialName, ImportedMaterialData* material)
     {
-        FixedString512 filepath;
+        FilePathString filepath;
         #if IsWindows_
             sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
         #else

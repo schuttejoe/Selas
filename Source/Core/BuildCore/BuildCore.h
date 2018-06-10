@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include "BuildCore/BuildDependencyGraph.h"
 #include "ContainersLib/CArray.h"
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
@@ -26,9 +27,13 @@ namespace Selas
         CBuildCore();
         ~CBuildCore();
 
-        void Initialize(CJobMgr* jobMgr);
+        void Initialize(CJobMgr* jobMgr, CBuildDependencyGraph* depGraph);
         void Shutdown();
 
         void RegisterBuildProcessor(CBuildProcessor* processor);
+
+        void BuildAsset(ContentId id);
+        Error Execute();
+
     };
 }

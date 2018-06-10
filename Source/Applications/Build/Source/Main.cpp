@@ -4,9 +4,10 @@
 
 // -- Build
 #include "BuildCore/BuildCore.h"
+#include "BuildCore/BuildDependencyGraph.h"
 
-#include "BuildCommon/BuildImageBasedLight.h"
-#include "BuildCommon/BakeImageBasedLight.h"
+#include "BuildCommon/ImageBasedLightBuildProcessor.h"
+
 #include "BuildCommon/ImportModel.h"
 #include "BuildCommon/BuildScene.h"
 #include "BuildCommon/BakeScene.h"
@@ -14,7 +15,6 @@
 #include "BuildCommon/BakeTexture.h"
 
 // -- engine
-#include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/TextureResource.h"
 #include "ThreadingLib/JobMgr.h"
 #include "IoLib/File.h"
@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h>
+
 using namespace Selas;
 
 //=================================================================================================
@@ -39,15 +41,21 @@ int main(int argc, char *argv[])
     CJobMgr jobMgr;
     jobMgr.Initialize();
 
-    CBuildCore buildCore;
-    buildCore.Initialize(&jobMgr);
+    CBuildDependencyGraph depGraph;
+    ExitMainOnError_(depGraph.Initialize());
 
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Scenes\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\IBLs\\");
-    Directory::EnsureDirectoryExists("D:\\Shooty\\Selas\\_Assets\\Textures\\");
+    CBuildCore buildCore;
+    buildCore.Initialize(&jobMgr, &depGraph);
+
+    CImageBasedLightBuildProcessor* iblProcessor = New_(CImageBasedLightBuildProcessor);
+    buildCore.RegisterBuildProcessor(iblProcessor);
+
+    ContentId id("IBL", "HDR|simons_town_rocks_4k_upper.hdr");
+    buildCore.BuildAsset(id);
+
+    ExitMainOnError_(buildCore.Execute());
 
     #define ExportModel_ 0
-    #define ExportIbl_ 0
 
 #if ExportModel_
     ImportedModel importedModel;
@@ -69,18 +77,8 @@ int main(int argc, char *argv[])
 
     BakeScene(builtScene, "D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin");
 #endif
-
-#if ExportIbl_
-    ImageBasedLightResourceData iblData;
-    ExitMainOnError_(ImportImageBasedLight("D:\\Shooty\\Selas\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData));
-    ExitMainOnError_(BakeImageBasedLight(&iblData, "D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin"));
-
-    SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
-    SafeFree_(iblData.densityfunctions.marginalDensityFunction);
-    SafeFree_(iblData.hdrData);
-#endif
-
     buildCore.Shutdown();
+    ExitMainOnError_(depGraph.Shutdown());
     jobMgr.Shutdown();
 
     return 0;

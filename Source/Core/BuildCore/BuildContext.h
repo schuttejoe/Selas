@@ -9,19 +9,21 @@
 
 namespace Selas
 {
-
     //==============================================================================
     struct BuildProcessorContext
     {
-        BuildId         id;
-        BuildIdHash     hash;
+        ContentId source;
+        AssetId   id;
 
         Error AddFileDependency(cpointer file);
-        Error AddProcessDependency(const BuildId& id);
-        Error AddBuildDependency(const BuildId& dependee, const BuildId& dependency);
-        Error CreateOutput(cpointer type, cpointer name, const void* data, uint64 dataSize);
+        Error AddProcessDependency(const ContentId& id);
+        Error AddProcessDependency(const AssetId& id);
+        //Error AddBuildDependency(const BuildId& dependee, const BuildId& dependency);
+        Error CreateOutput(cpointer type, uint32 version, cpointer name, const void* data, uint64 dataSize);
 
     private:
-        BuildProcessDependencies* dependencies;
+        CArray<ContentDependency> contentDependencies;
+        CArray<ProcessDependency> processDependencies;
+        CArray<ProcessorOutput>   outputs;
     };
 }

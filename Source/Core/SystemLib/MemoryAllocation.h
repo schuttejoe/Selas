@@ -6,6 +6,8 @@
 
 #include "SystemLib/BasicTypes.h"
 
+#include <new>
+
 namespace Selas
 {
     #define PlacementNew_(Type_, Var_)                     new(Var_) Type_()

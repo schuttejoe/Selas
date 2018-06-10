@@ -4,6 +4,7 @@
 // Joe Schutte
 //==============================================================================
 
+#include "Assets/AssetFileUtils.h"
 #include "UtilityLib/MurmurHash.h"
 #include "StringLib/FixedString.h"
 #include "ContainersLib/CArray.h"
@@ -16,68 +17,72 @@ namespace Selas
     struct BuildGraphData;
 
     //==============================================================================
-    struct BuildId
+    struct ContentId
     {
-        bool contentPath;
         FixedString32   type;
         FixedString256  name;
+
+        ContentId();
+        ContentId(cpointer type_, cpointer name_);
     };
 
-    struct BuildIdHash
+    //==============================================================================
+    struct ContentDependency
     {
-        Hash32 type;
-        Hash32 name;
-    };
-
-    struct FileDependency
-    {
-        FixedString256 path;
-        Hash32         pathHash;
+        FilePathString path;
         FileTimestamp  timestamp;
     };
 
+    //==============================================================================
+    struct AssetDependency
+    {
+        AssetId        id;
+        FileTimestamp  timestamp;
+    };
+
+    //==============================================================================
     struct ProcessDependency
     {
-        BuildId     id;
-        BuildIdHash idHash;
+        ContentId id;
+        AssetId   assetId;
     };
 
-    struct BuildDependency
-    {
-        BuildId dependeeId;
-        BuildIdHash dependeeHash;
-
-        BuildId dependencyId;
-        BuildIdHash dependencyHash;
-    };
-
+    //==============================================================================
     struct ProcessorOutput
     {
-        BuildId id;
-        BuildIdHash idHash;
+        AssetId id;
+        uint32 version;
     };
 
     //==============================================================================
     struct BuildProcessDependencies
     {
-        CArray<FileDependency>    fileDependencies;
+        uint32  version;
+
+        CArray<ContentDependency> contentDependencies;
         CArray<ProcessDependency> processDependencies;
-        CArray<BuildDependency>   buildDependencies;
         CArray<ProcessorOutput>   outputs;
     };
 
     //==============================================================================
     class CBuildDependencyGraph
     {
+    public:
         CBuildDependencyGraph();
         ~CBuildDependencyGraph();
 
         Error Initialize();
         Error Shutdown();
 
-        BuildProcessDependencies* Find(BuildId id);
+        BuildProcessDependencies* Find(AssetId id);
+        BuildProcessDependencies* Find(ContentId id);
+        BuildProcessDependencies* Create(ContentId id);
 
     private:
-        BuildGraphData* data;
+        BuildGraphData* _data;
+
+        friend class CBuildCore;
+
+        bool UpToDate(BuildProcessDependencies* deps);
     };
 }

@@ -116,7 +116,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static uint32 AddTexture(BuiltScene* builtScene, const FixedString256& path)
+    static uint32 AddTexture(BuiltScene* builtScene, const FilePathString& path)
     {
         // JSTODO - Implement a hash set
         for(uint scan = 0, count = builtScene->textures.Length(); scan < count; ++scan) {

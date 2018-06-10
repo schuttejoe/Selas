@@ -43,6 +43,7 @@ namespace Selas
         float ToFloat(char const* text);
 
         void Sprintf(char* dst, uint32 dstSize, const char* message, ...);
+        void Sprintf(char* dst, uint dstSize, const char* message, ...);
 
         // -- file name utilities
 

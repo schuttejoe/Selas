@@ -20,12 +20,12 @@ namespace Selas
     {
         FixedString256 shaderName;
 
-        FixedString256 albedoTextureName;
-        FixedString256 heightTextureName;
-        FixedString256 normalTextureName;
-        FixedString256 roughnessTextureName;
-        FixedString256 specularTextureName;
-        FixedString256 metalnessTextureName;
+        FilePathString albedoTextureName;
+        FilePathString heightTextureName;
+        FilePathString normalTextureName;
+        FilePathString roughnessTextureName;
+        FilePathString specularTextureName;
+        FilePathString metalnessTextureName;
 
         float roughness;
         float albedo;
@@ -70,7 +70,7 @@ namespace Selas
         float4 boundingSphere;
 
         // -- material information
-        CArray<FixedString256> textures;
+        CArray<FilePathString> textures;
         CArray<Material>       materials;
 
         // -- geometry information
