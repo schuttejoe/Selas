@@ -16,10 +16,9 @@ namespace Selas
     {
         ContentDependency& dep = contentDependencies.Add();
 
-        // JSTODO - Strip the environment root so the asset table can be transfered between machines
-        StringUtil::SanitizePath(file, dep.path.Ascii(), dep.path.Capcaity());
+        AssetFileUtils::SanitizeContentPath(file, dep.path);
 
-        if(FileTime(dep.path.Ascii(), &dep.timestamp) == false) {
+        if(FileTime(file, &dep.timestamp) == false) {
             return Error_("Failed to find file: %s", file);
         }
 
@@ -27,22 +26,11 @@ namespace Selas
     }
 
     //==============================================================================
-    Error BuildProcessorContext::AddProcessDependency(const ContentId& id)
+    Error BuildProcessorContext::AddProcessDependency(const ContentId& source)
     {
         ProcessDependency& dep = processDependencies.Add();
-        dep.id = id;
-        dep.assetId = AssetId();
-
-        return Success_;
-    }
-
-    //==============================================================================
-    Error BuildProcessorContext::AddProcessDependency(const AssetId& id)
-    {
-        ProcessDependency& dep = processDependencies.Add();
-        dep.id.type.Clear();
-        dep.id.name.Clear();
-        dep.assetId = id;
+        dep.source = source;
+        dep.id = AssetId(source.type.Ascii(), source.name.Ascii());
 
         return Success_;
     }
@@ -58,9 +46,10 @@ namespace Selas
     //}
 
     //==============================================================================
-    Error BuildProcessorContext::CreateOutput(cpointer type, uint32 version, cpointer name, const void* data, uint64 dataSize)
+    Error BuildProcessorContext::CreateOutput(cpointer type, uint64 version, cpointer name, const void* data, uint64 dataSize)
     {
         ProcessorOutput& output = outputs.Add();
+        output.source = ContentId(type, name);
         output.id = AssetId(type, name);
         output.version = version;
 
@@ -70,5 +59,16 @@ namespace Selas
         ReturnError_(File::WriteWholeFile(filepath.Ascii(), data, (uint32)dataSize));
 
         return Success_;
+    }
+
+    //==============================================================================
+    void BuildProcessorContext::Initialize(ContentId source_, AssetId id_)
+    {
+        source = source_;
+        id = id_;
+
+        Assert_(contentDependencies.Length() == 0);
+        Assert_(processDependencies.Length() == 0);
+        Assert_(outputs.Length() == 0);
     }
 }

@@ -16,7 +16,7 @@ namespace Selas
     //==============================================================================
     Error CImageBasedLightBuildProcessor::Setup()
     {
-        AssetFileUtils::EnsureAssetDirectory("IBL");
+        AssetFileUtils::EnsureAssetDirectory<ImageBasedLightResource>();
 
         return Success_;
     }
@@ -24,21 +24,21 @@ namespace Selas
     //==============================================================================
     cpointer CImageBasedLightBuildProcessor::Type()
     {
-        return "IBL";
+        return "HDR";
     }
 
     //==============================================================================
     uint64 CImageBasedLightBuildProcessor::Version()
     {
-        return 1528575978ul;
+        return ImageBasedLightResource::kDataVersion;
     }
 
     //==============================================================================
     Error CImageBasedLightBuildProcessor::Process(BuildProcessorContext* context)
     {
         ImageBasedLightResourceData iblData;
-        ReturnError_(ImportImageBasedLight("D:\\Shooty\\Selas\\Content\\HDR\\simons_town_rocks_4k_upper.hdr", &iblData));
-        ReturnError_(BakeImageBasedLight(&iblData, "D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin"));
+        ReturnError_(ImportImageBasedLight(context, &iblData));
+        ReturnError_(BakeImageBasedLight(context, &iblData));
 
         SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);
         SafeFree_(iblData.densityfunctions.marginalDensityFunction);

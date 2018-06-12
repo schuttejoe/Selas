@@ -93,6 +93,12 @@ namespace Selas
     }
 
     //==============================================================================
+    bool QueueList_Empty(QueueList* queueList)
+    {
+        return queueList->front == nullptr;
+    }
+
+    //==============================================================================
     void QueueList_Push(QueueList* __restrict queueList, void* data)
     {
         QueueListNode* node = QueueList_AllocateNode(queueList);

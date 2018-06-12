@@ -118,6 +118,12 @@ namespace Selas
         volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
         *atom = 0;
     }
+
+    //==============================================================================
+    void Sleep(uint sleepTimeMs)
+    {
+        ::Sleep((DWORD)sleepTimeMs);
+    }
 }
 
 #endif

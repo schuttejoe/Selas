@@ -52,7 +52,7 @@ namespace Selas
         char PathSeperator();
 
         // -- unify paths so the same asset receives the same has across multiple platforms
-        bool SanitizePath(cpointer src, char* dst, uint maxLength);
+        bool SanitizePath(cpointer root, char pathSep, cpointer src, char* dst, uint maxLength);
 
         cpointer LastFileOrFolderName(char* path);
         void RemoveLastFileOrFolder(char* path);

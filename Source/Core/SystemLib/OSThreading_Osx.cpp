@@ -120,6 +120,12 @@ namespace Selas
      	volatile int32* address = (volatile int32*)(spinlock);
         *address = 0;
     }
+
+    //==============================================================================
+    void Sleep(uint sleepTimeMs)
+    {
+        static_assert(false); // NYI
+    }
 }
 
 #endif

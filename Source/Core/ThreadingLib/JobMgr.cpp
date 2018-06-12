@@ -82,6 +82,12 @@ namespace Selas
     }
 
     //==============================================================================
+    bool CJobMgr::GroupDone(JobGroup* group)
+    {
+        return group->groupCount == 0;
+    }
+
+    //==============================================================================
     void CJobMgr::WaitForGroup(JobGroup* group)
     {
         Assert_(group);

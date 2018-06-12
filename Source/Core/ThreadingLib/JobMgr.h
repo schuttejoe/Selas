@@ -29,6 +29,8 @@ namespace Selas
     struct JobGroup
     {
         int32 groupCount;
+        uint32 padding[CacheLineSize_ - sizeof(int32)];
+
         JobGroup() : groupCount(0) {}
     };
 
@@ -49,6 +51,8 @@ namespace Selas
         void Shutdown(void);
 
         void CreateJob(JobFunction job, void* user_data, JobGroup* group = nullptr);
+        
+        bool GroupDone(JobGroup* group);
         void WaitForGroup(JobGroup* group);
         void WaitAll(void);
 

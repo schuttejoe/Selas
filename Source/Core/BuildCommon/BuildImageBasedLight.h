@@ -10,6 +10,7 @@
 namespace Selas
 {
     struct ImageBasedLightResourceData;
+    struct BuildProcessorContext;
 
-    Error ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl);
+    Error ImportImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* ibl);
 }

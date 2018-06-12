@@ -27,6 +27,9 @@ namespace Selas
 
     struct ImageBasedLightResource
     {
+        static cpointer kDataType;
+        static const uint64 kDataVersion = 1528783850ul;
+
         ImageBasedLightResourceData* data;
     };
 

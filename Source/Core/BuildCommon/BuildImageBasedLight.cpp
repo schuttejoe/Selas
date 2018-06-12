@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/BuildImageBasedLight.h"
+#include "BuildCore/BuildContext.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/StbImage.h"
 #include "MathLib/FloatFuncs.h"
@@ -95,13 +96,17 @@ namespace Selas
     }
 
     //==============================================================================
-    Error ImportImageBasedLight(const char* filename, ImageBasedLightResourceData* ibl)
+    Error ImportImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* ibl)
     {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
+        context->AddFileDependency(filepath.Ascii());
+
         uint width;
         uint height;
         uint channels;
         void* raw;
-        ReturnError_(StbImageRead(filename, 3, width, height, channels, raw));
+        ReturnError_(StbImageRead(filepath.Ascii(), 3, width, height, channels, raw));
 
         ibl->hdrData = reinterpret_cast<float3*>(raw);
 

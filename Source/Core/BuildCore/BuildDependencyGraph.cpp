@@ -19,7 +19,7 @@ namespace Selas
     typedef std::map<AssetId, BuildProcessDependencies*>::iterator DependencyIterator;
 
     #define BuildDependencyGraphType_ "builddependencygraph"
-    #define BuildDependencyGraphVersion_ 1528587150ul
+    #define BuildDependencyGraphVersion_ 1528779796ul
 
     //==============================================================================
     struct BuildGraphData
@@ -54,9 +54,10 @@ namespace Selas
     }
 
     //==============================================================================
-    static void WriteBuildProcessDependency(BinaryWriter* writer, AssetId id, BuildProcessDependencies* deps)
+    static void WriteBuildProcessDependency(BinaryWriter* writer, BuildProcessDependencies* deps)
     {
-        SerializerWrite(writer, &id, sizeof(id));
+        SerializerWrite(writer, &deps->source, sizeof(deps->source));
+        SerializerWrite(writer, &deps->id, sizeof(deps->id));
         SerializerWrite(writer, &deps->version, sizeof(deps->version));
 
         WriteArray(writer, deps->contentDependencies);
@@ -66,9 +67,10 @@ namespace Selas
     }
 
     //==============================================================================
-    static void ReadBuildProcessDependency(BinaryReader* reader, AssetId& id, BuildProcessDependencies* deps)
+    static void ReadBuildProcessDependency(BinaryReader* reader, BuildProcessDependencies* deps)
     {
-        SerializerRead(reader, &id, sizeof(id));
+        SerializerRead(reader, &deps->source, sizeof(deps->source));
+        SerializerRead(reader, &deps->id, sizeof(deps->id));
         SerializerRead(reader, &deps->version, sizeof(deps->version));
 
         ReadArray(reader, deps->contentDependencies);
@@ -100,13 +102,13 @@ namespace Selas
         for(uint32 scan = 0; scan < count; ++scan) {
             BuildProcessDependencies* deps = New_(BuildProcessDependencies);
 
-            AssetId id;
-            ReadBuildProcessDependency(&reader, id, deps);
+            ReadBuildProcessDependency(&reader, deps);
 
-            data->dependencyGraph.insert(DependencyKeyValue(id, deps));
+            data->dependencyGraph.insert(DependencyKeyValue(deps->id, deps));
         }
 
         SerializerEnd(&reader);
+        FreeAligned_(fileData);
 
         return Success_;
     }
@@ -118,35 +120,27 @@ namespace Selas
         BuildGraphFilePath(filepath);
 
         BinaryWriter writer;
-        ReturnError_(SerializerStart(&writer, filepath.Ascii(), 1024 * 1024, 1024 * 1024));
+        SerializerStart(&writer, 1024 * 1024, 1024 * 1024);
 
         uint32 count = (uint32)data->dependencyGraph.size();
         SerializerWrite(&writer, &count, sizeof(count));
 
         for(DependencyIterator it = data->dependencyGraph.begin(); it != data->dependencyGraph.end(); ++it) {
-            WriteBuildProcessDependency(&writer, it->first, it->second);
+            WriteBuildProcessDependency(&writer, it->second);
         }
 
-        ReturnError_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer, filepath.Ascii()));
 
         return Success_;
     }
 
     //==============================================================================
-    ContentId::ContentId()
+    void ResetBuildProcessDependencies(BuildProcessDependencies* deps)
     {
-        type.Clear();
-        name.Clear();
-    }
-
-    //==============================================================================
-    ContentId::ContentId(cpointer type_, cpointer name_)
-    {
-        type.Copy(type_);
-        name.Copy(name_);
-
-        // JSTODO -- Validation that name doesn't contain path separators other than
-        // -- '|' and that it doesn't contain the root
+        deps->version = InvalidIndex32;
+        deps->contentDependencies.Close();
+        deps->processDependencies.Close();
+        deps->outputs.Close();
     }
 
     //==============================================================================
@@ -203,13 +197,15 @@ namespace Selas
     }
 
     //==============================================================================
-    BuildProcessDependencies* CBuildDependencyGraph::Create(ContentId contentId)
-    {
-        AssetId id(contentId.type.Ascii(), contentId.name.Ascii());
-        
+    BuildProcessDependencies* CBuildDependencyGraph::Create(ContentId source)
+    {       
+        AssetId id(source.type.Ascii(), source.name.Ascii());
+
         Assert_(_data->dependencyGraph.find(id) == _data->dependencyGraph.end());
 
         BuildProcessDependencies* deps = New_(BuildProcessDependencies);
+        deps->id = id;
+        deps->source = source;
 
         _data->dependencyGraph.insert(DependencyKeyValue(id, deps));
 
@@ -219,14 +215,17 @@ namespace Selas
     //==============================================================================
     static bool FileUpToDate(const ContentDependency& fileDep)
     {
+        FilePathString contentFilePath;
+        AssetFileUtils::ContentFilePath(fileDep.path.Ascii(), contentFilePath);
+
         FileTimestamp timestamp;
-        ReturnFailure_(FileTime(fileDep.path.Ascii(), &timestamp));
+        ReturnFailure_(FileTime(contentFilePath.Ascii(), &timestamp));
 
         return CompareFileTime(fileDep.timestamp, timestamp);
     }
 
     //==============================================================================
-    bool CBuildDependencyGraph::UpToDate(BuildProcessDependencies* __restrict deps, uint32 version)
+    bool CBuildDependencyGraph::UpToDate(BuildProcessDependencies* __restrict deps, uint64 version)
     {
         if(deps->version != version) {
             return false;

@@ -50,8 +50,7 @@ int main(int argc, char *argv[])
     CImageBasedLightBuildProcessor* iblProcessor = New_(CImageBasedLightBuildProcessor);
     buildCore.RegisterBuildProcessor(iblProcessor);
 
-    ContentId id("IBL", "HDR|simons_town_rocks_4k_upper.hdr");
-    buildCore.BuildAsset(id);
+    buildCore.BuildAsset(ContentId("HDR", "HDR|simons_town_rocks_4k_upper.hdr"));
 
     ExitMainOnError_(buildCore.Execute());
 

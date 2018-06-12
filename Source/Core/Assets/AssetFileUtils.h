@@ -12,6 +12,16 @@ namespace Selas
 {
     #define InvalidAsset_ 0xFFFFFFFF
 
+    //==============================================================================
+    struct ContentId
+    {
+        FixedString32  type;
+        FixedString256 name;
+
+        ContentId();
+        ContentId(cpointer type_, cpointer name_);
+    };
+
     struct AssetId
     {
         Hash32 type;
@@ -52,9 +62,21 @@ namespace Selas
 
     namespace AssetFileUtils
     {
-        void EnsureAssetDirectory(cpointer type);
+        void ContentDirectoryRoot(FilePathString& filepath);
+        void AssetsDirectoryRoot(FilePathString& filepath);
 
-        void AssetFilePath(cpointer type, uint32 version, cpointer name, FilePathString& filepath);
-        void AssetFilePath(AssetId id, uint32 version, FilePathString& filepath);
+        void ContentFilePath(cpointer name, FilePathString& filepath);
+        void SanitizeContentPath(cpointer filepath, FilePathString& sanitized);
+
+        void AssetFilePath(cpointer type, uint64 version, cpointer name, FilePathString& filepath);
+        void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath);
+
+        void EnsureAssetDirectory(cpointer typeStr, uint64 version);
+
+        template<typename Type_>
+        void EnsureAssetDirectory()
+        {
+            EnsureAssetDirectory(Type_::kDataType, Type_::kDataVersion);
+        }
     }
 }

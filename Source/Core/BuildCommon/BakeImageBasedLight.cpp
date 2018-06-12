@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/BakeImageBasedLight.h"
+#include "BuildCore/BuildContext.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "MathLib/ImportanceSampling.h"
 #include "IoLib/BinarySerializer.h"
@@ -10,7 +11,7 @@
 namespace Selas
 {
     //==============================================================================
-    Error BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath)
+    Error BakeImageBasedLight(BuildProcessorContext* context, const ImageBasedLightResourceData* data)
     {
         uint64 width = data->densityfunctions.width;
         uint64 height = data->densityfunctions.height;
@@ -20,7 +21,7 @@ namespace Selas
         uint hdrDataSize = sizeof(float3) * width * height;
 
         BinaryWriter writer;
-        ReturnError_(SerializerStart(&writer, filepath, 64, (uint32)(marginalDensityFunctionSize + conditionalDensityFunctionSize + hdrDataSize)));
+        SerializerStart(&writer, 64, (uint32)(marginalDensityFunctionSize + conditionalDensityFunctionSize + hdrDataSize));
 
         SerializerWrite(&writer, &width, sizeof(width));
         SerializerWrite(&writer, &height, sizeof(height));
@@ -32,7 +33,14 @@ namespace Selas
         SerializerWritePointerOffsetX64(&writer);
         SerializerWritePointerData(&writer, data->hdrData, hdrDataSize);
 
-        ReturnError_(SerializerEnd(&writer));
+        void* rawData;
+        uint32 dataSize;
+        ReturnError_(SerializerEnd(&writer, rawData, dataSize));
+
+        ReturnError_(context->CreateOutput(ImageBasedLightResource::kDataType, ImageBasedLightResource::kDataVersion,
+                                           context->source.name.Ascii(), rawData, dataSize));
+
+        Free_(rawData);
 
         return Success_;
     }

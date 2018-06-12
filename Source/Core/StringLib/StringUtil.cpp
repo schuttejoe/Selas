@@ -3,7 +3,7 @@
 //==============================================================================
 
 #include "StringLib/StringUtil.h"
-#include "IoLib/Environment.h"
+#include "StringLib/FixedString.h"
 #include "SystemLib/JsAssert.h"
 #include "SystemLib/CheckedCast.h"
 #include <string.h>
@@ -286,22 +286,20 @@ namespace Selas
         }
 
         //=================================================================================================
-        bool SanitizePath(cpointer src, char* dst, uint maxLength)
+        bool SanitizePath(cpointer root, char pathSep, cpointer src, char* dst, uint maxLength)
         {
-            FixedString128 projectRoot = Environment_Root();
-
             FixedString256 temp;
             ReturnFailure_(FullPathName(src, temp.Ascii(), temp.Capcaity()));
 
             uint offset = 0;
 
-            const char* root = FindSubString(temp.Ascii(), projectRoot.Ascii());
-            if(root != nullptr) {
-                offset = Length(projectRoot.Ascii());
+            const char* rootAddr = FindSubString(temp.Ascii(), root);
+            if(rootAddr != nullptr) {
+                offset = Length(root);
             }
 
-            char pathSep = PathSeperator();
-            ReplaceAll(temp.Ascii(), pathSep, '|');
+            ReplaceAll(temp.Ascii(), '\\', pathSep);
+            ReplaceAll(temp.Ascii(), '/', pathSep);
 
             Copy(dst, (uint32)maxLength, temp.Ascii() + offset);
 

@@ -31,4 +31,7 @@ namespace Selas
     void     CloseSpinlock(void* spinlock);
     void     EnterSpinLock(void* spinlock);
     void     LeaveSpinLock(void* spinlock);
+
+    // Sleep
+    void     Sleep(uint sleepTimeMs);
 }

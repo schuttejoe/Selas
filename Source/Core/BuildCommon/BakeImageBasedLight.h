@@ -10,7 +10,8 @@
 namespace Selas
 {
     struct ImageBasedLightResourceData;
+    struct BuildProcessorContext;
 
     //==============================================================================
-    Error BakeImageBasedLight(const ImageBasedLightResourceData* data, cpointer filepath);
+    Error BakeImageBasedLight(BuildProcessorContext* context, const ImageBasedLightResourceData* data);
 }

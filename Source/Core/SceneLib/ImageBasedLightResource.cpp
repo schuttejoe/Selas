@@ -12,6 +12,8 @@
 
 namespace Selas
 {
+    cpointer ImageBasedLightResource::kDataType = "IBL";
+
     //==============================================================================
     Error ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)
     {

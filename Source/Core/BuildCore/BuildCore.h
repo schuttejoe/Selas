@@ -18,11 +18,6 @@ namespace Selas
 
     class CBuildCore
     {
-    private:
-
-        CJobMgr*                _jobMgr;
-        BuildCoreData*          _coreData;
-
     public:
         CBuildCore();
         ~CBuildCore();
@@ -31,9 +26,21 @@ namespace Selas
         void Shutdown();
 
         void RegisterBuildProcessor(CBuildProcessor* processor);
+        Error BuildAsset(ContentId id);
 
-        void BuildAsset(ContentId id);
         Error Execute();
 
+    private:
+        CJobMgr*        _jobMgr;
+        BuildCoreData*  _coreData;
+
+        void EnqueueInternal(ContentId source, AssetId id);
+        void EnqueueDependencies(BuildProcessDependencies* dependencies);
+
+        bool IsBuildComplete();
+        bool HasCompletedProcesses();
+        
+        bool ProcessCompletedQueue();
+        bool ProcessPendingQueue();
     };
 }

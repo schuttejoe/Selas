@@ -49,7 +49,7 @@ namespace Selas
         uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
 
         BinaryWriter writer;
-        ReturnError_(SerializerStart(&writer, filepath, 0, presize));
+        SerializerStart(&writer, 0, presize);
 
         SerializerWrite(&writer, &sceneData.camera, sizeof(sceneData.camera));
         SerializerWrite(&writer, &sceneData.aaBox, sizeof(sceneData.aaBox));
@@ -58,7 +58,7 @@ namespace Selas
         SerializeMaterials(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 
-        ReturnError_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer, filepath));
 
         return Success_;
     }

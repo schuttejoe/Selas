@@ -31,7 +31,7 @@ namespace Selas
         #endif
 
         BinaryWriter writer;
-        ReturnError_(SerializerStart(&writer, filepath.Ascii(), data->dataSize + sizeof(*data)));
+        SerializerStart(&writer, data->dataSize + sizeof(*data));
 
         SerializerWrite(&writer, &data->mipCount, sizeof(data->mipCount));
         SerializerWrite(&writer, &data->dataSize, sizeof(data->dataSize));
@@ -46,7 +46,7 @@ namespace Selas
         SerializerWritePointerOffsetX64(&writer);
         SerializerWritePointerData(&writer, data->texture, data->dataSize);
 
-        ReturnError_(SerializerEnd(&writer));
+        ReturnError_(SerializerEnd(&writer, filepath.Ascii()));
 
         return Success_;
     }

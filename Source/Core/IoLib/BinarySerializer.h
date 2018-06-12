@@ -19,8 +19,6 @@ namespace Selas
     //==============================================================================
     struct BinaryWriter
     {
-        void*     file;
-
         CArray<uint8>       rawData;
         CArray<PointerDesc> pointers;
         CArray<uint8>       pointerData;
@@ -35,8 +33,9 @@ namespace Selas
     };
 
     // Write interface
-    Error SerializerStart(BinaryWriter* serializer, const char* filename, uint32 sizea = 0, uint32 sizeb = 0);
-    Error SerializerEnd(BinaryWriter* serializer);
+    void SerializerStart(BinaryWriter* serializer, uint32 sizea = 0, uint32 sizeb = 0);
+    Error SerializerEnd(BinaryWriter* serializer, cpointer filepath);
+    Error SerializerEnd(BinaryWriter* serializer, void*& data, uint32& dataSize);
     void SerializerWrite(BinaryWriter* serializer, const void* data, uint size);
 
     void SerializerWritePointerData(BinaryWriter* serializer, const void* data, uint size);

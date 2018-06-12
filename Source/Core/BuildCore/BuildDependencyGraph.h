@@ -17,16 +17,6 @@ namespace Selas
     struct BuildGraphData;
 
     //==============================================================================
-    struct ContentId
-    {
-        FixedString32   type;
-        FixedString256  name;
-
-        ContentId();
-        ContentId(cpointer type_, cpointer name_);
-    };
-
-    //==============================================================================
     struct ContentDependency
     {
         FilePathString path;
@@ -43,15 +33,16 @@ namespace Selas
     //==============================================================================
     struct ProcessDependency
     {
-        ContentId id;
-        AssetId   assetId;
+        ContentId source;
+        AssetId   id;
     };
 
     //==============================================================================
     struct ProcessorOutput
     {
+        ContentId source;
         AssetId id;
-        uint32 version;
+        uint64 version;
     };
 
     //==============================================================================
@@ -59,12 +50,16 @@ namespace Selas
     {
         BuildProcessDependencies() : version(InvalidIndex32) {}
 
-        uint32  version;
+        ContentId   source;
+        AssetId     id;
+        uint64      version;
 
         CArray<ContentDependency> contentDependencies;
         CArray<ProcessDependency> processDependencies;
         CArray<ProcessorOutput>   outputs;
     };
+
+    void ResetBuildProcessDependencies(BuildProcessDependencies* deps);
 
     //==============================================================================
     class CBuildDependencyGraph
@@ -85,6 +80,6 @@ namespace Selas
         friend class CBuildCore;
 
         BuildProcessDependencies* Create(ContentId id);
-        bool UpToDate(BuildProcessDependencies* deps, uint32 version);
+        bool UpToDate(BuildProcessDependencies* deps, uint64 version);
     };
 }
