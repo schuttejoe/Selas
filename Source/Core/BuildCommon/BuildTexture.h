@@ -11,6 +11,7 @@
 namespace Selas
 {
     struct TextureResourceData;
+    struct BuildProcessorContext;
 
     enum TextureMipFilters
     {
@@ -19,5 +20,5 @@ namespace Selas
         //Lanczos
     };
 
-    Error ImportTexture(const char* filepath, TextureMipFilters prefilter, TextureResourceData* texture);
+    Error ImportTexture(BuildProcessorContext* context, TextureMipFilters prefilter, TextureResourceData* texture);
 }

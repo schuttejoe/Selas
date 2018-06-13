@@ -10,8 +10,9 @@
 namespace Selas
 {
     struct TextureResourceData;
+    struct BuildProcessorContext;
 
     //==============================================================================
-    Error BakeTexture(const TextureResourceData* data, cpointer filepath);
+    Error BakeTexture(BuildProcessorContext* context, const TextureResourceData* data);
 
 }

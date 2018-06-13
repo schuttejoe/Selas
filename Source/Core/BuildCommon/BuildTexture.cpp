@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/BuildTexture.h"
+#include "BuildCore/BuildContext.h"
 #include "TextureLib/StbImage.h"
 #include "TextureLib/TextureResource.h"
 #include "UtilityLib/Color.h"
@@ -20,8 +21,6 @@
 
 namespace Selas
 {
-    cpointer TextureBaseDirectory = "D:\\Shooty\\Selas\\Content\\Textures\\";
-
     //==============================================================================
     static void Uint32ToLinearFloat3(bool isLinear, uint width, uint height, uint32* rawData, float3* output)
     {
@@ -262,20 +261,17 @@ namespace Selas
     }
 
     //==============================================================================
-    Error ImportTexture(cpointer textureName, TextureMipFilters prefilter, TextureResourceData* texture)
+    Error ImportTexture(BuildProcessorContext* context, TextureMipFilters prefilter, TextureResourceData* texture)
     {
         FilePathString filepath;
-        #if IsWindows_
-            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s", TextureBaseDirectory, textureName);
-        #else
-            sprintf(filepath.Ascii(), "%s%s", TextureBaseDirectory, textureName);
-        #endif
+        AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
+        context->AddFileDependency(filepath.Ascii());
 
         //LoadLinearFloaData
         FixedString32 extension;
         StringUtil::GetExtension(filepath.Ascii(), extension.Ascii(), (uint32)extension.Capcaity());
 
-        MaterialTextureTypes type = DetermineMaterialType(textureName);
+        MaterialTextureTypes type = DetermineMaterialType(context->source.name.Ascii());
         Assert_(type != Unknown);
 
         bool result;

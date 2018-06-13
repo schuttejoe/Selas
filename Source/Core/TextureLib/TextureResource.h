@@ -36,6 +36,9 @@ namespace Selas
 
     struct TextureResource
     {
+        static cpointer kDataType;
+        static const uint64 kDataVersion = 1528864087ul;
+
         TextureResourceData* data;
     };
 

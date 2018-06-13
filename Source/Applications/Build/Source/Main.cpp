@@ -7,6 +7,7 @@
 #include "BuildCore/BuildDependencyGraph.h"
 
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
+#include "BuildCommon/TextureBuildProcessor.h"
 
 #include "BuildCommon/ImportModel.h"
 #include "BuildCommon/BuildScene.h"
@@ -49,8 +50,11 @@ int main(int argc, char *argv[])
 
     CImageBasedLightBuildProcessor* iblProcessor = New_(CImageBasedLightBuildProcessor);
     buildCore.RegisterBuildProcessor(iblProcessor);
+    CTextureBuildProcessor* textureProcessor = New_(CTextureBuildProcessor);
+    buildCore.RegisterBuildProcessor(textureProcessor);
 
     buildCore.BuildAsset(ContentId("HDR", "HDR|simons_town_rocks_4k_upper.hdr"));
+    buildCore.BuildAsset(ContentId("Texture", "Textures|Bricks07|Bricks07_Albedo.jpg"));
 
     ExitMainOnError_(buildCore.Execute());
 

@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/BakeTexture.h"
+#include "BuildCore/BuildContext.h"
 #include "TextureLib/TextureResource.h"
 #include "StringLib/FixedString.h"
 #include "IoLib/BinarySerializer.h"
@@ -11,24 +12,14 @@
 
 namespace Selas
 {
-    cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
-
     //==============================================================================
-    Error BakeTexture(const TextureResourceData* data, cpointer textureName)
+    Error BakeTexture(BuildProcessorContext* context, const TextureResourceData* data)
     {
         uint32 pad = 0;
 
         FixedString256 typelessName;
-        typelessName.Copy(textureName);
+        typelessName.Copy(context->source.name.Ascii());
         StringUtil::RemoveExtension(typelessName.Ascii());
-
-        // JSTODO - Unify all assets using .bin extension
-        FilePathString filepath;
-        #if IsWindows_
-            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
-        #else
-            sprintf(filepath.Ascii(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
-        #endif
 
         BinaryWriter writer;
         SerializerStart(&writer, data->dataSize + sizeof(*data));
@@ -46,7 +37,14 @@ namespace Selas
         SerializerWritePointerOffsetX64(&writer);
         SerializerWritePointerData(&writer, data->texture, data->dataSize);
 
-        ReturnError_(SerializerEnd(&writer, filepath.Ascii()));
+        void* rawData;
+        uint32 rawSize;
+        ReturnError_(SerializerEnd(&writer, rawData, rawSize));
+
+        context->CreateOutput(TextureResource::kDataType, TextureResource::kDataVersion, context->source.name.Ascii(),
+                               rawData, rawSize);
+
+        Free_(rawData);
 
         return Success_;
     }

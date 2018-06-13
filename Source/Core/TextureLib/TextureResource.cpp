@@ -15,6 +15,8 @@
 
 namespace Selas
 {
+    cpointer TextureResource::kDataType = "Textures";
+
     // JSTODO - Said it before but... Environment.h/cpp
     cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
 

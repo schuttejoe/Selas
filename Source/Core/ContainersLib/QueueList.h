@@ -23,10 +23,6 @@ namespace Selas
 
         QueueListNode* front;
         QueueListNode* back;
-
-        QueueListNode* freeList;
-        uint32         maxFreeListSize;
-        uint32         freeListCount;
     };
 
     void  QueueList_Initialize(QueueList* queueList, uint32 maxFreeListSize);
