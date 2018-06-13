@@ -144,6 +144,24 @@ namespace Selas
     }
 
     //==============================================================================
+    bool operator==(const ContentDependency& lhs, const ContentDependency& rhs)
+    {
+        return StringUtil::Equals(lhs.path.Ascii(), rhs.path.Ascii());
+    }
+
+    //==============================================================================
+    bool operator==(const ProcessDependency& lhs, const ProcessDependency& rhs)
+    {
+        return (lhs.id.type == rhs.id.type && lhs.id.name == rhs.id.name);
+    }
+
+    //==============================================================================
+    bool operator==(const ProcessorOutput& lhs, const ProcessorOutput& rhs)
+    {
+        return (lhs.id.type == rhs.id.type && lhs.id.name == rhs.id.name && lhs.version == rhs.version);
+    }
+
+    //==============================================================================
     CBuildDependencyGraph::CBuildDependencyGraph()
         : _data(nullptr)
     {

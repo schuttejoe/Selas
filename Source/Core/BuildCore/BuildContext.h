@@ -5,6 +5,7 @@
 //==============================================================================
 
 #include "BuildCore/BuildDependencyGraph.h"
+#include "ContainersLib/CSet.h"
 #include "SystemLib/BasicTypes.h"
 
 namespace Selas
@@ -25,8 +26,8 @@ namespace Selas
 
         void Initialize(ContentId source, AssetId id);
 
-        CArray<ContentDependency> contentDependencies;
-        CArray<ProcessDependency> processDependencies;
-        CArray<ProcessorOutput>   outputs;
+        CSet<ContentDependency> contentDependencies;
+        CSet<ProcessDependency> processDependencies;
+        CSet<ProcessorOutput>   outputs;
     };
 }

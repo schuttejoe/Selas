@@ -11,16 +11,15 @@
 namespace Selas
 {
     template <typename Type_>
-    class CArray
+    class CSet
     {
     public:
-        CArray(void);
-        ~CArray(void);
+        CSet(void);
+        ~CSet(void);
 
-        void Close(void);
+        void Close(void); // JSTODO - Rename to Shutdown
         void Clear(void);
         void Reserve(uint32 capacity);
-        void Resize(uint32 length);
 
         const Type_* GetData(void) const { return _data; }
         Type_* GetData(void) { return _data; }
@@ -28,15 +27,14 @@ namespace Selas
         inline Type_&       operator[] (uint index) { return _data[index]; }
         inline const Type_& operator[] (uint index) const { return _data[index]; }
 
-        // -- JSTOO -- Rename to Count
+        // -- JSTODO -- Rename to Count
         inline uint32 Length(void) const { return _count; }
         inline uint32 Capacity(void) const { return _capacity; }
         inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
 
-        Type_& Add(void);
         uint32 Add(const Type_& element);
 
-        template <typename OtherType_>
+        template<typename OtherType_>
         void   Append(const OtherType_& addend);
 
         bool Remove(const Type_& item);
@@ -53,7 +51,7 @@ namespace Selas
     };
 
     template<typename Type_>
-    CArray<Type_>::CArray(void)
+    CSet<Type_>::CSet(void)
         : _data(nullptr)
         , _count(0)
         , _capacity(0)
@@ -61,13 +59,13 @@ namespace Selas
     }
 
     template<typename Type_>
-    CArray<Type_>::~CArray(void)
+    CSet<Type_>::~CSet(void)
     {
         Close();
     }
 
     template<typename Type_>
-    void CArray<Type_>::Close(void)
+    void CSet<Type_>::Close(void)
     {
         if(_data) {
             Free_(_data);
@@ -79,13 +77,13 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CArray<Type_>::Clear(void)
+    void CSet<Type_>::Clear(void)
     {
         _count = 0;
     }
 
     template<typename Type_>
-    void CArray<Type_>::Reserve(uint32 capacity)
+    void CSet<Type_>::Reserve(uint32 capacity)
     {
         if(capacity > _capacity) {
             ReallocateArray(_count, capacity);
@@ -93,31 +91,15 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CArray<Type_>::Resize(uint32 length)
+    uint32 CSet<Type_>::Add(const Type_& element)
     {
-        if(length > _capacity) {
-            ReallocateArray(length, length);
-        }
-        else {
-            _count = length;
-        }
-    }
-
-    template<typename Type_>
-    Type_& CArray<Type_>::Add(void)
-    {
-        if(_count == _capacity) {
-            GrowArray();
+        // JSTODO - Slow...
+        for(uint32 scan = 0; scan < _count; ++scan) {
+            if(_data[scan] == element) {
+                return scan;
+            }
         }
 
-        Assert_(_count < _capacity);
-        uint32 index = _count++;
-        return _data[index];
-    }
-
-    template<typename Type_>
-    uint32 CArray<Type_>::Add(const Type_& element)
-    {
         if(_count == _capacity) {
             GrowArray();
         }
@@ -129,19 +111,20 @@ namespace Selas
 
     template<typename Type_>
     template<typename OtherType_>
-    void CArray<Type_>::Append(const OtherType_& addend)
+    void CSet<Type_>::Append(const OtherType_& addend)
     {
         uint32 newLength = _count + addend.Length();
 
         if(_capacity < newLength)
             ReallocateArray(_count, newLength);
 
-        Memory::Copy(static_cast<Type_*>(_data) + _count, addend.GetData(), addend.DataSize());
-        _count = newLength;
+        for(uint scan = 0, count = addend.Length(); scan < count; ++scan) {
+            Add(addend[scan]);
+        }
     }
 
     template<typename Type_>
-    bool CArray<Type_>::Remove(const Type_& item)
+    bool CSet<Type_>::Remove(const Type_& item)
     {
         uint32 index = 0;
         for(; index < _count; ++index) {
@@ -164,7 +147,7 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CArray<Type_>::RemoveFast(uint index)
+    void CSet<Type_>::RemoveFast(uint index)
     {
         Assert_(index >= 0);
         Assert_(index < _count);
@@ -174,7 +157,7 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CArray<Type_>::ReallocateArray(uint32 newLength, uint32 newCapacity)
+    void CSet<Type_>::ReallocateArray(uint32 newLength, uint32 newCapacity)
     {
         Type_* newList = AllocArray_(Type_, newCapacity);
 
@@ -193,7 +176,7 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CArray<Type_>::GrowArray(void)
+    void CSet<Type_>::GrowArray(void)
     {
         // Idea from old BHG code; seems very sensible.
         if(_capacity < 64) {

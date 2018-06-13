@@ -14,7 +14,7 @@ namespace Selas
     //==============================================================================
     Error BuildProcessorContext::AddFileDependency(cpointer file)
     {
-        ContentDependency& dep = contentDependencies.Add();
+        ContentDependency dep;
 
         AssetFileUtils::SanitizeContentPath(file, dep.path);
 
@@ -22,15 +22,19 @@ namespace Selas
             return Error_("Failed to find file: %s", file);
         }
 
+        contentDependencies.Add(dep);
+
         return Success_;
     }
 
     //==============================================================================
     Error BuildProcessorContext::AddProcessDependency(const ContentId& source)
     {
-        ProcessDependency& dep = processDependencies.Add();
+        ProcessDependency dep;
         dep.source = source;
         dep.id = AssetId(source.type.Ascii(), source.name.Ascii());
+
+         processDependencies.Add(dep);
 
         return Success_;
     }
@@ -48,7 +52,7 @@ namespace Selas
     //==============================================================================
     Error BuildProcessorContext::CreateOutput(cpointer type, uint64 version, cpointer name, const void* data, uint64 dataSize)
     {
-        ProcessorOutput& output = outputs.Add();
+        ProcessorOutput output;
         output.source = ContentId(type, name);
         output.id = AssetId(type, name);
         output.version = version;
@@ -57,6 +61,8 @@ namespace Selas
         AssetFileUtils::AssetFilePath(output.id, version, filepath);
 
         ReturnError_(File::WriteWholeFile(filepath.Ascii(), data, (uint32)dataSize));
+
+        outputs.Add(output);
 
         return Success_;
     }

@@ -24,13 +24,6 @@ namespace Selas
     };
 
     //==============================================================================
-    struct AssetDependency
-    {
-        AssetId        id;
-        FileTimestamp  timestamp;
-    };
-
-    //==============================================================================
     struct ProcessDependency
     {
         ContentId source;
@@ -60,6 +53,10 @@ namespace Selas
     };
 
     void ResetBuildProcessDependencies(BuildProcessDependencies* deps);
+
+    bool operator==(const ContentDependency& lhs, const ContentDependency& rhs);
+    bool operator==(const ProcessDependency& lhs, const ProcessDependency& rhs);
+    bool operator==(const ProcessorOutput& lhs, const ProcessorOutput& rhs);
 
     //==============================================================================
     class CBuildDependencyGraph
