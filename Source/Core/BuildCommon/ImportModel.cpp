@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/ImportModel.h"
+#include "BuildCore/BuildContext.h"
 #include "MathLib/FloatFuncs.h"
 #include "StringLib/FixedString.h"
 #include "SystemLib/MemoryAllocation.h"
@@ -169,10 +170,15 @@ namespace Selas
     }
 
     //==============================================================================
-    Error ImportModel(const char* filename, ImportedModel* scene)
+    Error ImportModel(BuildProcessorContext* context, ImportedModel* scene)
     {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
+        context->AddFileDependency(filepath.Ascii());
+
         Assimp::Importer importer;
-        const aiScene* aiscene = importer.ReadFile(filename, aiProcess_GenNormals
+        const aiScene* aiscene = importer.ReadFile(filepath.Ascii(),
+                                                   aiProcess_GenNormals
                                                    | aiProcess_CalcTangentSpace
                                                    | aiProcess_GenUVCoords
                                                    | aiProcess_ConvertToLeftHanded

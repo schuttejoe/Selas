@@ -12,6 +12,8 @@
 
 namespace Selas
 {
+    cpointer SceneResource::kDataType = "Scene";
+
     //==============================================================================
     SceneResource::SceneResource()
         : data(nullptr)

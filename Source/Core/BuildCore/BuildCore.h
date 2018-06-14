@@ -43,4 +43,11 @@ namespace Selas
         bool ProcessCompletedQueue();
         bool ProcessPendingQueue();
     };
+
+    template<typename Type_>
+    void CreateAndRegisterBuildProcessor(CBuildCore* buildCore)
+    {
+        Type_* processor = New_(Type_);
+        buildCore->RegisterBuildProcessor(processor);
+    }
 }

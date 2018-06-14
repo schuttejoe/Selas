@@ -10,6 +10,8 @@
 
 namespace Selas
 {
-    Error ImportModel(const char* filename, ImportedModel* scene);
+    struct BuildProcessorContext;
+
+    Error ImportModel(BuildProcessorContext* context, ImportedModel* scene);
     void ShutdownImportedModel(ImportedModel* scene);
 }

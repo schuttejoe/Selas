@@ -11,5 +11,5 @@ namespace Selas
 {
     struct ImportedMaterialData;
 
-    Error ImportMaterial(cpointer materialName, ImportedMaterialData* material);
+    Error ImportMaterial(cpointer filepath, ImportedMaterialData* material);
 }

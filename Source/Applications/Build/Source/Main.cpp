@@ -8,15 +8,9 @@
 
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
 #include "BuildCommon/TextureBuildProcessor.h"
-
-#include "BuildCommon/ImportModel.h"
-#include "BuildCommon/BuildScene.h"
-#include "BuildCommon/BakeScene.h"
-#include "BuildCommon/BuildTexture.h"
-#include "BuildCommon/BakeTexture.h"
+#include "BuildCommon/SceneBuildProcessor.h"
 
 // -- engine
-#include "TextureLib/TextureResource.h"
 #include "ThreadingLib/JobMgr.h"
 #include "IoLib/File.h"
 #include "IoLib/Directory.h"
@@ -29,7 +23,6 @@
 // -- clr
 #include <stdio.h>
 #include <string.h>
-
 #include <stdlib.h>
 
 using namespace Selas;
@@ -48,39 +41,15 @@ int main(int argc, char *argv[])
     CBuildCore buildCore;
     buildCore.Initialize(&jobMgr, &depGraph);
 
-    CImageBasedLightBuildProcessor* iblProcessor = New_(CImageBasedLightBuildProcessor);
-    buildCore.RegisterBuildProcessor(iblProcessor);
-    CTextureBuildProcessor* textureProcessor = New_(CTextureBuildProcessor);
-    buildCore.RegisterBuildProcessor(textureProcessor);
+    CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId("HDR", "HDR|simons_town_rocks_4k_upper.hdr"));
-    buildCore.BuildAsset(ContentId("Texture", "Textures|Bricks07|Bricks07_Albedo.jpg"));
+    buildCore.BuildAsset(ContentId("fbx", "Meshes|plane_with_sphere.fbx"));
 
     ExitMainOnError_(buildCore.Execute());
-
-    #define ExportModel_ 0
-
-#if ExportModel_
-    ImportedModel importedModel;
-    ExitMainOnError_(ImportModel("D:\\Shooty\\Selas\\Content\\Meshes\\plane_with_sphere.fbx", &importedModel));
-
-    BuiltScene builtScene;    
-    ExitMainOnError_(BuildScene(&importedModel, &builtScene));
-    ShutdownImportedModel(&importedModel);
-
-    for(uint scan = 0, count = builtScene.textures.Length(); scan < count; ++scan) {
-        TextureResourceData textureData;
-        cpointer textureName = builtScene.textures[scan].Ascii();
-
-        ExitMainOnError_(ImportTexture(textureName, Box, &textureData));
-        ExitMainOnError_(BakeTexture(&textureData, textureName));
-
-        Free_(textureData.texture);
-    }
-
-    BakeScene(builtScene, "D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin");
-#endif
     buildCore.Shutdown();
+
     ExitMainOnError_(depGraph.Shutdown());
     jobMgr.Shutdown();
 

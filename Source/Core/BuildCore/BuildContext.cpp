@@ -40,6 +40,12 @@ namespace Selas
     }
 
     //==============================================================================
+    Error BuildProcessorContext::AddProcessDependency(cpointer type, cpointer name)
+    {
+        return AddProcessDependency(ContentId(type, name));
+    }
+
+    //==============================================================================
     //Error BuildProcessorContext::AddBuildDependency(const BuildId& dependee, const BuildId& dependency)
     //{
     //    BuildDependency& dep = dependencies->buildDependencies.Add();

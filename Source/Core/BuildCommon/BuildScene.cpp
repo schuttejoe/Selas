@@ -5,6 +5,7 @@
 #include "BuildCommon/BuildScene.h"
 #include "BuildCommon/SceneBuildPipeline.h"
 #include "BuildCommon/ImportMaterial.h"
+#include "BuildCore/BuildContext.h"
 #include "UtilityLib/Color.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "MathLib/FloatFuncs.h"
@@ -130,15 +131,21 @@ namespace Selas
     }
 
     //==============================================================================
-    static Error ImportMaterials(ImportedModel* imported, BuiltScene* built)
+    static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltScene* built)
     {
         built->materials.Resize(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
+            FilePathString materialfile;
+            AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
+            
             ImportedMaterialData importedMaterialData;
-            Error err = ImportMaterial(imported->materials[scan].Ascii(), &importedMaterialData);
+            Error err = ImportMaterial(materialfile.Ascii(), &importedMaterialData);
             if(Failed_(err)) {
-                ReturnError_(ImportMaterial("Default", &importedMaterialData));
+                AssetFileUtils::ContentFilePath("Materials|Default.json", materialfile);
+                ReturnError_(ImportMaterial(materialfile.Ascii(), &importedMaterialData));
             }
+
+            context->AddFileDependency(materialfile.Ascii());
 
             Material& material = built->materials[scan];
             material = Material();
@@ -182,9 +189,11 @@ namespace Selas
     }
 
     //==============================================================================
-    Error BuildScene(ImportedModel* imported, BuiltScene* built)
+    Error BuildScene(BuildProcessorContext* context, ImportedModel* imported, BuiltScene* built)
     {
-        ReturnError_(ImportMaterials(imported, built));
+        cpointer prefix = "Materials|";
+
+        ReturnError_(ImportMaterials(context, prefix, imported, built));
 
         BuildMeshes(imported, built);
 

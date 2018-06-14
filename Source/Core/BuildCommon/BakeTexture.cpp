@@ -41,8 +41,8 @@ namespace Selas
         uint32 rawSize;
         ReturnError_(SerializerEnd(&writer, rawData, rawSize));
 
-        context->CreateOutput(TextureResource::kDataType, TextureResource::kDataVersion, context->source.name.Ascii(),
-                               rawData, rawSize);
+        ReturnError_(context->CreateOutput(TextureResource::kDataType, TextureResource::kDataVersion, context->source.name.Ascii(),
+                                           rawData, rawSize));
 
         Free_(rawData);
 

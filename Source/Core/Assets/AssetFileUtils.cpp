@@ -83,6 +83,16 @@ namespace Selas
         }
 
         //==============================================================================
+        void ContentFilePath(cpointer prefix, cpointer name, cpointer postfix, FilePathString& filepath)
+        {
+            FixedString128 root = Environment_Root();
+            char ps = StringUtil::PathSeperator();
+
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%s%s%s", root.Ascii(), ContentDirectoryName_, ps, prefix, name, postfix);
+            StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
+        }
+
+        //==============================================================================
         void SanitizeContentPath(cpointer filepath, FilePathString& sanitized)
         {
             FilePathString root;

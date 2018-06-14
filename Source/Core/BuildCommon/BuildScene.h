@@ -9,8 +9,9 @@
 
 namespace Selas
 {
+    struct BuildProcessorContext;
     struct ImportedModel;
-
     struct BuiltScene;
-    Error BuildScene(ImportedModel* imported, BuiltScene* built);
+
+    Error BuildScene(BuildProcessorContext* context, ImportedModel* imported, BuiltScene* built);
 }

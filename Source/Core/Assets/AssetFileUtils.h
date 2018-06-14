@@ -66,6 +66,7 @@ namespace Selas
         void AssetsDirectoryRoot(FilePathString& filepath);
 
         void ContentFilePath(cpointer name, FilePathString& filepath);
+        void ContentFilePath(cpointer prefix, cpointer name, cpointer postfix, FilePathString& filepath);
         void SanitizeContentPath(cpointer filepath, FilePathString& sanitized);
 
         void AssetFilePath(cpointer type, uint64 version, cpointer name, FilePathString& filepath);

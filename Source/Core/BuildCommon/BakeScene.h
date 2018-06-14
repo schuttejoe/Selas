@@ -9,6 +9,8 @@
 
 namespace Selas
 {
+    struct BuildProcessorContext;
+
     //==============================================================================
-    Error BakeScene(const BuiltScene& scene_data, cpointer filepath);
+    Error BakeScene(BuildProcessorContext* context, const BuiltScene& scene_data);
 }

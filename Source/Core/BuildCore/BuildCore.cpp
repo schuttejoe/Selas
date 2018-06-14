@@ -16,8 +16,7 @@
 
 #include <map>
 
-// JSTODO - This hasn't really been tested yet. Waiting until I have more processors ported.
-#define RunMultiThreaded_ false
+#define RunMultiThreaded_ true
 
 namespace Selas
 {

@@ -103,6 +103,9 @@ namespace Selas
 
     struct SceneResource
     {
+        static cpointer kDataType;
+        static const uint64 kDataVersion = 1528783850ul;
+
         SceneResourceData* data;
         TextureResource* textures;
 

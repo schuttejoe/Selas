@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "BuildCommon/BakeScene.h"
+#include "BuildCore/BuildContext.h"
 #include "IoLib/BinarySerializer.h"
 
 namespace Selas
@@ -44,7 +45,7 @@ namespace Selas
     }
 
     //==============================================================================
-    Error BakeScene(const BuiltScene& sceneData, cpointer filepath)
+    Error BakeScene(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
         uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
 
@@ -58,7 +59,13 @@ namespace Selas
         SerializeMaterials(&writer, sceneData);
         SerializeMeshes(&writer, sceneData);
 
-        ReturnError_(SerializerEnd(&writer, filepath));
+        void* assetData;
+        uint32 assetSize;
+        ReturnError_(SerializerEnd(&writer, assetData, assetSize));
+
+        ReturnError_(context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), assetData, assetSize));
+
+        Free_(assetData);
 
         return Success_;
     }

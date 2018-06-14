@@ -18,6 +18,7 @@ namespace Selas
 
         Error AddFileDependency(cpointer file);
         Error AddProcessDependency(const ContentId& id);
+        Error AddProcessDependency(cpointer type, cpointer name);
         //Error AddBuildDependency(const BuildId& dependee, const BuildId& dependency);
         Error CreateOutput(cpointer type, uint64 version, cpointer name, const void* data, uint64 dataSize);
 

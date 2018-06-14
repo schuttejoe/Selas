@@ -12,20 +12,10 @@
 
 namespace Selas
 {
-    // JSTODO - Set up the same environment class I did at Sparkypants. Except make it relative and not depend on the environment variable.
-    cpointer MaterialBaseDirectory = "D:\\Shooty\\Selas\\Content\\Materials\\";
-
-    Error ImportMaterial(cpointer materialName, ImportedMaterialData* material)
+    Error ImportMaterial(cpointer filepath, ImportedMaterialData* material)
     {
-        FilePathString filepath;
-        #if IsWindows_
-            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.json", MaterialBaseDirectory, materialName);
-        #else
-            sprintf(filepath.Ascii(), "%s%s.json", MaterialBaseDirectory, materialName);
-        #endif
-
         rapidjson::Document document;
-        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+        ReturnError_(Json::OpenJsonDocument(filepath, document));
 
         Json::ReadFixedString(document, "ShaderName", material->shaderName);
 
