@@ -191,7 +191,7 @@ namespace Selas
     //==============================================================================
     Error BuildScene(BuildProcessorContext* context, ImportedModel* imported, BuiltScene* built)
     {
-        cpointer prefix = "Materials|";
+        cpointer prefix = "Materials~";
 
         ReturnError_(ImportMaterials(context, prefix, imported, built));
 

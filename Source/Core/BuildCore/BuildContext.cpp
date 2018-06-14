@@ -64,7 +64,7 @@ namespace Selas
         output.version = version;
 
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(output.id, version, filepath);
+        AssetFileUtils::AssetFilePath(type, version, name, filepath);
 
         ReturnError_(File::WriteWholeFile(filepath.Ascii(), data, (uint32)dataSize));
 

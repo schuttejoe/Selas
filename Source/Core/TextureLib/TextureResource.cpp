@@ -22,7 +22,7 @@ namespace Selas
     Error ReadTextureResource(cpointer textureName, TextureResource* texture)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(AssetId(TextureResource::kDataType, textureName), TextureResource::kDataVersion, filepath);
+        AssetFileUtils::AssetFilePath(TextureResource::kDataType, TextureResource::kDataVersion, textureName, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;

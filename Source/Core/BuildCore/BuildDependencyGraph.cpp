@@ -255,7 +255,8 @@ namespace Selas
 
         for(uint scan = 0, count = deps->outputs.Length(); scan < count; ++scan) {
             FilePathString filepath;
-            AssetFileUtils::AssetFilePath(deps->outputs[scan].id, deps->outputs[scan].version, filepath);
+            AssetFileUtils::AssetFilePath(deps->outputs[scan].source.type.Ascii(), deps->outputs[scan].version,
+                                          deps->outputs[scan].source.name.Ascii(), filepath);
 
             ReturnFailure_(File::Exists(filepath.Ascii()));
         }

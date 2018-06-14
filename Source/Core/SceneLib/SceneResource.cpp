@@ -27,7 +27,7 @@ namespace Selas
     Error ReadSceneResource(cpointer assetname, SceneResource* data)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(AssetId(SceneResource::kDataType, assetname), SceneResource::kDataVersion, filepath);
+        AssetFileUtils::AssetFilePath(SceneResource::kDataType, SceneResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;

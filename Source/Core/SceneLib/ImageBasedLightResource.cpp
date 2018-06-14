@@ -19,8 +19,7 @@ namespace Selas
     Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(AssetId(ImageBasedLightResource::kDataType, assetname),
-                                      ImageBasedLightResource::kDataVersion, filepath);
+        AssetFileUtils::AssetFilePath(ImageBasedLightResource::kDataType, ImageBasedLightResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;

@@ -70,7 +70,7 @@ namespace Selas
         void SanitizeContentPath(cpointer filepath, FilePathString& sanitized);
 
         void AssetFilePath(cpointer type, uint64 version, cpointer name, FilePathString& filepath);
-        void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath);
+        //void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath);
 
         void EnsureAssetDirectory(cpointer typeStr, uint64 version);
 

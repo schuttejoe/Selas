@@ -8,7 +8,7 @@
 #include "IoLib/Environment.h"
 #include "IoLib/Directory.h"
 
-#define PlatformIndependentPathSep_ '|'
+#define PlatformIndependentPathSep_ '~'
 
 #define AssetsDirectoryName_ "_Assets"
 #define ContentDirectoryName_ "Content"
@@ -29,7 +29,7 @@ namespace Selas
         name.Copy(name_);
 
         // JSTODO -- Validation that name doesn't contain path separators other than
-        // -- '|' and that it doesn't contain the root
+        // -- '~' and that it doesn't contain the root
     }
 
     //==============================================================================
@@ -107,10 +107,8 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            Hash32 type = MurmurHash3_x86_32(typeStr, StringUtil::Length(typeStr), 0);
-
             FilePathString directory;
-            StringUtil::Sprintf(directory.Ascii(), directory.Capcaity(), "%s%s%c%u%c%llu%c", root.Ascii(), AssetsDirectoryName_, ps, type, ps, version, ps);
+            StringUtil::Sprintf(directory.Ascii(), directory.Capcaity(), "%s%s%c%s%c%llu%c", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps);
 
             Directory::EnsureDirectoryExists(directory.Ascii());
         }
@@ -118,16 +116,19 @@ namespace Selas
         //==============================================================================
         void AssetFilePath(cpointer typeStr, uint64 version, cpointer nameStr, FilePathString& filepath)
         {
-            AssetFilePath(AssetId(typeStr, nameStr), version, filepath);
-        }
-
-        //==============================================================================
-        void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath)
-        {
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(), AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%s%c%llu%c%s.bin", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps, nameStr);
         }
+
+        //==============================================================================
+        //void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath)
+        //{
+        //    FixedString128 root = Environment_Root();
+        //    char ps = StringUtil::PathSeperator();
+
+        //    StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(), AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
+        //}
     }
 }
