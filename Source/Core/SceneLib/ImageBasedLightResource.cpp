@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "SceneLib/ImageBasedLightResource.h"
+#include "Assets/AssetFileUtils.h"
 #include "IoLib/BinarySerializer.h"
 #include "IoLib/File.h"
 #include "MathLib/Projection.h"
@@ -15,12 +16,15 @@ namespace Selas
     cpointer ImageBasedLightResource::kDataType = "IBL";
 
     //==============================================================================
-    Error ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource)
+    Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource)
     {
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(AssetId(ImageBasedLightResource::kDataType, assetname),
+                                      ImageBasedLightResource::kDataVersion, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        ReturnError_(File::ReadWholeFile(filepath, &fileData, &fileSize));
+        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);

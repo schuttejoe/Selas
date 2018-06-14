@@ -35,7 +35,7 @@ namespace Selas
 
     //==============================================================================
     // -- reading image based light resource data from disk
-    Error ReadImageBasedLightResource(cpointer filepath, ImageBasedLightResource* resource);
+    Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource);
 
     //==============================================================================
     // -- functions used in build to set up the conditional and marginal density functions

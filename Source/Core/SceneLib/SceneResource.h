@@ -87,7 +87,7 @@ namespace Selas
         uint32               materialCount;
         // -- long run plan is to have texture header in the scene and then the texture data will be loaded in via caching.
         // -- for now I'm just making textures as a separate resource.
-        FixedString256*      textureResourceNames; 
+        FilePathString*      textureResourceNames; 
         Material*            materials;
                              
         // -- mesh information

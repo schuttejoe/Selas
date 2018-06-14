@@ -74,11 +74,11 @@ int main(int argc, char *argv[])
     //SystemTime::GetCycleCounter(&timer);
 
     SceneResource sceneResource;
-    ExitMainOnError_(ReadSceneResource("D:\\Shooty\\Selas\\_Assets\\Scenes\\plane_with_sphere.bin", &sceneResource));
+    ExitMainOnError_(ReadSceneResource("Meshes|plane_with_sphere.fbx", &sceneResource));
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
-    ExitMainOnError_(ReadImageBasedLightResource("D:\\Shooty\\Selas\\_Assets\\IBLs\\simons_town_rocks_4k_upper.bin", &iblResouce));
+    ExitMainOnError_(ReadImageBasedLightResource("HDR|simons_town_rocks_4k_upper.hdr", &iblResouce));
 
     // float loadms = SystemTime::ElapsedMs(timer);
     // FixedString64 loadlog;

@@ -4,6 +4,7 @@
 
 #include "SceneLib/SceneResource.h"
 #include "TextureLib/TextureResource.h"
+#include "Assets/AssetFileUtils.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/FloatStructs.h"
 #include "IoLib/BinarySerializer.h"
@@ -23,12 +24,14 @@ namespace Selas
     }
 
     //==============================================================================
-    Error ReadSceneResource(cpointer filepath, SceneResource* data)
+    Error ReadSceneResource(cpointer assetname, SceneResource* data)
     {
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(AssetId(SceneResource::kDataType, assetname), SceneResource::kDataVersion, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
-        ReturnError_(File::ReadWholeFile(filepath, &fileData, &fileSize));
+        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         BinaryReader reader;
         SerializerStart(&reader, fileData, fileSize);

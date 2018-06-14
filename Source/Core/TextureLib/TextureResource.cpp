@@ -4,6 +4,7 @@
 
 #include "TextureLib/TextureResource.h"
 #include "TextureLib/StbImage.h"
+#include "Assets/AssetFileUtils.h"
 #include "StringLib/FixedString.h"
 #include "StringLib/StringUtil.h"
 #include "IoLib/BinarySerializer.h"
@@ -17,22 +18,11 @@ namespace Selas
 {
     cpointer TextureResource::kDataType = "Textures";
 
-    // JSTODO - Said it before but... Environment.h/cpp
-    cpointer TextureAssetDirectory = "D:\\Shooty\\Selas\\_Assets\\Textures\\";
-
     //==============================================================================
     Error ReadTextureResource(cpointer textureName, TextureResource* texture)
     {
-        FixedString256 typelessName;
-        typelessName.Copy(textureName);
-        StringUtil::RemoveExtension(typelessName.Ascii());
-
-        FixedString512 filepath;
-        #if IsWindows_
-            sprintf_s(filepath.Ascii(), filepath.Capcaity(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
-        #else
-            sprintf(filepath.Ascii(), "%s%s.bin", TextureAssetDirectory, typelessName.Ascii());
-        #endif
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(AssetId(TextureResource::kDataType, textureName), TextureResource::kDataVersion, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
