@@ -3,27 +3,18 @@
 //=================================================================================================
 
 // -- Build
-#include "BuildCore/BuildCore.h"
-#include "BuildCore/BuildDependencyGraph.h"
-
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
 #include "BuildCommon/TextureBuildProcessor.h"
 #include "BuildCommon/SceneBuildProcessor.h"
+#include "BuildCore/BuildCore.h"
+#include "BuildCore/BuildDependencyGraph.h"
 
 // -- engine
 #include "ThreadingLib/JobMgr.h"
-#include "IoLib/File.h"
-#include "IoLib/Directory.h"
 #include "IoLib/Environment.h"
-#include "MathLib/FloatFuncs.h"
-#include "MathLib/SphericalHarmonic.h"
-#include "SystemLib/MemoryAllocation.h"
-#include "SystemLib/JsAssert.h"
 
 // -- clr
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 using namespace Selas;
 
