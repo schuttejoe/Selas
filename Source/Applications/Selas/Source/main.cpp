@@ -18,7 +18,8 @@
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/Memory.h"
-//#include "SystemLib/SystemTime.h"
+#include "SystemLib/SystemTime.h"
+#include "SystemLib/Logging.h"
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -26,10 +27,6 @@
 #include "xmmintrin.h"
 #include "pmmintrin.h"
 #include <stdio.h>
-
-#if IsWindows_
-#include <windows.h>
-#endif
 
 using namespace Selas;
 
@@ -63,7 +60,6 @@ int main(int argc, char *argv[])
     Environment_Initialize(ProjectRootName_, argv[0]);
 
     int retvalue = 0;
-    //int64 timer;
 
     TextureFiltering::InitializeEWAFilterWeights();
 
@@ -71,7 +67,7 @@ int main(int argc, char *argv[])
     RTCScene rtcScene = rtcNewScene(rtcDevice);
     uint32 meshHandle = -1;
 
-    //SystemTime::GetCycleCounter(&timer);
+    auto timer = SystemTime::Now();
 
     SceneResource sceneResource;
     ExitMainOnError_(ReadSceneResource("Meshes~plane_with_sphere.fbx", &sceneResource));
@@ -80,18 +76,15 @@ int main(int argc, char *argv[])
     ImageBasedLightResource iblResouce;
     ExitMainOnError_(ReadImageBasedLightResource("HDR~simons_town_rocks_4k_upper.hdr", &iblResouce));
 
-    // float loadms = SystemTime::ElapsedMs(timer);
-    // FixedString64 loadlog;
-    // sprintf_s(loadlog.Ascii(), loadlog.Capcaity(), "Scene load time %fms\n", loadms);
-    // OutputDebugStringA(loadlog.Ascii());
+    float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
+    WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
-    //SystemTime::GetCycleCounter(&timer);
+    timer = SystemTime::Now();
+    
     meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
     
-    //float buildms = SystemTime::ElapsedMs(timer);
-    // FixedString64 buildlog;
-    // StringUtil::printf("%s\n", );(buildlog.Ascii(), buildlog.Capcaity(), "Scene build time %fms\n", buildms);
-    // Output_(buildlog.Ascii());
+    elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
+    WriteDebugInfo_("Scene build time %fms", elapsedMs);
 
     //sceneResource.data->camera.fov = 0.7f;
     //uint width = 256;
@@ -109,18 +102,15 @@ int main(int argc, char *argv[])
     context.scene = &sceneResource;
     context.ibl = iblResouce.data;
 
-    //SystemTime::GetCycleCounter(&timer);
+    timer = SystemTime::Now();
 
     VCM::GenerateImage(context, width, height, imageData);
 
-    //float renderms = SystemTime::ElapsedMs(timer);
+    elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
+    WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
     StbImageWrite("D:\\temp\\test.hdr", width, height, 3, HDR, imageData);
     Free_(imageData);
-
-    // FixedString64 renderlog;
-    // sprintf_s(renderlog.Ascii(), renderlog.Capcaity(), "Scene render time %fms\n", renderms);
-    // Output_(renderlog.Ascii());
 
     // -- delete the scene
     ShutdownSceneResource(&sceneResource);
