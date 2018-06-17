@@ -70,11 +70,11 @@ int main(int argc, char *argv[])
     auto timer = SystemTime::Now();
 
     SceneResource sceneResource;
-    ExitMainOnError_(ReadSceneResource("Meshes~plane_with_sphere.fbx", &sceneResource));
+    ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~san-miguel.obj", &sceneResource));
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
-    ExitMainOnError_(ReadImageBasedLightResource("HDR~simons_town_rocks_4k_upper.hdr", &iblResouce));
+    ExitMainOnError_(ReadImageBasedLightResource("HDR~noon_grass_4k_upper.hdr", &iblResouce));
 
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);

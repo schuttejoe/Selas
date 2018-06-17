@@ -11,6 +11,7 @@
 namespace Selas
 {
     #define InvalidAsset_ 0xFFFFFFFF
+    #define PlatformIndependentPathSep_ '~'
 
     //==============================================================================
     struct ContentId

@@ -45,11 +45,11 @@ namespace Selas
             if(element[key].IsString() == false) {
                 return false;
             }
-            if(element[key].GetStringLength() > value.Capcaity()) {
+            if(element[key].GetStringLength() > value.Capacity()) {
                 return false;
             }
 
-            StringUtil::Copy(value.Ascii(), (uint32)value.Capcaity(), element[key].GetString());
+            StringUtil::Copy(value.Ascii(), (uint32)value.Capacity(), element[key].GetString());
             return true;
         }
     }

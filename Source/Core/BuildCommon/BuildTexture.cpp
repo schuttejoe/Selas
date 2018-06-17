@@ -269,7 +269,7 @@ namespace Selas
 
         //LoadLinearFloaData
         FixedString32 extension;
-        StringUtil::GetExtension(filepath.Ascii(), extension.Ascii(), (uint32)extension.Capcaity());
+        StringUtil::GetExtension(filepath.Ascii(), extension.Ascii(), (uint32)extension.Capacity());
 
         MaterialTextureTypes type = DetermineMaterialType(context->source.name.Ascii());
         Assert_(type != Unknown);

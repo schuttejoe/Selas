@@ -4,10 +4,12 @@
 
 #include "BuildCommon/ImportModel.h"
 #include "BuildCore/BuildContext.h"
+#include "GeometryLib/CoordinateSystem.h"
 #include "MathLib/FloatFuncs.h"
 #include "StringLib/FixedString.h"
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/JsAssert.h"
+#include "SystemLib/Logging.h"
 
 // -- middleware
 #include "assimp/Importer.hpp"
@@ -78,6 +80,8 @@ namespace Selas
 
             ImportedMesh* mesh = scene->meshes[meshIndex++];
 
+            bool hasNans = false;
+
             mesh->materialIndex = aimesh->mMaterialIndex;
             if(mesh->materialIndex > scene->materials.Length()) {
                 return Error_("Invalid material index found in scene");
@@ -117,6 +121,20 @@ namespace Selas
                 for(uint scan = 0; scan < vertexcount; ++scan) {
                     mesh->tangents[scan] = AssImpVec3ToFloat3_(aimesh->mTangents[scan]);
                     mesh->bitangents[scan] = AssImpVec3ToFloat3_(aimesh->mBitangents[scan]);
+
+                    bool hackCoordinateFrame = false;
+                    if(Math::IsNaN(mesh->tangents[scan].x) || Math::IsNaN(mesh->tangents[scan].y) || Math::IsNaN(mesh->tangents[scan].z)) {
+                        hasNans = true;
+                        hackCoordinateFrame = true;
+                    }
+                    if(Math::IsNaN(mesh->bitangents[scan].x) || Math::IsNaN(mesh->bitangents[scan].y) || Math::IsNaN(mesh->bitangents[scan].z)) {
+                        hasNans = true;
+                        hackCoordinateFrame = true;
+                    }
+
+                    if(hackCoordinateFrame) {
+                        MakeOrthogonalCoordinateSystem(mesh->normals[scan], &mesh->tangents[scan], &mesh->bitangents[scan]);
+                    }
                 }
             }
 
@@ -134,6 +152,10 @@ namespace Selas
                 else {
                     return Error_("Unsupported index count %d", face->mNumIndices);
                 }
+            }
+
+            if(hasNans) {
+                WriteDebugInfo_("Found NaNs in tangent space of mesh '%s'. Replacing with random coordinate frame.", aimesh->mName.C_Str());
             }
         }
 
@@ -204,8 +226,8 @@ namespace Selas
 
         ExtractMaterials(aiscene, scene);
 
-        uint mesh_index = 0;
-        ReturnError_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, mesh_index));
+        uint usedMeshCount = 0;
+        ReturnError_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, usedMeshCount));
         ReturnError_(ExtractCamera(aiscene, scene));
 
         // aiscene is cleaned up by the importer's destructor

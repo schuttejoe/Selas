@@ -29,10 +29,10 @@ namespace Selas
         void EnsureDirectoryExists(const char* path)
         {
             FixedString512 folderName;
-            StringUtil::GetFolderPath(path, folderName.Ascii(), (uint32)folderName.Capcaity());
+            StringUtil::GetFolderPath(path, folderName.Ascii(), (uint32)folderName.Capacity());
 
             FixedString512 tempName;
-            StringUtil::Copy(tempName.Ascii(), (uint32)tempName.Capcaity(), folderName.Ascii());
+            StringUtil::Copy(tempName.Ascii(), (uint32)tempName.Capacity(), folderName.Ascii());
 
             char* current = tempName.Ascii();
             while(current != nullptr) {

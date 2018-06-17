@@ -8,8 +8,6 @@
 #include "IoLib/Environment.h"
 #include "IoLib/Directory.h"
 
-#define PlatformIndependentPathSep_ '~'
-
 #define AssetsDirectoryName_ "_Assets"
 #define ContentDirectoryName_ "Content"
 
@@ -57,7 +55,7 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c", root.Ascii(), ContentDirectoryName_, ps);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c", root.Ascii(), ContentDirectoryName_, ps);
         }
 
         //==============================================================================
@@ -68,7 +66,7 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c", root.Ascii(), AssetsDirectoryName_, ps);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c", root.Ascii(), AssetsDirectoryName_, ps);
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
@@ -78,7 +76,7 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%s", root.Ascii(), ContentDirectoryName_, ps, name);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s", root.Ascii(), ContentDirectoryName_, ps, name);
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
@@ -88,7 +86,7 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%s%s%s", root.Ascii(), ContentDirectoryName_, ps, prefix, name, postfix);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%s%s", root.Ascii(), ContentDirectoryName_, ps, prefix, name, postfix);
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
@@ -98,7 +96,7 @@ namespace Selas
             FilePathString root;
             ContentDirectoryRoot(root);
 
-            StringUtil::SanitizePath(root.Ascii(), PlatformIndependentPathSep_, filepath, sanitized.Ascii(), sanitized.Capcaity());
+            StringUtil::SanitizePath(root.Ascii(), PlatformIndependentPathSep_, filepath, sanitized.Ascii(), sanitized.Capacity());
         }
 
         //==============================================================================
@@ -108,7 +106,7 @@ namespace Selas
             char ps = StringUtil::PathSeperator();
 
             FilePathString directory;
-            StringUtil::Sprintf(directory.Ascii(), directory.Capcaity(), "%s%s%c%s%c%llu%c", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps);
+            StringUtil::Sprintf(directory.Ascii(), directory.Capacity(), "%s%s%c%s%c%llu%c", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps);
 
             Directory::EnsureDirectoryExists(directory.Ascii());
         }
@@ -119,7 +117,7 @@ namespace Selas
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%s%c%llu%c%s.bin", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps, nameStr);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%c%llu%c%s.bin", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps, nameStr);
         }
 
         //==============================================================================
@@ -128,7 +126,7 @@ namespace Selas
         //    FixedString128 root = Environment_Root();
         //    char ps = StringUtil::PathSeperator();
 
-        //    StringUtil::Sprintf(filepath.Ascii(), filepath.Capcaity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(), AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
+        //    StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(), AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
         //}
     }
 }

@@ -73,7 +73,7 @@ namespace Selas
         for(uint scan = 0, count = texture->data->mipCount; scan < count; ++scan) {
             FixedString256 path;
             #if IsWindows_
-                sprintf_s(path.Ascii(), path.Capcaity(), "%s/%s_mip_%llu.hdr", folder, name, scan);
+                sprintf_s(path.Ascii(), path.Capacity(), "%s/%s_mip_%llu.hdr", folder, name, scan);
             #else
                 sprintf(path.Ascii(), "%s/%s_mip_%llu.hdr", folder, name, scan);
             #endif

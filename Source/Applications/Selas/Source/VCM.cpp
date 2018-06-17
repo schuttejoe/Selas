@@ -45,7 +45,7 @@
 #define EnableMultiThreading_   1
 #define IntegrationSeconds_     30.0f
 
-#define VcmRadiusFactor_ 0.005f
+#define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
 
 namespace Selas

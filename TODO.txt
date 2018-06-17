@@ -3,12 +3,12 @@ Obviously there's an infinite list of things that can be done here. This is just
 
 Short term goals
 ---------------------
-Dependency system in Build
-Environment
+Sorted Deferred VCM (+ blog post)
 
 Features:
 ---------
-Deferred path tracing / Ray batching and sorting
+Handling a large number of light sources (+ blog post)
+UV -> PTex transfer (+ blog post)
 More advanced material models + vet existing models
 Depth of field
 

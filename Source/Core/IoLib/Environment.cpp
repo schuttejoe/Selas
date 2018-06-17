@@ -15,15 +15,15 @@ namespace Selas
     void Environment_Initialize(cpointer projectName, cpointer exeDir)
     {
         FixedString256 sanitized;
-        StringUtil::FullPathName(exeDir, sanitized.Ascii(), sanitized.Capcaity());
+        StringUtil::FullPathName(exeDir, sanitized.Ascii(), sanitized.Capacity());
 
         char pathSep = StringUtil::PathSeperator();
 
         FixedString64 keyDir;
         #if IsWindows_
-            sprintf_s(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
+            sprintf_s(keyDir.Ascii(), keyDir.Capacity(), "%s%c_BuildTemp", projectName, pathSep);
         #elif IsOsx_
-            snprintf(keyDir.Ascii(), keyDir.Capcaity(), "%s%c_BuildTemp", projectName, pathSep);
+            snprintf(keyDir.Ascii(), keyDir.Capacity(), "%s%c_BuildTemp", projectName, pathSep);
         #endif
 
         // -- If we find this key then we're probably running from a dev environment.
@@ -33,10 +33,10 @@ namespace Selas
             uint32 toProjectDirSize = (uint32)(root - sanitized.Ascii());
             uint32 projectNameSize = StringUtil::Length(projectName);
 
-            StringUtil::CopyN(rootDirectory.Ascii(), (int32)rootDirectory.Capcaity(), sanitized.Ascii(), (int32)(toProjectDirSize + projectNameSize + 1));
+            StringUtil::CopyN(rootDirectory.Ascii(), (int32)rootDirectory.Capacity(), sanitized.Ascii(), (int32)(toProjectDirSize + projectNameSize + 1));
         }
         else {
-            StringUtil::GetFolderPath(sanitized.Ascii(), rootDirectory.Ascii(), (uint32)rootDirectory.Capcaity());
+            StringUtil::GetFolderPath(sanitized.Ascii(), rootDirectory.Ascii(), (uint32)rootDirectory.Capacity());
         }
     }
 

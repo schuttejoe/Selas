@@ -289,7 +289,7 @@ namespace Selas
         bool SanitizePath(cpointer root, char pathSep, cpointer src, char* dst, uint maxLength)
         {
             FixedString256 temp;
-            ReturnFailure_(FullPathName(src, temp.Ascii(), temp.Capcaity()));
+            ReturnFailure_(FullPathName(src, temp.Ascii(), temp.Capacity()));
 
             uint offset = 0;
 

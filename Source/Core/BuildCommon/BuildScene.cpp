@@ -13,6 +13,7 @@
 #include "SystemLib/MinMax.h"
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/CountOf.h"
+#include "SystemLib/Logging.h"
 
 namespace Selas
 {
@@ -141,7 +142,9 @@ namespace Selas
             ImportedMaterialData importedMaterialData;
             Error err = ImportMaterial(materialfile.Ascii(), &importedMaterialData);
             if(Failed_(err)) {
-                AssetFileUtils::ContentFilePath("Materials|Default.json", materialfile);
+                WriteDebugInfo_("Failed to load material: %s", materialfile.Ascii());
+
+                AssetFileUtils::ContentFilePath("Materials~Default.json", materialfile);
                 ReturnError_(ImportMaterial(materialfile.Ascii(), &importedMaterialData));
             }
 
@@ -189,11 +192,9 @@ namespace Selas
     }
 
     //==============================================================================
-    Error BuildScene(BuildProcessorContext* context, ImportedModel* imported, BuiltScene* built)
+    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltScene* built)
     {
-        cpointer prefix = "Materials~";
-
-        ReturnError_(ImportMaterials(context, prefix, imported, built));
+        ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
 
         BuildMeshes(imported, built);
 

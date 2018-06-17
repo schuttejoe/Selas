@@ -41,8 +41,11 @@ namespace Selas
         ImportedModel importedModel;
         ReturnError_(ImportModel(context, &importedModel));
 
+        cpointer materialprefix = "Scenes~SanMiguel~Materials~";
+        //cpointer materialprefix = "Materials";
+
         BuiltScene builtScene;
-        ReturnError_(BuildScene(context, &importedModel, &builtScene));
+        ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));
         ShutdownImportedModel(&importedModel);
 
         for(uint scan = 0, count = builtScene.textures.Length(); scan < count; ++scan) {
