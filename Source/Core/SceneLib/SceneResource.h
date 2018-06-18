@@ -30,7 +30,8 @@ namespace Selas
     {
         ePreserveRayDifferentials = 1 << 0,
         eHasTextures              = 1 << 1,
-        eTransparent              = 1 << 2
+        eTransparent              = 1 << 2,
+        eAlphaTested              = 1 << 3
     };
 
     struct Material
@@ -92,11 +93,12 @@ namespace Selas
                              
         // -- mesh information
         uint32               meshCount;
-        uint32               totalIndexCount;
+        uint32               solidIndexCount;
+        uint32               atIndexCount;
         uint32               totalVertexCount;
-        uint32               pad0;
                              
         uint32*              indices;
+        uint32*              atIndices;
         float4*              positions;
         VertexAuxiliaryData* vertexData;
     };
@@ -104,7 +106,7 @@ namespace Selas
     struct SceneResource
     {
         static cpointer kDataType;
-        static const uint64 kDataVersion = 1529278006ul;
+        static const uint64 kDataVersion = 1529287919ul;
 
         SceneResourceData* data;
         TextureResource* textures;

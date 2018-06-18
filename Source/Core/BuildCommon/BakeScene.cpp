@@ -28,16 +28,19 @@ namespace Selas
     static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData)
     {
         uint32 meshCount = sceneData.meshes.Length();
-        uint32 indexCount = sceneData.indices.Length();
+        uint32 solidIndexCount = sceneData.indices.Length();
+        uint32 atIndexCount = sceneData.alphaTestedIndices.Length();
         uint32 vertexCount = sceneData.positions.Length();
-        uint32 pad = 0;
+        
         SerializerWrite(writer, &meshCount, sizeof(meshCount));
-        SerializerWrite(writer, &indexCount, sizeof(indexCount));
+        SerializerWrite(writer, &solidIndexCount, sizeof(solidIndexCount));
+        SerializerWrite(writer, &atIndexCount, sizeof(atIndexCount));
         SerializerWrite(writer, &vertexCount, sizeof(vertexCount));
-        SerializerWrite(writer, &pad, sizeof(pad));
 
         SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.indices.GetData(), sceneData.indices.DataSize());
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.alphaTestedIndices.GetData(), sceneData.alphaTestedIndices.DataSize());
         SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.positions.GetData(), sceneData.positions.DataSize());
         SerializerWritePointerOffsetX64(writer);
@@ -47,7 +50,7 @@ namespace Selas
     //==============================================================================
     Error BakeScene(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
-        uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
+        uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.alphaTestedIndices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
 
         BinaryWriter writer;
         SerializerStart(&writer, 0, presize);

@@ -105,8 +105,13 @@ namespace Selas
         uint width;
         uint height;
         uint channels;
+        bool floatData;
         void* raw;
-        ReturnError_(StbImageRead(filepath.Ascii(), 3, width, height, channels, raw));
+        ReturnError_(StbImageRead(filepath.Ascii(), 3, width, height, channels, floatData, raw));
+        
+        if(floatData == false) {
+            return Error_("Expected floating point texture for '%s'", filepath.Ascii());
+        }
 
         ibl->hdrData = reinterpret_cast<float3*>(raw);
 

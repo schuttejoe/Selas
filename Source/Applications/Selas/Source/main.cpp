@@ -7,6 +7,7 @@
 #include "VCM.h"
 #include "Shading/IntegratorContexts.h"
 
+#include "Shading/SurfaceParameters.h"
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/StbImage.h"
@@ -31,24 +32,49 @@
 using namespace Selas;
 
 //==============================================================================
-static uint32 PopulateEmbreeScene(SceneResourceData* sceneData, RTCDevice& rtcDevice, RTCScene& rtcScene) {
+static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
+{
+    Assert_(args->N == 1);
+    int* valid = args->valid;
+    if(valid[0] != -1) {
+        return;
+    }
 
+    SceneResource* scene = (SceneResource*)args->geometryUserPtr;
+
+    RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, 0);
+
+    uint32 primitiveId = hit.primID;
+    float2 baryCoords = { hit.u, hit.v };
+
+    valid[0] = CalculatePassesAlphaTest(scene, primitiveId, baryCoords);
+}
+
+//==============================================================================
+static void PopulateEmbreeScene(SceneResource* scene, RTCDevice& rtcDevice, RTCScene& rtcScene) {
+
+    SceneResourceData* sceneData = scene->data;
     uint32 vertexCount = sceneData->totalVertexCount;
-    uint32 indexCount = sceneData->totalIndexCount;
+    uint32 indexCount = sceneData->solidIndexCount;
     uint32 triangleCount = indexCount / 3;
 
-    RTCGeometry rtcMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-   
-    rtcSetSharedGeometryBuffer(rtcMeshHandle, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sceneData->positions, 0, sizeof(float3), sceneData->totalVertexCount);
-    rtcSetSharedGeometryBuffer(rtcMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sceneData->indices, 0, 3 * sizeof(uint32), sceneData->totalIndexCount / 3);
-    rtcCommitGeometry(rtcMeshHandle);
+    RTCGeometry solidMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+    rtcSetSharedGeometryBuffer(solidMeshHandle, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sceneData->positions, 0, sizeof(float3), sceneData->totalVertexCount);
+    rtcSetSharedGeometryBuffer(solidMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sceneData->indices, 0, 3 * sizeof(uint32), sceneData->solidIndexCount / 3);
+    rtcCommitGeometry(solidMeshHandle);
+    rtcAttachGeometry(rtcScene, solidMeshHandle);
+    rtcReleaseGeometry(solidMeshHandle);
 
-    unsigned int geomID = rtcAttachGeometry(rtcScene, rtcMeshHandle);
-    rtcReleaseGeometry(rtcMeshHandle);
+    RTCGeometry atMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+    rtcSetSharedGeometryBuffer(atMeshHandle, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sceneData->positions, 0, sizeof(float3), sceneData->totalVertexCount);
+    rtcSetSharedGeometryBuffer(atMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sceneData->atIndices, 0, 3 * sizeof(uint32), sceneData->atIndexCount / 3);
+    rtcCommitGeometry(atMeshHandle);
+    rtcAttachGeometry(rtcScene, atMeshHandle);
+    rtcSetGeometryIntersectFilterFunction(atMeshHandle, IntersectionFilter);
+    rtcSetGeometryUserData(atMeshHandle, scene);
+    rtcReleaseGeometry(atMeshHandle);
 
     rtcCommitScene(rtcScene);
-
-    return geomID;
 }
 
 //==============================================================================
@@ -65,12 +91,11 @@ int main(int argc, char *argv[])
 
     RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
     RTCScene rtcScene = rtcNewScene(rtcDevice);
-    uint32 meshHandle = -1;
 
     auto timer = SystemTime::Now();
 
     SceneResource sceneResource;
-    ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~san-miguel.obj", &sceneResource));
+    ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~SanMiguel.fbx", &sceneResource));
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
@@ -81,7 +106,7 @@ int main(int argc, char *argv[])
 
     timer = SystemTime::Now();
     
-    meshHandle = PopulateEmbreeScene(sceneResource.data, rtcDevice, rtcScene);
+    PopulateEmbreeScene(&sceneResource, rtcDevice, rtcScene);
     
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene build time %fms", elapsedMs);

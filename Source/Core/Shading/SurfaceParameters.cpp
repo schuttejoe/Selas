@@ -25,49 +25,72 @@ namespace Selas
             return float3::ZAxis_;
 
         TextureResource* textures = scene->textures;
+        if(textures[textureIndex].data->format != TextureResourceData::Float3) {
+            Assert_(false);
+            return float3::ZAxis_;
+        }
 
         float3 sample;
 
         #if EnableDifferentials_        
             if(!ForceNoMips_ && hasDifferentials) {
                 #if EnableEWA_
-                    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                    TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
                 #else
-                    sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
+                    TextureFiltering::Trilinear(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
                 #endif
             }
             else {
-                sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+                TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
             }
         #else
-            sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
         #endif
 
         return 2.0f * sample - 1.0f;
     }
 
     //==============================================================================
-    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float3 defaultValue)
+    static float SampleTextureOpacity(const SceneResource* scene, float2 uvs, uint textureIndex)
+    {
+        if(textureIndex == InvalidIndex32) {
+            return 1.0f;
+        }
+
+        TextureResource* textures = scene->textures;
+        if(textures[textureIndex].data->format != TextureResourceData::Float4) {
+            return 1.0f;
+        }
+
+        float4 sample;
+        TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
+
+        return sample.w;
+    }
+
+    //==============================================================================
+    template <typename Type_>
+    static Type_ SampleTexture(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, Type_ defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
 
         TextureResource* textures = scene->textures;
 
-        float3 sample;
+        Type_ sample;
         #if EnableDifferentials_
-            if(!ForceNoMips_ && hasDifferentials) {
-                #if EnableEWA_
-                    sample = TextureFiltering::EWAFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-                #else
-                    sample = TextureFiltering::TrilinearFloat3(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-                #endif
-            }
-            else {
-                sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
-            }
+        if(!ForceNoMips_ && hasDifferentials) {
+            #if EnableEWA_
+            TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
+            #else
+            TextureFiltering::Trilinear(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
+            #endif
+        }
+        else {
+            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
+        }
         #else
-            sample = TextureFiltering::TriangleFloat3(textures[textureIndex].data, 0, uvs);
+            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
         #endif
 
         if(sRGB) {
@@ -85,28 +108,70 @@ namespace Selas
 
         TextureResource* textures = scene->textures;
 
-        float sample;
-
-        #if EnableDifferentials_
-            if(!ForceNoMips_ && hasDifferentials) {
-                #if EnableEWA_
-                    sample = TextureFiltering::EWAFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-                #else
-                    sample = TextureFiltering::TrilinearFloat(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy);
-                #endif
-            }
-            else {
-                sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
-            }
-        #else
-            sample = TextureFiltering::TriangleFloat(textures[textureIndex].data, 0, uvs);
-        #endif
-
-        if(sRGB) {
-            sample = Math::SrgbToLinearPrecise(sample);
+        if(textures[textureIndex].data->format == TextureResourceData::Float) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float2) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float2(defaultValue, 0.0f).x);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, 0.0f, 0.0f).x);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, 0.0f, 0.0f, 0.0f).x);
         }
 
-        return sample;
+        Assert_(false);
+        return 0.0f;
+    }
+
+    //==============================================================================
+    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    {
+        if(textureIndex == InvalidIndex32)
+            return float3(defaultValue, defaultValue, defaultValue);
+
+        TextureResource* textures = scene->textures;
+
+        if(textures[textureIndex].data->format == TextureResourceData::Float) {
+            float val;
+            val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+            return float3(val, val, val);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, defaultValue, defaultValue));
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
+            float4 val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            return val.XYZ();
+        }
+
+        Assert_(false);
+        return 0.0f;
+    }
+
+    //==============================================================================
+    static float4 SampleTextureFloat4(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    {
+        if(textureIndex == InvalidIndex32)
+            return float4(defaultValue, defaultValue, defaultValue, defaultValue);
+
+        TextureResource* textures = scene->textures;
+
+        if(textures[textureIndex].data->format == TextureResourceData::Float) {
+            float val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+            return float4(val, val, val, 1.0f);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
+            float3 value = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, defaultValue, defaultValue));
+            return float4(value, 1.0f);
+        }
+        else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
+            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+        }
+
+        Assert_(false);
+        return 0.0f;
     }
 
     //==============================================================================
@@ -173,10 +238,20 @@ namespace Selas
         const SceneResource* scene = context->sceneData->scene;
 
         uint32 primitiveId = hit->primId;
-
-        uint32 i0 = scene->data->indices[3 * primitiveId + 0];
-        uint32 i1 = scene->data->indices[3 * primitiveId + 1];
-        uint32 i2 = scene->data->indices[3 * primitiveId + 2];
+        uint32 i0;
+        uint32 i1;
+        uint32 i2;
+        
+        if(hit->geomId == 0) {
+            i0 = scene->data->indices[3 * primitiveId + 0];
+            i1 = scene->data->indices[3 * primitiveId + 1];
+            i2 = scene->data->indices[3 * primitiveId + 2];
+        }
+        else {
+            i0 = scene->data->atIndices[3 * primitiveId + 0];
+            i1 = scene->data->atIndices[3 * primitiveId + 1];
+            i2 = scene->data->atIndices[3 * primitiveId + 2];
+        }
 
         const VertexAuxiliaryData& v0 = scene->data->vertexData[i0];
         const VertexAuxiliaryData& v1 = scene->data->vertexData[i1];
@@ -266,8 +341,8 @@ namespace Selas
         #endif
 
         float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, float3::One_);
-        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, rayHasDifferentials, surface.albedo);
+        surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, 1.0f);
+        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, rayHasDifferentials, 0.01f);
         surface.roughness     = material->roughness * SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, rayHasDifferentials, 1.0f);
         surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
 
@@ -281,6 +356,34 @@ namespace Selas
         surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
 
         return true;
+    }
+
+    //==============================================================================
+    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 primitiveId, float2 baryCoords)
+    {
+        uint32 i0 = scene->data->atIndices[3 * primitiveId + 0];
+        uint32 i1 = scene->data->atIndices[3 * primitiveId + 1];
+        uint32 i2 = scene->data->atIndices[3 * primitiveId + 2];
+
+        const VertexAuxiliaryData& v0 = scene->data->vertexData[i0];
+        const VertexAuxiliaryData& v1 = scene->data->vertexData[i1];
+        const VertexAuxiliaryData& v2 = scene->data->vertexData[i2];
+
+        Material* material = &scene->data->materials[v0.materialIndex];
+        Assert_(material->flags & eAlphaTested);
+
+        float2 uv0 = float2(v0.u, v0.v);
+        float2 uv1 = float2(v1.u, v1.v);
+        float2 uv2 = float2(v2.u, v2.v);
+
+        float a0 = Saturate(1.0f - (baryCoords.x + baryCoords.y));
+        float a1 = baryCoords.x;
+        float a2 = baryCoords.y;
+
+        static const float kAlphaTestCutoff = 0.5f;
+
+        float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
+        return SampleTextureOpacity(scene, uvs, material->albedoTextureIndex) > kAlphaTestCutoff;
     }
 
     //==============================================================================

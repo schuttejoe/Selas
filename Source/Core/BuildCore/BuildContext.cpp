@@ -6,6 +6,7 @@
 #include "IoLib/File.h"
 #include "IoLib/Environment.h"
 #include "StringLib/StringUtil.h"
+#include "SystemLib/Logging.h"
 
 #include <stdio.h>
 
@@ -69,6 +70,8 @@ namespace Selas
         ReturnError_(File::WriteWholeFile(filepath.Ascii(), data, (uint32)dataSize));
 
         outputs.Add(output);
+
+        WriteDebugInfo_("-- Created output: '%s:%s'", type, name);
 
         return Success_;
     }

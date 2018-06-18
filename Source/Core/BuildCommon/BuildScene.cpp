@@ -55,21 +55,27 @@ namespace Selas
     //==============================================================================
     static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
     {
-        uint32 totalIndexCount = 0;
         uint32 totalVertexCount = 0;
 
         for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
 
             ImportedMesh* mesh = imported->meshes[scan];
 
+            Material* material = &built->materials[mesh->materialIndex];
+
             BuiltMeshData meshData;
             meshData.indexCount = mesh->indices.Length();
             meshData.vertexCount = mesh->positions.Length();
-            meshData.indexOffset = totalIndexCount;
             meshData.vertexOffset = totalVertexCount;
 
             built->meshes.Add(meshData);
-            AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->indices);
+            if(material->flags & eAlphaTested) {
+                AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->alphaTestedIndices);
+            }
+            else {
+                AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->indices);
+            }
+            
             built->positions.Append(mesh->positions);
 
             built->vertexData.Reserve(built->vertexData.Length() + meshData.vertexCount);
@@ -103,7 +109,6 @@ namespace Selas
                 built->vertexData.Add(vertexData);
             }
 
-            totalIndexCount += meshData.indexCount;
             totalVertexCount += meshData.vertexCount;
         }
 
@@ -152,6 +157,9 @@ namespace Selas
 
             Material& material = built->materials[scan];
             material = Material();
+
+            if(importedMaterialData.alphaTested)
+                material.flags |= eAlphaTested;
 
             uint32 shaderFlags = 0;
             DetermineShaderType(importedMaterialData, material.shader, shaderFlags);

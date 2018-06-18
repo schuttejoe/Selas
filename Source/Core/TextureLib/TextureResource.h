@@ -16,7 +16,9 @@ namespace Selas
         {
             // -- Convert to something more like d3d formats?
             Float,
-            Float3
+            Float2,
+            Float3,
+            Float4
         };
 
         static const uint MaxMipCount = 16;
@@ -28,7 +30,7 @@ namespace Selas
         uint32 mipHeights[MaxMipCount];
         uint64 mipOffsets[MaxMipCount];
 
-        TextureDataType type;
+        TextureDataType format;
         uint32 pad;
 
         uint8* texture;
@@ -37,7 +39,7 @@ namespace Selas
     struct TextureResource
     {
         static cpointer kDataType;
-        static const uint64 kDataVersion = 1528864087ul;
+        static const uint64 kDataVersion = 1529280908ul;
 
         TextureResourceData* data;
     };

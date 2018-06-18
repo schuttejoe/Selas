@@ -22,20 +22,25 @@
 namespace Selas
 {
     //==============================================================================
-    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba)
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData, void*& rgba)
     {
         int32 w_;
         int32 h_;
         int32 c_;
 
         void* raw = nullptr;
-        if(StringUtil::EndsWithIgnoreCase(filepath, "hdr"))
+        if(StringUtil::EndsWithIgnoreCase(filepath, "hdr")) {
             raw = (void*)stbi_loadf(filepath, &w_, &h_, &c_, (int)requestedChannels);
-        else
+            floatData = true;
+        }
+        else {
             raw = (void*)stbi_load(filepath, &w_, &h_, &c_, (int)requestedChannels);
+            floatData = false;
+        }
 
-        if(raw == nullptr)
+        if(raw == nullptr) {
             return Error_("Failed to load texture file: %s", filepath);
+        }
 
         width = (uint)w_;
         height = (uint)h_;

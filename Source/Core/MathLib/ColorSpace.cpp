@@ -34,6 +34,18 @@ namespace Selas
         }
 
         //==============================================================================
+        float4 SrgbToLinearPrecise(float4 srgb)
+        {
+            float4 result;
+            result.x = SrgbToLinearPrecise(srgb.x);
+            result.y = SrgbToLinearPrecise(srgb.y);
+            result.z = SrgbToLinearPrecise(srgb.z);
+            result.w = SrgbToLinearPrecise(srgb.w);
+
+            return result;
+        }
+
+        //==============================================================================
         float LinearToSrgbPrecise(float x)
         {
             if(x < 0.0031308f) {

@@ -16,20 +16,21 @@
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/Memory.h"
 #include "SystemLib/MinMax.h"
+#include "SystemLib/Logging.h"
 
 #include <stdio.h>
 
 namespace Selas
 {
     //==============================================================================
-    static void Uint32ToLinearFloat3(bool isLinear, uint width, uint height, uint32* rawData, float3* output)
+    static void Uint32ToLinearFloat4(bool isLinear, uint width, uint height, uint32* rawData, float4* output)
     {
         uint count = width * height;
    
         for(uint scan = 0; scan < count; ++scan) {
             uint32 sample = rawData[scan];
 
-            float3 linear = isLinear ? MakeColor3f(sample) : Math::SrgbToLinearPrecise(MakeColor3f(sample));
+            float4 linear = isLinear ? MakeColor4f(sample) : Math::SrgbToLinearPrecise(MakeColor4f(sample));
             output[scan] = linear;
         }
     }
@@ -44,19 +45,6 @@ namespace Selas
             float samplef = sample / 255.0f;
 
             float linear = isLinear ? samplef : Math::SrgbToLinearPrecise(samplef);
-            output[scan] = linear;
-        }
-    }
-
-    //==============================================================================
-    static void Uint24ToLinearFloat(bool isLinear, uint width, uint height, uint8* rawData, float* output)
-    {
-        uint count = width * height;
-
-        for(uint scan = 0; scan < count; ++scan) {
-            uint8 r = rawData[3 * scan + 0];
-
-            float linear = isLinear ? r : Math::SrgbToLinearPrecise(r);
             output[scan] = linear;
         }
     }
@@ -91,40 +79,44 @@ namespace Selas
     }
 
     //==============================================================================
-    static Error LoadLinearFloatData(const char* filepath, float*& output, uint& width, uint& height)
+    static Error ConvertToLinearFloatData(void* rawData, uint width, uint height, float*& output)
     {
-        uint channels;
-        void* rawData;
-        ReturnError_(StbImageRead(filepath, 1, width, height, channels, rawData));
-
         uint count = width * height;
         output = AllocArray_(float, count);
 
         Uint8ToLinearFloat(true, width, height, (uint8*)rawData, output);
 
-        Free_(rawData);
-
         return Success_;
     }
 
     //==============================================================================
-    static Error  LoadLinearFloat3Data(const char* filepath, bool isSrcSrgb, float3*& output, uint& width, uint& height)
+    static Error ConvertToLinearFloat3Data(void* rawData, uint width, uint height, bool floatData, bool isSrcSrgb, float3*& output)
     {
-        uint channels;
-        void* rawData;
-        ReturnError_(StbImageRead(filepath, 3, width, height, channels, rawData));
-
         uint count = width * height;
         output = AllocArray_(float3, count);
 
-        bool isHdr = StringUtil::EndsWithIgnoreCase(filepath, "hdr");
-        if(isHdr) {
+        if(floatData) {
             Memory::Copy(output, rawData, sizeof(float3)*width*height);           
         }
         else {
             Uint24ToLinearFloat3(!isSrcSrgb, width, height, (uint8*)rawData, output);
         }
-        Free_(rawData);
+
+        return Success_;
+    }
+
+    //==============================================================================
+    static Error ConvertToLinearFloat4Data(void* rawData, uint width, uint height, bool floatData, bool isSrcSrgb, float4*& output)
+    {
+        uint count = width * height;
+        output = AllocArray_(float4, count);
+
+        if(floatData) {
+            Memory::Copy(output, rawData, sizeof(float4)*width*height);
+        }
+        else {
+            Uint32ToLinearFloat4(!isSrcSrgb, width, height, (uint32*)rawData, output);
+        }
 
         return Success_;
     }
@@ -219,45 +211,18 @@ namespace Selas
         return true;
     }
 
-    enum MaterialTextureTypes
-    {
-        AO,
-        Albedo,
-        Height,
-        Normal,
-        Roughness,
-        ReflectanceAtR0,
-        Metalness,
-
-        Unknown
-    };
-
     //==============================================================================
-    static MaterialTextureTypes DetermineMaterialType(cpointer textureName)
+    bool IsNormalMapTexture(const FilePathString& str)
     {
-        if(StringUtil::FindSubString(textureName, "_AO")) {
-            return AO;
-        }
-        if(StringUtil::FindSubString(textureName, "_Albedo")) {
-            return Albedo;
-        }
-        if(StringUtil::FindSubString(textureName, "_Height")) {
-            return Height;
-        }
-        if(StringUtil::FindSubString(textureName, "_Normal")) {
-            return Normal;
-        }
-        if(StringUtil::FindSubString(textureName, "_Roughness")) {
-            return Roughness;
-        }
-        if(StringUtil::FindSubString(textureName, "_Specular")) {
-            return ReflectanceAtR0;
-        }
-        if(StringUtil::FindSubString(textureName, "_Metalness")) {
-            return Metalness;
+        if(StringUtil::FindSubString(str.Ascii(), "_Normal") != nullptr) {
+            return true;
         }
 
-        return Unknown;
+        if(StringUtil::FindSubString(str.Ascii(), "N_") != nullptr) {
+            return true;
+        }
+
+        return false;
     }
 
     //==============================================================================
@@ -271,42 +236,61 @@ namespace Selas
         FixedString32 extension;
         StringUtil::GetExtension(filepath.Ascii(), extension.Ascii(), (uint32)extension.Capacity());
 
-        MaterialTextureTypes type = DetermineMaterialType(context->source.name.Ascii());
-        Assert_(type != Unknown);
+        uint width;
+        uint height;
+        uint channels;
+        bool floatData;
+        void* rawData;
+        ReturnError_(StbImageRead(filepath.Ascii(), NoComponentCountRequest_, width, height, channels, floatData, rawData));
 
         bool result;
-        if(type == AO || type == Height || type == Roughness || type == Metalness) {
+        if(channels == 1) {
             float* linear = nullptr;
-            uint width;
-            uint height;
-            ReturnError_(LoadLinearFloatData(filepath.Ascii(), linear, width, height));
+            ReturnError_(ConvertToLinearFloatData(rawData, width, height, linear));
 
             float* textureData;
             texture->dataSize = 0;
             result = GenerateMipMaps<float>(prefilter, linear, width, height,
                                      texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
             texture->texture = reinterpret_cast<uint8*>(textureData);
-            texture->type = TextureResourceData::Float;
+            texture->format = TextureResourceData::Float;
             Free_(linear);
         }
-        else if (type == Albedo || type == ReflectanceAtR0 || type == Normal) {
+        else if (channels == 3) {
 
-            bool isSrcSrgb = type == Normal ? false : true;
+            bool isSrcSrgb = IsNormalMapTexture(filepath) == false;
 
             float3* linear = nullptr;
-            uint width;
-            uint height;
-            ReturnError_(LoadLinearFloat3Data(filepath.Ascii(), isSrcSrgb, linear, width, height));
+            ReturnError_(ConvertToLinearFloat3Data(rawData, width, height, floatData, isSrcSrgb, linear));
 
             float3* textureData;
             texture->dataSize = 0;
             result = GenerateMipMaps<float3>(prefilter, linear, width, height,
                                      texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
             texture->texture = reinterpret_cast<uint8*>(textureData);
-            texture->type = TextureResourceData::Float3;
+            texture->format = TextureResourceData::Float3;
             Free_(linear);
         }
+        else if(channels == 4) {
 
+            bool isSrcSrgb = true;
+
+            float4* linear = nullptr;
+            ReturnError_(ConvertToLinearFloat4Data(rawData, width, height, floatData, isSrcSrgb, linear));
+
+            float4* textureData;
+            texture->dataSize = 0;
+            result = GenerateMipMaps<float4>(prefilter, linear, width, height,
+                                             texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+            texture->texture = reinterpret_cast<uint8*>(textureData);
+            texture->format = TextureResourceData::Float4;
+            Free_(linear);
+        }
+        else {
+            return Error_("NYI - Unsupported (or NYI) channel texture format for texture '%s'.", filepath.Ascii());
+        }
+
+        Free_(rawData);
 
         return Success_;
     }

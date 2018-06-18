@@ -42,6 +42,7 @@ namespace Selas
         FixupPointerX64(fileData, data->data->textureResourceNames);
         FixupPointerX64(fileData, data->data->materials);
         FixupPointerX64(fileData, data->data->indices);
+        FixupPointerX64(fileData, data->data->atIndices);
         FixupPointerX64(fileData, data->data->positions);
         FixupPointerX64(fileData, data->data->vertexData);
 

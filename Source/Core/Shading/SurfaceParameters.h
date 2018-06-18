@@ -52,6 +52,8 @@ namespace Selas
     };
 
     bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 primitiveId, float2 baryCoords);
+
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance);
 }

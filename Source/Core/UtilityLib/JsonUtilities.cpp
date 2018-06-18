@@ -31,6 +31,25 @@ namespace Selas
         }
 
         //==============================================================================
+        bool ReadBool(const rapidjson::Value& element, cpointer key, bool& value, bool defaultValue)
+        {
+            if(element.HasMember(key)) {
+                if(element[key].IsBool()) {
+                    value = element[key].GetBool();
+                    return true;
+                }
+                else {
+                    value = defaultValue;
+                    return false;
+                }
+            }
+            else {
+                value = defaultValue;
+                return false;
+            }
+        }
+
+        //==============================================================================
         bool ReadInt32(const rapidjson::Value& element, cpointer key, int32& value, int32 defaultValue)
         {
             if(element.HasMember(key)) {

@@ -47,18 +47,7 @@ namespace Selas
     //==============================================================================
     static void DebugWriteTextureMip(TextureResource* texture, uint level, cpointer filepath)
     {
-        uint channels;
-        switch(texture->data->type) {
-            case TextureResourceData::Float:
-                channels = 1;
-                break;
-            case TextureResourceData::Float3:
-                channels = 3;
-                break;
-            default:
-                Assert_(false);
-                channels = 1;
-        }
+        uint channels = (uint)texture->data->format + 1;
 
         uint64 mipOffset = texture->data->mipOffsets[level];
         uint32 mipWidth  = texture->data->mipWidths[level];

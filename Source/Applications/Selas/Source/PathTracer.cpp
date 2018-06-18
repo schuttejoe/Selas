@@ -96,6 +96,7 @@ namespace Selas
             hit.position.y = rayhit.ray.org_y + rayhit.ray.tfar * ray.direction.y;
             hit.position.z = rayhit.ray.org_z + rayhit.ray.tfar * ray.direction.z;
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
+            hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
 
             const float kErr = 32.0f * 1.19209e-07f;

@@ -51,6 +51,7 @@ namespace Selas
     {
         float3 position;
         float error;
+        int32 geomId;
         int32 primId;
 
         float2 baryCoords;

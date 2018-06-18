@@ -9,6 +9,8 @@
 
 namespace Selas
 {
+    #define NoComponentCountRequest_ 0
+
     enum StbImageFormats
     {
         PNG,
@@ -18,6 +20,6 @@ namespace Selas
         JPG
     };
 
-    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, void*& rgba);
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData, void*& rgba);
     Error StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba);
 }

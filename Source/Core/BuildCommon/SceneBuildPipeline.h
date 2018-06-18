@@ -31,6 +31,7 @@ namespace Selas
         float albedo;
         float metalness;
         float ior;
+        bool alphaTested;
     };
 
     //== Import ====================================================================
@@ -58,7 +59,6 @@ namespace Selas
     {
         uint32 indexCount;
         uint32 vertexCount;
-        uint32 indexOffset;
         uint32 vertexOffset;
     };
 
@@ -76,6 +76,7 @@ namespace Selas
         // -- geometry information
         CArray<BuiltMeshData>       meshes;
         CArray<uint32>              indices;
+        CArray<uint32>              alphaTestedIndices;
         CArray<float3>              positions;
         CArray<VertexAuxiliaryData> vertexData;
     };

@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId("fbx", "Scenes~SanMiguel~san-miguel.obj"));
+    buildCore.BuildAsset(ContentId("fbx", "Scenes~SanMiguel~SanMiguel.fbx"));
     buildCore.BuildAsset(ContentId("HDR", "HDR~simons_town_rocks_4k_upper.hdr"));
     buildCore.BuildAsset(ContentId("HDR", "HDR~noon_grass_4k_upper.hdr"));
 

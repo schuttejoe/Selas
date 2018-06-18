@@ -31,7 +31,7 @@ namespace Selas
         SerializerWrite(&writer, &data->mipHeights, sizeof(data->mipHeights));
         SerializerWrite(&writer, &data->mipOffsets, sizeof(data->mipOffsets));
 
-        SerializerWrite(&writer, &data->type, sizeof(data->type));
+        SerializerWrite(&writer, &data->format, sizeof(data->format));
         SerializerWrite(&writer, &pad, sizeof(pad));
 
         SerializerWritePointerOffsetX64(&writer);

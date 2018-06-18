@@ -31,6 +31,8 @@ namespace Selas
         Json::ReadFloat(document, "Roughness", material->roughness, 1.0f);
         Json::ReadFloat(document, "Ior", material->ior, 1.0f);
 
+        Json::ReadBool(document, "AlphaTesting", material->alphaTested, false);
+
         return Success_;
     }
 }
