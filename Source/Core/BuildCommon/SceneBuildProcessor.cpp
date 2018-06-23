@@ -18,6 +18,7 @@ namespace Selas
     Error CSceneBuildProcessor::Setup()
     {
         AssetFileUtils::EnsureAssetDirectory<SceneResource>();
+        AssetFileUtils::EnsureAssetDirectory(SceneResource::kGeometryDataType, SceneResource::kDataVersion);
 
         return Success_;
     }
@@ -42,7 +43,7 @@ namespace Selas
         ReturnError_(ImportModel(context, &importedModel));
 
         cpointer materialprefix = "Scenes~SanMiguel~Materials~";
-        //cpointer materialprefix = "Materials";
+        //cpointer materialprefix = "Materials~";
 
         BuiltScene builtScene;
         ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));

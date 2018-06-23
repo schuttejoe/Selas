@@ -31,7 +31,18 @@ namespace Selas
         ePreserveRayDifferentials = 1 << 0,
         eHasTextures              = 1 << 1,
         eTransparent              = 1 << 2,
-        eAlphaTested              = 1 << 3
+        eAlphaTested              = 1 << 3,
+        eDisplacement             = 1 << 4
+    };
+
+    enum MeshIndexTypes
+    {
+        eMeshStandard,
+        eMeshAlphaTested,
+        eMeshDisplaced,
+        eMeshAlphaTestedDisplaced,
+
+        eMeshIndexTypeCount
     };
 
     struct Material
@@ -39,7 +50,7 @@ namespace Selas
         Material()
             : albedoTextureIndex(InvalidIndex32)
             , roughnessTextureIndex(InvalidIndex32)
-            , heightTextureIndex(InvalidIndex32)
+            , displacementTextureIndex(InvalidIndex32)
             , normalTextureIndex(InvalidIndex32)
             , specularTextureIndex(InvalidIndex32)
             , metalnessTextureIndex(InvalidIndex32)
@@ -53,7 +64,7 @@ namespace Selas
 
         uint32 albedoTextureIndex;
         uint32 roughnessTextureIndex;
-        uint32 heightTextureIndex;
+        uint32 displacementTextureIndex;
         uint32 normalTextureIndex;
         uint32 specularTextureIndex;
         uint32 metalnessTextureIndex;
@@ -65,51 +76,52 @@ namespace Selas
         eMaterialShader shader;
     };
 
-    struct VertexAuxiliaryData
-    {
-        float px, py, pz;
-        float nx, ny, nz;
-        float tx, ty, tz, bh;
-        float u, v;
-        uint32 materialIndex;
-    };
-
-    struct SceneResourceData
+    struct SceneMetaData
     {
         // -- camera information
-        CameraSettings       camera;
+        CameraSettings  camera;
 
         // -- misc scene info
-        AxisAlignedBox       aaBox;
-        float4               boundingSphere;
+        AxisAlignedBox  aaBox;
+        float4          boundingSphere;
 
         // -- material information
-        uint32               textureCount;
-        uint32               materialCount;
+        uint32          textureCount;
+        uint32          materialCount;
         // -- long run plan is to have texture header in the scene and then the texture data will be loaded in via caching.
         // -- for now I'm just making textures as a separate resource.
-        FilePathString*      textureResourceNames; 
-        Material*            materials;
-                             
+        FilePathString* textureResourceNames;
+        Material*       materials;
+
         // -- mesh information
-        uint32               meshCount;
-        uint32               solidIndexCount;
-        uint32               atIndexCount;
-        uint32               totalVertexCount;
-                             
-        uint32*              indices;
-        uint32*              atIndices;
-        float4*              positions;
-        VertexAuxiliaryData* vertexData;
+        uint32          meshCount;
+        uint32          totalVertexCount;
+        uint32          indexCounts[eMeshIndexTypeCount];
+    };
+
+    struct SceneGeometryData
+    {
+        uint32* indices[eMeshIndexTypeCount];
+        uint32* faceIndexCounts;
+        float3* positions;
+        float3* normals;
+        float4* tangents;
+        float2* uvs;
+        uint32* materialIndices;
     };
 
     struct SceneResource
     {
         static cpointer kDataType;
-        static const uint64 kDataVersion = 1529287919ul;
+        static cpointer kGeometryDataType;
+        static const uint64 kDataVersion;
+        static const uint32 kSceneDataAlignment;
 
-        SceneResourceData* data;
+        SceneMetaData* data;
+        SceneGeometryData* geometry;
+
         TextureResource* textures;
+        void* rtcGeometries[eMeshIndexTypeCount];
 
         SceneResource();
     };
@@ -117,6 +129,4 @@ namespace Selas
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
     Error InitializeSceneResource(SceneResource* scene);
     void ShutdownSceneResource(SceneResource* scene);
-
-    void CalculateSurfaceParams(const SceneResourceData* scene, uint32 primitiveId, float2 barycentric, HitParameters& hitParameters);
 }

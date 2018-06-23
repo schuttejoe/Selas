@@ -9,6 +9,7 @@
 #include "MathLib/FloatStructs.h"
 #include "SystemLib/BasicTypes.h"
 
+// -- Needs some rework. Don't think the implementation was correct anyway.
 #define EnableDifferentials_ 0
 
 namespace Selas
@@ -52,7 +53,8 @@ namespace Selas
     };
 
     bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
-    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 primitiveId, float2 baryCoords);
+    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
+    float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
 
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance);

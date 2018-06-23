@@ -40,14 +40,14 @@ namespace Selas
         Ray bounceRay;
 
         #if EnableDifferentials_
-        bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
+            bool rayHasDifferentials = surface.rxDirection.x != 0 || surface.rxDirection.y != 0;
 
-        if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
-            bounceRay = MakeRefractionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, surface.view, wi, surface.differentials, iorRatio);
-        }
-        else {
-            bounceRay = MakeRay(offsetOrigin, wi);
-        }
+            if((surface.materialFlags & ePreserveRayDifferentials) && rayHasDifferentials) {
+                bounceRay = MakeRefractionRay(surface.rxDirection, surface.ryDirection, offsetOrigin, surface.geometricNormal, surface.view, wi, surface.differentials, iorRatio);
+            }
+            else {
+                bounceRay = MakeRay(offsetOrigin, wi);
+            }
         #else
             bounceRay = MakeRay(offsetOrigin, wi);
         #endif

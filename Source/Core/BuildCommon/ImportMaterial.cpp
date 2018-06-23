@@ -20,7 +20,7 @@ namespace Selas
         Json::ReadFixedString(document, "ShaderName", material->shaderName);
 
         Json::ReadFixedString(document, "AlbedoTexture", material->albedoTextureName);
-        Json::ReadFixedString(document, "HeightTexture", material->heightTextureName);
+        Json::ReadFixedString(document, "DisplacementTexture", material->displacementTextureName);
         Json::ReadFixedString(document, "NormalTexture", material->normalTextureName);
         Json::ReadFixedString(document, "RoughnessTexture", material->roughnessTextureName);
         Json::ReadFixedString(document, "SpecularTexture", material->specularTextureName);

@@ -21,7 +21,7 @@ namespace Selas
         FixedString256 shaderName;
 
         FilePathString albedoTextureName;
-        FilePathString heightTextureName;
+        FilePathString displacementTextureName;
         FilePathString normalTextureName;
         FilePathString roughnessTextureName;
         FilePathString specularTextureName;
@@ -75,10 +75,13 @@ namespace Selas
 
         // -- geometry information
         CArray<BuiltMeshData>       meshes;
-        CArray<uint32>              indices;
-        CArray<uint32>              alphaTestedIndices;
+        CArray<uint32>              indices[eMeshIndexTypeCount];
+        CArray<uint32>              faceIndexCounts;
         CArray<float3>              positions;
-        CArray<VertexAuxiliaryData> vertexData;
+        CArray<float3>              normals;
+        CArray<float4>              tangents;
+        CArray<float2>              uvs;
+        CArray<uint32>              materialIndices;
     };
 
 }

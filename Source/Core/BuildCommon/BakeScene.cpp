@@ -24,33 +24,39 @@ namespace Selas
         SerializerWritePointerData(writer, sceneData.materials.GetData(), sceneData.materials.DataSize());
     }
 
-    //==============================================================================
-    static void SerializeMeshes(BinaryWriter* writer, const BuiltScene& sceneData)
-    {
-        uint32 meshCount = sceneData.meshes.Length();
-        uint32 solidIndexCount = sceneData.indices.Length();
-        uint32 atIndexCount = sceneData.alphaTestedIndices.Length();
-        uint32 vertexCount = sceneData.positions.Length();
-        
-        SerializerWrite(writer, &meshCount, sizeof(meshCount));
-        SerializerWrite(writer, &solidIndexCount, sizeof(solidIndexCount));
-        SerializerWrite(writer, &atIndexCount, sizeof(atIndexCount));
-        SerializerWrite(writer, &vertexCount, sizeof(vertexCount));
 
+    //==============================================================================
+    static void SerializeBufferAligned(BinaryWriter* writer, void* data, uint32 dataSize, uint32 pw2alignment)
+    {
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.indices.GetData(), sceneData.indices.DataSize());
-        SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.alphaTestedIndices.GetData(), sceneData.alphaTestedIndices.DataSize());
-        SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.positions.GetData(), sceneData.positions.DataSize());
-        SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.vertexData.GetData(), sceneData.vertexData.DataSize());
+        SerializerWritePointerData(writer, data, dataSize);
+
+        uint32 alignedSize = (dataSize + pw2alignment - 1) & ~(pw2alignment - 1);
+        for(uint scan = dataSize; scan < alignedSize; ++scan) {
+            uint8 zero = 0;
+            SerializerWritePointerData(writer, &zero, sizeof(uint8));
+        }
     }
 
     //==============================================================================
-    Error BakeScene(BuildProcessorContext* context, const BuiltScene& sceneData)
+    static void SerializeGeometry(BinaryWriter* writer, const BuiltScene& sceneData)
+    {  
+        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
+            SerializeBufferAligned(writer, (void*)sceneData.indices[scan].GetData(), sceneData.indices[scan].DataSize(), SceneResource::kSceneDataAlignment);
+        }
+        SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.GetData(), sceneData.faceIndexCounts.DataSize(), SceneResource::kSceneDataAlignment);
+
+        SerializeBufferAligned(writer, (void*)sceneData.positions.GetData(), sceneData.positions.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.normals.GetData(), sceneData.normals.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.tangents.GetData(), sceneData.tangents.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.uvs.GetData(), sceneData.uvs.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize(), SceneResource::kSceneDataAlignment);
+    }
+
+    //==============================================================================
+    static Error BakeSceneMetaData(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
-        uint32 presize = sceneData.textures.DataSize() +  sceneData.materials.DataSize() + sceneData.indices.DataSize() + sceneData.alphaTestedIndices.DataSize() + sceneData.positions.DataSize() + sceneData.vertexData.DataSize();
+        uint32 presize = sceneData.textures.DataSize() + sceneData.materials.DataSize();
 
         BinaryWriter writer;
         SerializerStart(&writer, 0, presize);
@@ -60,7 +66,18 @@ namespace Selas
         SerializerWrite(&writer, &sceneData.boundingSphere, sizeof(sceneData.boundingSphere));
 
         SerializeMaterials(&writer, sceneData);
-        SerializeMeshes(&writer, sceneData);
+
+        uint32 meshCount = sceneData.meshes.Length();
+        uint32 vertexCount = sceneData.positions.Length();
+
+        uint32 indexCounts[eMeshIndexTypeCount];
+        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
+            indexCounts[scan] = sceneData.indices[scan].Length();
+        }
+
+        SerializerWrite(&writer, &meshCount, sizeof(meshCount));
+        SerializerWrite(&writer, &vertexCount, sizeof(vertexCount));
+        SerializerWrite(&writer, &indexCounts, sizeof(indexCounts));
 
         void* assetData;
         uint32 assetSize;
@@ -69,6 +86,47 @@ namespace Selas
         ReturnError_(context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), assetData, assetSize));
 
         Free_(assetData);
+
+        return Success_;
+    }
+
+    //==============================================================================
+    static Error BakeSceneGeometryData(BuildProcessorContext* context, const BuiltScene& sceneData)
+    {
+        uint32 indexSize = 0;
+        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
+            indexSize += sceneData.indices[scan].DataSize();
+        }
+
+        uint32 geometryDataSize = indexSize + 1024/*extra space for alignment*/
+                                + sceneData.faceIndexCounts.DataSize()
+                                + sceneData.positions.DataSize()
+                                + sceneData.normals.DataSize()
+                                + sceneData.tangents.DataSize()
+                                + sceneData.uvs.DataSize()
+                                + sceneData.materialIndices.DataSize();
+
+        BinaryWriter writer;
+        SerializerStart(&writer, 0, geometryDataSize);
+
+        SerializeGeometry(&writer, sceneData);
+
+        void* assetData;
+        uint32 assetSize;
+        ReturnError_(SerializerEnd(&writer, assetData, assetSize));
+
+        ReturnError_(context->CreateOutput(SceneResource::kGeometryDataType, SceneResource::kDataVersion, context->source.name.Ascii(), assetData, assetSize));
+
+        Free_(assetData);
+
+        return Success_;
+    }
+
+    //==============================================================================
+    Error BakeScene(BuildProcessorContext* context, const BuiltScene& sceneData)
+    {
+        ReturnError_(BakeSceneMetaData(context, sceneData));
+        ReturnError_(BakeSceneGeometryData(context, sceneData));
 
         return Success_;
     }

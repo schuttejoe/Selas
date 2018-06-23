@@ -231,7 +231,7 @@ namespace Selas
         void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData)
         {
             const SceneResource* scene = context.scene;
-            SceneResourceData* sceneData = scene->data;
+            SceneMetaData* sceneData = scene->data;
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);

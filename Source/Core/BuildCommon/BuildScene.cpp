@@ -43,10 +43,6 @@ namespace Selas
     static void AppendAndOffsetIndices(const CArray<uint32>& addend, uint32 offset, CArray <uint32>& indices)
     {
         uint addendCount = addend.Length();
-        uint32 newTotal = (uint32)(indices.Length() + addendCount);
-
-        indices.Reserve(newTotal);
-
         for(uint scan = 0; scan < addendCount; ++scan) {
             indices.Add(addend[scan] + offset);
         }
@@ -56,29 +52,66 @@ namespace Selas
     static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
     {
         uint32 totalVertexCount = 0;
+        uint32 totalIndexCount[eMeshIndexTypeCount] = { 0, 0, 0, 0 };
 
+        for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
+            ImportedMesh* mesh = imported->meshes[scan];
+            Material* material = &built->materials[mesh->materialIndex];
+
+            uint32 indexType = 0;
+
+            bool alphaTested = material->flags & eAlphaTested;
+            bool displaced = material->flags & eDisplacement;
+            if(alphaTested & displaced)
+                indexType = eMeshAlphaTestedDisplaced;
+            else if(alphaTested)
+                indexType = eMeshAlphaTested;
+            else if(displaced)
+                indexType = eMeshDisplaced;
+            else
+                indexType = eMeshStandard;
+
+            totalVertexCount += mesh->positions.Length();
+            totalIndexCount[indexType] += mesh->indices.Length();
+        }
+
+        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
+            built->indices[scan].Reserve(totalIndexCount[scan]);
+        }
+
+        built->positions.Reserve(totalVertexCount);
+        built->normals.Reserve(totalVertexCount);
+        built->tangents.Reserve(totalVertexCount);
+        built->uvs.Reserve(totalVertexCount);
+        built->materialIndices.Reserve(totalVertexCount);
+
+        uint32 vertexOffset = 0;
         for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
 
             ImportedMesh* mesh = imported->meshes[scan];
-
             Material* material = &built->materials[mesh->materialIndex];
 
             BuiltMeshData meshData;
             meshData.indexCount = mesh->indices.Length();
             meshData.vertexCount = mesh->positions.Length();
-            meshData.vertexOffset = totalVertexCount;
+            meshData.vertexOffset = vertexOffset;
 
             built->meshes.Add(meshData);
-            if(material->flags & eAlphaTested) {
-                AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->alphaTestedIndices);
-            }
-            else {
-                AppendAndOffsetIndices(mesh->indices, totalVertexCount, built->indices);
-            }
+
+            bool alphaTested = material->flags & eAlphaTested;
+            bool displaced = material->flags & eDisplacement;
+            if(alphaTested & displaced)
+                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshAlphaTestedDisplaced]);
+            else if(alphaTested)
+                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshAlphaTested]);
+            else if(displaced)
+                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshDisplaced]);
+            else
+                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshStandard]);
             
             built->positions.Append(mesh->positions);
+            built->uvs.Append(mesh->uv0);
 
-            built->vertexData.Reserve(built->vertexData.Length() + meshData.vertexCount);
             for(uint i = 0; i < meshData.vertexCount; ++i) {
 
                 float3 n = mesh->normals[i];
@@ -91,25 +124,18 @@ namespace Selas
                 // -- calculate handedness of input bitangent
                 float handedness = (Dot(Cross(n, t), b) < 0.0f) ? -1.0f : 1.0f;
 
-                VertexAuxiliaryData vertexData;
-                vertexData.px            = mesh->positions[i].x;
-                vertexData.py            = mesh->positions[i].y;
-                vertexData.pz            = mesh->positions[i].z;
-                vertexData.nx            = n.x;
-                vertexData.ny            = n.y;
-                vertexData.nz            = n.z;
-                vertexData.tx            = t.x;
-                vertexData.ty            = t.y;
-                vertexData.tz            = t.z;
-                vertexData.bh            = handedness;
-                vertexData.u             = mesh->uv0[i].x;
-                vertexData.v             = mesh->uv0[i].y;
-                vertexData.materialIndex = mesh->materialIndex;
-
-                built->vertexData.Add(vertexData);
+                built->normals.Add(n);
+                built->tangents.Add(float4(t, handedness));
+                built->materialIndices.Add(mesh->materialIndex);
             }
 
-            totalVertexCount += meshData.vertexCount;
+            vertexOffset += meshData.vertexCount;
+        }
+
+        uint32 maxFaceIndices = Max(built->indices[eMeshDisplaced].Length() / 3, built->indices[eMeshAlphaTestedDisplaced].Length() / 3);
+        built->faceIndexCounts.Resize(maxFaceIndices);
+        for(uint scan = 0; scan < maxFaceIndices; ++scan) {
+            built->faceIndexCounts[scan] = 3;
         }
 
         MakeInvalid(&built->aaBox);
@@ -174,9 +200,9 @@ namespace Selas
                 material.flags |= eHasTextures;
                 material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTextureName);
             }
-            if(StringUtil::Length(importedMaterialData.heightTextureName.Ascii())) {
-                material.flags |= eHasTextures;
-                material.heightTextureIndex = AddTexture(built, importedMaterialData.heightTextureName);
+            if(StringUtil::Length(importedMaterialData.displacementTextureName.Ascii())) {
+                material.flags |= eHasTextures | eDisplacement;
+                material.displacementTextureIndex = AddTexture(built, importedMaterialData.displacementTextureName);
             }
             if(StringUtil::Length(importedMaterialData.roughnessTextureName.Ascii())) {
                 material.flags |= eHasTextures;

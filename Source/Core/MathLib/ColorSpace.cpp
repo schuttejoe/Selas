@@ -23,6 +23,16 @@ namespace Selas
         }
 
         //==============================================================================
+        float2 SrgbToLinearPrecise(float2 srgb)
+        {
+            float2 result;
+            result.x = SrgbToLinearPrecise(srgb.x);
+            result.y = SrgbToLinearPrecise(srgb.y);
+
+            return result;
+        }
+
+        //==============================================================================
         float3 SrgbToLinearPrecise(float3 srgb)
         {
             float3 result;

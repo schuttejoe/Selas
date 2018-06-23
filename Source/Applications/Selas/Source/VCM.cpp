@@ -448,13 +448,15 @@ namespace Selas
             float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
             float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
 
-            Assert_(!Math::IsNaN(bsdf.x));
-            Assert_(!Math::IsNaN(bsdf.y));
-            Assert_(!Math::IsNaN(bsdf.z));
-            Assert_(!Math::IsNaN(lightVertex.throughput.x));
-            Assert_(!Math::IsNaN(lightVertex.throughput.y));
-            Assert_(!Math::IsNaN(lightVertex.throughput.z));
-            
+            #if CheckForNaNs_
+                Assert_(!Math::IsNaN(bsdf.x));
+                Assert_(!Math::IsNaN(bsdf.y));
+                Assert_(!Math::IsNaN(bsdf.z));
+                Assert_(!Math::IsNaN(lightVertex.throughput.x));
+                Assert_(!Math::IsNaN(lightVertex.throughput.y));
+                Assert_(!Math::IsNaN(lightVertex.throughput.z));
+            #endif
+
             vmData->result += misWeight * bsdf * lightVertex.throughput;
         }
 
@@ -713,7 +715,7 @@ namespace Selas
         void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData)
         {
             const SceneResource* scene = context.scene;
-            SceneResourceData* sceneData = scene->data;
+            SceneMetaData* sceneData = scene->data;
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);

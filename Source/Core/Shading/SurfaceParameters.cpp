@@ -13,13 +13,16 @@
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/ColorSpace.h"
 
+#include <embree3/rtcore.h>
+#include <embree3/rtcore_ray.h>
+
 #define ForceNoMips_ true
 #define EnableEWA_ true
 
 namespace Selas
 {
     //==============================================================================
-    static float3 SampleTextureNormal(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool hasDifferentials)
+    static float3 SampleTextureNormal(const SceneResource* scene, float2 uvs, uint textureIndex)
     {
         if(textureIndex == InvalidIndex32)
             return float3::ZAxis_;
@@ -31,21 +34,7 @@ namespace Selas
         }
 
         float3 sample;
-
-        #if EnableDifferentials_        
-            if(!ForceNoMips_ && hasDifferentials) {
-                #if EnableEWA_
-                    TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
-                #else
-                    TextureFiltering::Trilinear(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
-                #endif
-            }
-            else {
-                TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
-            }
-        #else
-            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
-        #endif
+        TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
 
         return 2.0f * sample - 1.0f;
     }
@@ -70,7 +59,7 @@ namespace Selas
 
     //==============================================================================
     template <typename Type_>
-    static Type_ SampleTexture(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, Type_ defaultValue)
+    static Type_ SampleTexture(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
@@ -78,20 +67,7 @@ namespace Selas
         TextureResource* textures = scene->textures;
 
         Type_ sample;
-        #if EnableDifferentials_
-        if(!ForceNoMips_ && hasDifferentials) {
-            #if EnableEWA_
-            TextureFiltering::EWA(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
-            #else
-            TextureFiltering::Trilinear(textures[textureIndex].data, uvs, surface.differentials.duvdx, surface.differentials.duvdy, sample);
-            #endif
-        }
-        else {
-            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
-        }
-        #else
-            TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
-        #endif
+        TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
 
         if(sRGB) {
             sample = Math::SrgbToLinearPrecise(sample);
@@ -101,7 +77,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static float SampleTextureFloat(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    static float SampleTextureFloat(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
@@ -109,16 +85,16 @@ namespace Selas
         TextureResource* textures = scene->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+            return SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float2) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float2(defaultValue, 0.0f).x);
+            return SampleTexture(scene, uvs, textureIndex, sRGB, float2(defaultValue, 0.0f)).x;
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, 0.0f, 0.0f).x);
+            return SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, 0.0f, 0.0f)).x;
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, 0.0f, 0.0f, 0.0f).x);
+            return SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, 0.0f, 0.0f, 0.0f)).x;
         }
 
         Assert_(false);
@@ -126,7 +102,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static float3 SampleTextureFloat3(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    static float3 SampleTextureFloat3(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return float3(defaultValue, defaultValue, defaultValue);
@@ -135,14 +111,14 @@ namespace Selas
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
             float val;
-            val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+            val = SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
             return float3(val, val, val);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, defaultValue, defaultValue));
+            return SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            float4 val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, defaultValue, defaultValue, defaultValue));
             return val.XYZ();
         }
 
@@ -151,7 +127,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static float4 SampleTextureFloat4(SurfaceParameters& surface, const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, bool hasDifferentials, float defaultValue)
+    static float4 SampleTextureFloat4(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return float4(defaultValue, defaultValue, defaultValue, defaultValue);
@@ -159,15 +135,15 @@ namespace Selas
         TextureResource* textures = scene->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
-            float val = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, defaultValue);
+            float val = SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
             return float4(val, val, val, 1.0f);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            float3 value = SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float3(defaultValue, defaultValue, defaultValue));
+            float3 value = SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
             return float4(value, 1.0f);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            return SampleTexture(surface, scene, uvs, textureIndex, sRGB, hasDifferentials, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            return SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, defaultValue, defaultValue, defaultValue));
         }
 
         Assert_(false);
@@ -233,62 +209,38 @@ namespace Selas
     }
 
     //==============================================================================
+    static Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId, uint32 primId)
+    {
+        Assert_(geomId < eMeshIndexTypeCount);
+        Assert_(primId < scene->data->indexCounts[geomId]);
+        uint32 i0 = scene->geometry->indices[geomId][3 * primId + 0];
+        uint32 materialIndex = scene->geometry->materialIndices[i0];
+
+        return &scene->data->materials[materialIndex];
+    }
+
+    //==============================================================================
     bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* __restrict hit, SurfaceParameters& surface)
     {
         const SceneResource* scene = context->sceneData->scene;
 
-        uint32 primitiveId = hit->primId;
-        uint32 i0;
-        uint32 i1;
-        uint32 i2;
-        
-        if(hit->geomId == 0) {
-            i0 = scene->data->indices[3 * primitiveId + 0];
-            i1 = scene->data->indices[3 * primitiveId + 1];
-            i2 = scene->data->indices[3 * primitiveId + 2];
-        }
-        else {
-            i0 = scene->data->atIndices[3 * primitiveId + 0];
-            i1 = scene->data->atIndices[3 * primitiveId + 1];
-            i2 = scene->data->atIndices[3 * primitiveId + 2];
-        }
+        Material* material = GetSurfaceMaterial(scene, hit->geomId, hit->primId);
 
-        const VertexAuxiliaryData& v0 = scene->data->vertexData[i0];
-        const VertexAuxiliaryData& v1 = scene->data->vertexData[i1];
-        const VertexAuxiliaryData& v2 = scene->data->vertexData[i2];
+        Align_(16) float3 normal;
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        Align_(16) float4 tangent;
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
+        Align_(16) float2 uvs;
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
-        Material* material = &scene->data->materials[v0.materialIndex];
-
-        float3 p0 = float3(v0.px, v0.py, v0.pz);
-        float3 p1 = float3(v1.px, v1.py, v1.pz);
-        float3 p2 = float3(v2.px, v2.py, v2.pz);
-        float3 n0 = float3(v0.nx, v0.ny, v0.nz);
-        float3 n1 = float3(v1.nx, v1.ny, v1.nz);
-        float3 n2 = float3(v2.nx, v2.ny, v2.nz);
-        float3 t0 = float3(v0.tx, v0.ty, v0.tz);
-        float3 t1 = float3(v1.tx, v1.ty, v1.tz);
-        float3 t2 = float3(v2.tx, v2.ty, v2.tz);
-        float3 b0 = Cross(n0, t0) * v0.bh;
-        float3 b1 = Cross(n1, t1) * v1.bh;
-        float3 b2 = Cross(n2, t2) * v2.bh;
-        float2 uv0 = float2(v0.u, v0.v);
-        float2 uv1 = float2(v1.u, v1.v);
-        float2 uv2 = float2(v2.u, v2.v);
-
-        float a0 = Saturate(1.0f - (hit->baryCoords.x + hit->baryCoords.y));
-        float a1 = hit->baryCoords.x;
-        float a2 = hit->baryCoords.y;
-
-        float3 t = Normalize(a0 * t0 + a1 * t1 + a2 * t2);
-        float3 b = Normalize(a0 * b0 + a1 * b1 + a2 * b2);
-        float3 n = Normalize(a0 * n0 + a1 * n1 + a2 * n2);
+        float3 n = Normalize(normal);
+        float3 t = tangent.XYZ();
+        float3 b = Cross(normal, t) * tangent.w;
 
         if(Dot(n, -ray.direction) < 0.0f && ((material->flags & eTransparent) == 0)) {
             // -- we've hit inside of a non-transparent object. This is probably caused by floating point precision issues.
             return false;
         }
-
-        bool rayHasDifferentials = hit->rxDirection.x != 0 || hit->rxDirection.y != 0;
 
         // -- Calculate tangent space transforms
         float3x3 tangentToWorld = MakeFloat3x3(t, n, b);
@@ -298,53 +250,11 @@ namespace Selas
         surface.position        = hit->position;
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
-        
-        bool canUseDifferentials = (material->flags & eHasTextures) && rayHasDifferentials;
-        bool preserveDifferentials = (material->flags & ePreserveRayDifferentials) && rayHasDifferentials;
-        
-        #if EnableDifferentials_
-            surface.rxDirection = hit->rxDirection;
-            surface.ryDirection = hit->ryDirection;
-
-            if (canUseDifferentials || preserveDifferentials)  {
-                // Compute deltas for triangle partial derivatives
-                float2 duv02 = uv0 - uv2;
-                float2 duv12 = uv1 - uv2;
-                float uvDeterminant     = duv02.x * duv12.y - duv02.y * duv12.x;
-
-                bool degenerateUV = Math::Absf(uvDeterminant) < SmallFloatEpsilon_;
-                if(!degenerateUV) {
-                    float3 edge02 = p0 - p2;
-                    float3 edge12 = p1 - p2;
-                    float3 dn02 = n0 - n2;
-                    float3 dn12 = n1 - n2;
-
-                    float invUvDeterminant = 1 / uvDeterminant;
-                    surface.dpdu = (duv12.y * edge02 - duv02.y * edge12) * invUvDeterminant;
-                    surface.dpdv = (-duv12.x * edge02 + duv02.x * edge12) * invUvDeterminant;
-
-                    if(preserveDifferentials) {
-                        surface.differentials.dndu = ( duv12.y * dn02 - duv02.y * dn12) * invUvDeterminant;
-                        surface.differentials.dndv = (-duv12.x * dn02 + duv02.x * dn12) * invUvDeterminant;
-                    }
-                }
-                if(degenerateUV || LengthSquared(Cross(surface.dpdu, surface.dpdv)) == 0.0f) {
-                    MakeOrthogonalCoordinateSystem(Normalize(Cross(p2 - p0, p1 - p0)), &surface.dpdu, &surface.dpdv);
-                    surface.differentials.dndu = float3::Zero_;
-                    surface.differentials.dndv = float3::Zero_;
-                }
-            }
-
-            if(canUseDifferentials) {
-                CalculateSurfaceDifferentials(hit, surface.geometricNormal, surface.dpdu, surface.dpdv, surface.differentials);
-            }
-        #endif
-
-        float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
-        surface.albedo        = material->albedo * SampleTextureFloat3(surface, scene, uvs, material->albedoTextureIndex, false, rayHasDifferentials, 1.0f);
-        surface.specularColor = SampleTextureFloat3(surface, scene, uvs, material->specularTextureIndex, false, rayHasDifferentials, 0.01f);
-        surface.roughness     = material->roughness * SampleTextureFloat(surface, scene, uvs, material->roughnessTextureIndex, false, rayHasDifferentials, 1.0f);
-        surface.metalness     = material->metalness * SampleTextureFloat(surface, scene, uvs, material->metalnessTextureIndex, false, rayHasDifferentials, 1.0f);
+       
+        surface.albedo        = material->albedo * SampleTextureFloat3(scene, uvs, material->albedoTextureIndex, false, 1.0f);
+        surface.specularColor = SampleTextureFloat3(scene, uvs, material->specularTextureIndex, false, 0.01f);
+        surface.roughness     = material->roughness * SampleTextureFloat(scene, uvs, material->roughnessTextureIndex, false, 1.0f);
+        surface.metalness     = material->metalness * SampleTextureFloat(scene, uvs, material->metalnessTextureIndex, false, 1.0f);
 
         surface.shader = material->shader;
         surface.view = -ray.direction;
@@ -352,38 +262,30 @@ namespace Selas
         surface.exitIor = (Dot(-ray.direction, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
-        float3 perturbNormal = SampleTextureNormal(surface, scene, uvs, material->normalTextureIndex, rayHasDifferentials);
+        float3 perturbNormal = SampleTextureNormal(scene, uvs, material->normalTextureIndex);
         surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
 
         return true;
     }
 
     //==============================================================================
-    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 primitiveId, float2 baryCoords)
+    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
     {
-        uint32 i0 = scene->data->atIndices[3 * primitiveId + 0];
-        uint32 i1 = scene->data->atIndices[3 * primitiveId + 1];
-        uint32 i2 = scene->data->atIndices[3 * primitiveId + 2];
+        Material* material = GetSurfaceMaterial(scene, geomId, primId);
 
-        const VertexAuxiliaryData& v0 = scene->data->vertexData[i0];
-        const VertexAuxiliaryData& v1 = scene->data->vertexData[i1];
-        const VertexAuxiliaryData& v2 = scene->data->vertexData[i2];
-
-        Material* material = &scene->data->materials[v0.materialIndex];
-        Assert_(material->flags & eAlphaTested);
-
-        float2 uv0 = float2(v0.u, v0.v);
-        float2 uv1 = float2(v1.u, v1.v);
-        float2 uv2 = float2(v2.u, v2.v);
-
-        float a0 = Saturate(1.0f - (baryCoords.x + baryCoords.y));
-        float a1 = baryCoords.x;
-        float a2 = baryCoords.y;
+        Align_(16) float2 uvs;
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[geomId], primId, baryCoords.x, baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
         static const float kAlphaTestCutoff = 0.5f;
-
-        float2 uvs = a0 * uv0 + a1 * uv1 + a2 * uv2;
         return SampleTextureOpacity(scene, uvs, material->albedoTextureIndex) > kAlphaTestCutoff;
+    }
+
+    //==============================================================================
+    float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
+    {
+        Material* material = GetSurfaceMaterial(scene, geomId, primId);
+        // JSTODO - Make that 0.05f a material param
+        return 0.05f * SampleTextureFloat(scene, uvs, material->displacementTextureIndex, false, 0.0f);
     }
 
     //==============================================================================

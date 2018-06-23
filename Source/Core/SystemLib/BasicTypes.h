@@ -24,6 +24,9 @@ typedef const char*        cpointer;
 	#define Align_(x)       __attribute__ ((aligned(x)))
 #endif
 
+// -- Move this to a debug.h file? config.h?
+#define CheckForNaNs_       Debug_
+
 #define Unused_(x)          (void)x;
 #define FloatMax_           3.402823466e+38F
 #define MinFloatEpsilon_    1.192092896e-07F

@@ -138,8 +138,10 @@ def CreateMaterialAssets(outputFolder, texturePrefix, materials):
         if blinnPhongMat.diffusemap != "":
             material["AlbedoTexture"] = os.path.join(texturePrefix, os.path.normpath(blinnPhongMat.diffusemap)).replace(os.sep, PlatformIndependencyPathSep)
 
-        if blinnPhongMat.bumpmap != "" and blinnPhongMat.bumpmap.startswith("N_"): # hack because SanMiguel scenes have some bump maps which I don't currently support.
+        if 'N_' in blinnPhongMat.bumpmap:
             material["NormalTexture"] = os.path.join(texturePrefix, os.path.normpath(blinnPhongMat.bumpmap)).replace(os.sep, PlatformIndependencyPathSep)
+        elif blinnPhongMat.bumpmap != "":
+            material["DisplacementTexture"] = os.path.join(texturePrefix, os.path.normpath(blinnPhongMat.bumpmap)).replace(os.sep, PlatformIndependencyPathSep)
 
         # Convert Blinn-phong shineyness to a roughness parameter
         material["Roughness"] = math.sqrt(2.0 / (blinnPhongMat.exponent + 2))

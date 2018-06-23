@@ -14,6 +14,11 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "Scene";
+    cpointer SceneResource::kGeometryDataType = "SceneGeometry";
+
+    const uint64 SceneResource::kDataVersion = 1529639962ul;
+    const uint32 SceneResource::kSceneDataAlignment = 16;
+    static_assert(sizeof(SceneGeometryData) % SceneResource::kSceneDataAlignment == 0, "SceneGeometryData must be aligned");
 
     //==============================================================================
     SceneResource::SceneResource()
@@ -24,7 +29,7 @@ namespace Selas
     }
 
     //==============================================================================
-    Error ReadSceneResource(cpointer assetname, SceneResource* data)
+    static Error ReadSceneMetaData(cpointer assetname, SceneResource* data)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(SceneResource::kDataType, SceneResource::kDataVersion, assetname, filepath);
@@ -41,10 +46,43 @@ namespace Selas
 
         FixupPointerX64(fileData, data->data->textureResourceNames);
         FixupPointerX64(fileData, data->data->materials);
-        FixupPointerX64(fileData, data->data->indices);
-        FixupPointerX64(fileData, data->data->atIndices);
-        FixupPointerX64(fileData, data->data->positions);
-        FixupPointerX64(fileData, data->data->vertexData);
+
+        return Success_;
+    }
+
+    //==============================================================================
+    static Error ReadSceneGeometryData(cpointer assetname, SceneResource* data)
+    {
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(SceneResource::kGeometryDataType, SceneResource::kDataVersion, assetname, filepath);
+
+        void* fileData = nullptr;
+        uint32 fileSize = 0;
+        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
+
+        BinaryReader reader;
+        SerializerStart(&reader, fileData, fileSize);
+        SerializerAttach(&reader, reinterpret_cast<void**>(&data->geometry), fileSize);
+        SerializerEnd(&reader);
+
+        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
+            FixupPointerX64(fileData, data->geometry->indices[scan]);
+        }
+        FixupPointerX64(fileData, data->geometry->faceIndexCounts);
+        FixupPointerX64(fileData, data->geometry->positions);
+        FixupPointerX64(fileData, data->geometry->normals);
+        FixupPointerX64(fileData, data->geometry->tangents);
+        FixupPointerX64(fileData, data->geometry->uvs);
+        FixupPointerX64(fileData, data->geometry->materialIndices);
+
+        return Success_;
+    }
+
+    //==============================================================================
+    Error ReadSceneResource(cpointer assetname, SceneResource* data)
+    {
+        ReturnError_(ReadSceneMetaData(assetname, data));
+        ReturnError_(ReadSceneGeometryData(assetname, data));
 
         return Success_;
     }
@@ -73,5 +111,6 @@ namespace Selas
 
         SafeFree_(scene->textures);
         SafeFreeAligned_(scene->data);
+        SafeFreeAligned_(scene->geometry);
     }
 }

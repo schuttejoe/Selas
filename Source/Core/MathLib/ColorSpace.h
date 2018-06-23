@@ -10,7 +10,8 @@ namespace Selas
 {
     namespace Math
     {
-        float  SrgbToLinearPrecise(float x);
+        float  SrgbToLinearPrecise(float srgb);
+        float2 SrgbToLinearPrecise(float2 srgb);
         float3 SrgbToLinearPrecise(float3 srgb);
         float4 SrgbToLinearPrecise(float4 srgb);
 
