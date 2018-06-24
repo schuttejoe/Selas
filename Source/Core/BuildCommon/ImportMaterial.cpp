@@ -30,8 +30,10 @@ namespace Selas
         Json::ReadFloat(document, "Albedo", material->albedo, 1.0f);
         Json::ReadFloat(document, "Roughness", material->roughness, 1.0f);
         Json::ReadFloat(document, "Ior", material->ior, 1.0f);
+        Json::ReadFloat(document, "DisplacementScale", material->displacementScale, 0.1f);        
 
         Json::ReadBool(document, "AlphaTesting", material->alphaTested, false);
+        Json::ReadBool(document, "InvertDisplacement", material->invertDisplacement, false);
 
         return Success_;
     }

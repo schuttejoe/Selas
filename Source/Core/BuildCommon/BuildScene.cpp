@@ -186,15 +186,18 @@ namespace Selas
 
             if(importedMaterialData.alphaTested)
                 material.flags |= eAlphaTested;
+            if(importedMaterialData.invertDisplacement)
+                material.flags |= eInvertDisplacement;
 
             uint32 shaderFlags = 0;
             DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
 
             material.flags |= shaderFlags;
-            material.metalness = importedMaterialData.metalness;
-            material.roughness = importedMaterialData.roughness;
-            material.albedo    = importedMaterialData.albedo;
-            material.ior = importedMaterialData.ior;
+            material.metalness         = importedMaterialData.metalness;
+            material.roughness         = importedMaterialData.roughness;
+            material.albedo            = importedMaterialData.albedo;
+            material.ior               = importedMaterialData.ior;
+            material.displacementScale = importedMaterialData.displacementScale;
 
             if(StringUtil::Length(importedMaterialData.albedoTextureName.Ascii())) {
                 material.flags |= eHasTextures;

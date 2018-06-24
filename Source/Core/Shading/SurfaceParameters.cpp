@@ -284,8 +284,12 @@ namespace Selas
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
     {
         Material* material = GetSurfaceMaterial(scene, geomId, primId);
-        // JSTODO - Make that 0.05f a material param
-        return 0.05f * SampleTextureFloat(scene, uvs, material->displacementTextureIndex, false, 0.0f);
+        float displacement = SampleTextureFloat(scene, uvs, material->displacementTextureIndex, false, 0.0f);
+        if(material->flags & eInvertDisplacement) {
+            displacement = 1.0f - displacement;
+        }
+
+        return material->displacementScale * displacement;
     }
 
     //==============================================================================

@@ -31,7 +31,9 @@ namespace Selas
         float albedo;
         float metalness;
         float ior;
+        float displacementScale;
         bool alphaTested;
+        bool invertDisplacement;
     };
 
     //== Import ====================================================================

@@ -32,7 +32,8 @@ namespace Selas
         eHasTextures              = 1 << 1,
         eTransparent              = 1 << 2,
         eAlphaTested              = 1 << 3,
-        eDisplacement             = 1 << 4
+        eDisplacement             = 1 << 4,
+        eInvertDisplacement       = 1 << 5
     };
 
     enum MeshIndexTypes
@@ -72,6 +73,7 @@ namespace Selas
         float  albedo;
         float  metalness;
         float  ior;
+        float  displacementScale;
         uint32 flags;
         eMaterialShader shader;
     };

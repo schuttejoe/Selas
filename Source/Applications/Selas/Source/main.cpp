@@ -5,6 +5,7 @@
 
 #include "PathTracer.h"
 #include "VCM.h"
+#include "DeferredVcm.h"
 #include "Shading/IntegratorContexts.h"
 
 #include "Shading/SurfaceParameters.h"
@@ -31,8 +32,8 @@
 
 using namespace Selas;
 
-#define EnableDisplacement_ 1
-#define TessellationRate_ 32.0f
+#define EnableDisplacement_ 0
+#define TessellationRate_ 64.0f
 
 //==============================================================================
 static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
@@ -231,7 +232,7 @@ int main(int argc, char *argv[])
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
-    ExitMainOnError_(ReadImageBasedLightResource("HDR~flower_road_4k_upper.hdr", &iblResouce));
+    ExitMainOnError_(ReadImageBasedLightResource("HDR~noon_grass_4k_upper.hdr", &iblResouce));
 
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
@@ -261,7 +262,9 @@ int main(int argc, char *argv[])
 
     timer = SystemTime::Now();
 
+    //PathTracer::GenerateImage(context, width, height, imageData);
     VCM::GenerateImage(context, width, height, imageData);
+    //DeferredVCM::GenerateImage(context, width, height, imageData);
 
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
