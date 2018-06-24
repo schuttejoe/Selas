@@ -6,6 +6,7 @@
 
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
+#include "TextureLib/Framebuffer.h"
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
 #include "MathLib/Random.h"
@@ -40,7 +41,7 @@ namespace Selas
         const RayCastCameraSettings* __restrict camera;
         SceneContext*                __restrict sceneData;
         Random::MersenneTwister*     __restrict twister;
-        float3*                      __restrict imageData;
+        FramebufferWriter                       frameWriter;
         uint                                    imageWidth;
         uint                                    imageHeight;
         uint                                    maxPathLength;

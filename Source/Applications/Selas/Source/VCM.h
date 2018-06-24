@@ -11,9 +11,10 @@
 namespace Selas
 {
     struct SceneContext;
+    struct Framebuffer;
 
     namespace VCM
     {
-        void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData);
+        void GenerateImage(SceneContext& context, Framebuffer* frame);
     }
 }

@@ -63,8 +63,7 @@ namespace Selas
             volatile int64* completedThreads;
             volatile int64* kernelIndices;
 
-            void* imageDataSpinlock;
-            float3* imageData;
+            Framebuffer* frame;
         };
 
         //==============================================================================
@@ -111,7 +110,7 @@ namespace Selas
         }
 
         //==============================================================================
-        static void EvaluateRayBatch(KernelContext* __restrict context, Ray ray, uint pixelIndex)
+        static void EvaluateRayBatch(KernelContext* __restrict context, Ray ray, uint x, uint y)
         {
             float3 throughput = float3::One_;
 
@@ -143,7 +142,7 @@ namespace Selas
                 else {
                     float pdf;
                     float3 sample = SampleIbl(context->sceneData->ibl, ray.direction, pdf);
-                    context->imageData[pixelIndex] += throughput * sample;
+                    FramebufferWriter_Write(&context->frameWriter, throughput * sample, (uint32)x, (uint32)y);
                     break;
                 }
             }
@@ -153,7 +152,7 @@ namespace Selas
         static void CreatePrimaryRay(KernelContext* context, uint pixelIndex, uint x, uint y)
         {
             Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
-            EvaluateRayBatch(context, ray, pixelIndex);
+            EvaluateRayBatch(context, ray, x, y);
         }
 
         //==============================================================================
@@ -186,9 +185,10 @@ namespace Selas
             KernelContext kernelContext;
             kernelContext.sceneData        = integratorContext->sceneData;
             kernelContext.camera           = &integratorContext->camera;
-            kernelContext.imageData        = imageData;
             kernelContext.twister          = &twister;
-            kernelContext.maxPathLength   = integratorContext->maxBounceCount;
+            kernelContext.maxPathLength    = integratorContext->maxBounceCount;
+            FramebufferWriter_Initialize(&kernelContext.frameWriter, integratorContext->frame,
+                                         DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             if(integratorContext->integrationSeconds > 0.0f) {
 
@@ -211,27 +211,18 @@ namespace Selas
 
             Random::MersenneTwisterShutdown(&twister);
 
-            EnterSpinLock(integratorContext->imageDataSpinlock);
-
-            float3* resultImageData = integratorContext->imageData;
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-                    resultImageData[index] += imageData[index];
-                }
-            }
-
-            LeaveSpinLock(integratorContext->imageDataSpinlock);
-
-            FreeAligned_(imageData);
+            FramebufferWriter_Shutdown(&kernelContext.frameWriter);
             Atomic::Increment64(integratorContext->completedThreads);
         }
 
         //==============================================================================
-        void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData)
+        void GenerateImage(SceneContext& context, Framebuffer* frame)
         {
             const SceneResource* scene = context.scene;
             SceneMetaData* sceneData = scene->data;
+
+            uint32 width = frame->width;
+            uint32 height = frame->height;
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);
@@ -250,7 +241,6 @@ namespace Selas
             IntegrationContext integratorContext;
             integratorContext.sceneData              = &context;
             integratorContext.camera                 = camera;
-            integratorContext.imageData              = imageData;
             integratorContext.width                  = width;
             integratorContext.height                 = height;
             integratorContext.maxBounceCount         = MaxBounceCount_;
@@ -260,7 +250,7 @@ namespace Selas
             integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
-            integratorContext.imageDataSpinlock      = CreateSpinLock();
+            integratorContext.frame                  = frame;
 
             #if EnableMultiThreading_
                 ThreadHandle threadHandles[additionalThreadCount];
@@ -283,14 +273,7 @@ namespace Selas
                 }
             #endif
 
-            CloseSpinlock(integratorContext.imageDataSpinlock);
-
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-                    imageData[index] = imageData[index] * (1.0f / pathsEvaluatedPerPixel);
-                }
-            }
+            FrameBuffer_Normalize(frame, (1.0f / pathsEvaluatedPerPixel));
         }
     }
 }

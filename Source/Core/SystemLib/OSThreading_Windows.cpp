@@ -106,6 +106,13 @@ namespace Selas
     }
 
     //==============================================================================
+    bool TryEnterSpinLock(void* spinlock)
+    {
+        volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
+        return InterlockedCompareExchange64(atom, 1, 0) == 0;
+    }
+
+    //==============================================================================
     void EnterSpinLock(void* spinlock)
     {
         volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);

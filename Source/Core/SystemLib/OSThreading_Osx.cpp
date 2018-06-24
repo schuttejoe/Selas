@@ -108,6 +108,13 @@ namespace Selas
     }
 
     //==============================================================================
+    bool TryEnterSpinLock(void* spinlock)
+    {
+        volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
+        return __sync_val_compare_and_swap(atom, 1, 0) == 1;
+    }
+
+    //==============================================================================
     void EnterSpinLock(void* spinlock)
     {
         volatile int32* address = (volatile int32*)(spinlock);

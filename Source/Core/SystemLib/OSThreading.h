@@ -29,6 +29,7 @@ namespace Selas
     void*    CreateSpinLock(void);
     void     CreateSpinLock(uint8 spin[CacheLineSize_]);
     void     CloseSpinlock(void* spinlock);
+    bool     TryEnterSpinLock(void* spinlock);
     void     EnterSpinLock(void* spinlock);
     void     LeaveSpinLock(void* spinlock);
 

@@ -9,6 +9,7 @@
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 #include "Shading/AreaLighting.h"
+#include "TextureLib/Framebuffer.h"
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
 #include "GeometryLib/HashGrid.h"
@@ -47,13 +48,12 @@ namespace Selas
             float vcmRadius;
             float vcmRadiusAlpha;
 
-            volatile int64* pathsEvaluatedPerPixel;
+            volatile int64* iterationsPerPixel;
             volatile int64* completedThreads;
             volatile int64* kernelIndices;
             volatile int64* vcmPassCount;
 
-            void* imageDataSpinlock;
-            float3* imageData;
+            Framebuffer* frame;
         };
 
         // JSTODO - This uses a lot of memory. Maybe store hit position and resample the material for each use?
@@ -251,8 +251,7 @@ namespace Selas
             }
 
             if(OcclusionRay(context->sceneData->rtcScene, surface, -toPosition, distance)) {
-                uint index = imagePosition.y * context->imageWidth + imagePosition.x;
-                context->imageData[index] = context->imageData[index] + pathContribution;
+                FramebufferWriter_Write(&context->frameWriter, pathContribution, imagePosition.x, imagePosition.y);
             }
         }
 
@@ -601,7 +600,7 @@ namespace Selas
                         }
                     }
 
-                    context->imageData[index] += color;
+                    FramebufferWriter_Write(&context->frameWriter, color, (uint32)x, (uint32)y);
                 }
             }
 
@@ -640,17 +639,16 @@ namespace Selas
             uint width = integratorContext->width;
             uint height = integratorContext->height;
 
-            float3* imageData = AllocArrayAligned_(float3, width * height, CacheLineSize_);
-            Memory::Zero(imageData, sizeof(float3) * width * height);
-
             KernelContext kernelContext;
             kernelContext.sceneData        = integratorContext->sceneData;
             kernelContext.camera           = &integratorContext->camera;
-            kernelContext.imageData        = imageData;
             kernelContext.imageWidth       = width;
             kernelContext.imageHeight      = height;
             kernelContext.twister          = &twister;
             kernelContext.maxPathLength    = integratorContext->maxBounceCount;
+
+            FramebufferWriter_Initialize(&kernelContext.frameWriter, integratorContext->frame,
+                                         DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             HashGrid hashGrid;
             CArray<VcmVertex> lightVertices;
@@ -672,31 +670,22 @@ namespace Selas
             ShutdownHashGrid(&hashGrid);
             lightVertices.Close();
 
-            Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
+            Atomic::Add64(integratorContext->iterationsPerPixel, pathsTracedPerPixel);
 
             Random::MersenneTwisterShutdown(&twister);
 
-            EnterSpinLock(integratorContext->imageDataSpinlock);
-
-            float3* resultImageData = integratorContext->imageData;
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-                    resultImageData[index] += imageData[index];
-                }
-            }
-
-            LeaveSpinLock(integratorContext->imageDataSpinlock);
-
-            FreeAligned_(imageData);
+            FramebufferWriter_Shutdown(&kernelContext.frameWriter);
             Atomic::Increment64(integratorContext->completedThreads);
         }
 
         //==============================================================================
-        void GenerateImage(SceneContext& context, uint width, uint height, float3* imageData)
+        void GenerateImage(SceneContext& context, Framebuffer* frame)
         {
             const SceneResource* scene = context.scene;
             SceneMetaData* sceneData = scene->data;
+
+            uint width = frame->width;
+            uint height = frame->height;
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);
@@ -715,17 +704,16 @@ namespace Selas
             IntegrationContext integratorContext;
             integratorContext.sceneData              = &context;
             integratorContext.camera                 = camera;
-            integratorContext.imageData              = imageData;
+            integratorContext.frame                  = frame;
             integratorContext.width                  = width;
             integratorContext.height                 = height;
             integratorContext.maxBounceCount         = MaxBounceCount_;
             integratorContext.integrationStartTime   = SystemTime::Now();
             integratorContext.integrationSeconds     = IntegrationSeconds_;
-            integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
+            integratorContext.iterationsPerPixel     = &pathsEvaluatedPerPixel;
             integratorContext.vcmPassCount           = &vcmPassCount;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
-            integratorContext.imageDataSpinlock      = CreateSpinLock();
             integratorContext.vcmRadius              = VcmRadiusFactor_ * sceneData->boundingSphere.w;
             integratorContext.vcmRadiusAlpha         = VcmRadiusAlpha_;
 
@@ -750,14 +738,7 @@ namespace Selas
                 }
             #endif
 
-            CloseSpinlock(integratorContext.imageDataSpinlock);
-
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-                    imageData[index] = imageData[index] * (1.0f / pathsEvaluatedPerPixel);
-                }
-            }
+            FrameBuffer_Normalize(frame, (1.0f / pathsEvaluatedPerPixel));
         }
     }
 }
