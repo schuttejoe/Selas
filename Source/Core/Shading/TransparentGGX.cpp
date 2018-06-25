@@ -48,7 +48,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleTransparentGgx(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleTransparentGgx(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v,  surface.worldToTangent));
         float3x3 tangentToWorld = MatrixTranspose(surface.worldToTangent);

@@ -8,7 +8,7 @@
 
 namespace Selas
 {
-    struct KernelContext;
+    struct GIIntegrationContext;
     struct HitParameters;
     struct SurfaceParameters;
     struct BsdfSample;
@@ -17,5 +17,5 @@ namespace Selas
     float3 EvaluateTransparentGGXBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
-    bool SampleTransparentGgx(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleTransparentGgx(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
 }

@@ -48,7 +48,7 @@ namespace Selas
     namespace PathTracer
     {
         //==============================================================================
-        struct IntegrationContext
+        struct PathTracingKernelData
         {
             SceneContext* sceneData;
             RayCastCameraSettings camera;
@@ -110,7 +110,7 @@ namespace Selas
         }
 
         //==============================================================================
-        static void EvaluateRayBatch(KernelContext* __restrict context, Ray ray, uint x, uint y)
+        static void EvaluateRayBatch(GIIntegrationContext* __restrict context, Ray ray, uint x, uint y)
         {
             float3 throughput = float3::One_;
 
@@ -149,19 +149,19 @@ namespace Selas
         }
 
         //==============================================================================
-        static void CreatePrimaryRay(KernelContext* context, uint pixelIndex, uint x, uint y)
+        static void CreatePrimaryRay(GIIntegrationContext* context, uint pixelIndex, uint x, uint y)
         {
             Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
             EvaluateRayBatch(context, ray, x, y);
         }
 
         //==============================================================================
-        static void PathTracing(KernelContext* kernelContext, uint raysPerPixel, uint width, uint height)
+        static void PathTracing(GIIntegrationContext* context, uint raysPerPixel, uint width, uint height)
         {
             for(uint y = 0; y < height; ++y) {
                 for(uint x = 0; x < width; ++x) {
                     for(uint scan = 0; scan < raysPerPixel; ++scan) {
-                        CreatePrimaryRay(kernelContext, y * width + x, x, y);
+                        CreatePrimaryRay(context, y * width + x, x, y);
                     }
                 }
             }
@@ -170,7 +170,7 @@ namespace Selas
         //==============================================================================
         static void PathTracerKernel(void* userData)
         {
-            IntegrationContext* integratorContext = static_cast<IntegrationContext*>(userData);
+            PathTracingKernelData* integratorContext = static_cast<PathTracingKernelData*>(userData);
             int64 kernelIndex = Atomic::Increment64(integratorContext->kernelIndices);
 
             Random::MersenneTwister twister;
@@ -182,12 +182,12 @@ namespace Selas
             float3* imageData = AllocArrayAligned_(float3, width * height, CacheLineSize_);
             Memory::Zero(imageData, sizeof(float3) * width * height);
 
-            KernelContext kernelContext;
-            kernelContext.sceneData        = integratorContext->sceneData;
-            kernelContext.camera           = &integratorContext->camera;
-            kernelContext.twister          = &twister;
-            kernelContext.maxPathLength    = integratorContext->maxBounceCount;
-            FramebufferWriter_Initialize(&kernelContext.frameWriter, integratorContext->frame,
+            GIIntegrationContext context;
+            context.sceneData        = integratorContext->sceneData;
+            context.camera           = &integratorContext->camera;
+            context.twister          = &twister;
+            context.maxPathLength    = integratorContext->maxBounceCount;
+            FramebufferWriter_Initialize(&context.frameWriter, integratorContext->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             if(integratorContext->integrationSeconds > 0.0f) {
@@ -195,7 +195,7 @@ namespace Selas
                 int64 pathsTracedPerPixel = 0;
                 float elapsedSeconds = 0.0f;
                 while(elapsedSeconds < integratorContext->integrationSeconds) {
-                    PathTracing(&kernelContext, 1, width, height);
+                    PathTracing(&context, 1, width, height);
                     ++pathsTracedPerPixel;
 
                     elapsedSeconds = SystemTime::ElapsedSecondsF(integratorContext->integrationStartTime);
@@ -205,13 +205,13 @@ namespace Selas
 
             }
             else {
-                PathTracing(&kernelContext, integratorContext->pathsPerPixel, width, height);
+                PathTracing(&context, integratorContext->pathsPerPixel, width, height);
                 Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, integratorContext->pathsPerPixel);
             }
 
             Random::MersenneTwisterShutdown(&twister);
 
-            FramebufferWriter_Shutdown(&kernelContext.frameWriter);
+            FramebufferWriter_Shutdown(&context.frameWriter);
             Atomic::Increment64(integratorContext->completedThreads);
         }
 
@@ -238,7 +238,7 @@ namespace Selas
             #endif
             static_assert(PathsPerPixel_ % (additionalThreadCount + 1) == 0, "Path count not divisible by number of threads");
 
-            IntegrationContext integratorContext;
+            PathTracingKernelData integratorContext;
             integratorContext.sceneData              = &context;
             integratorContext.camera                 = camera;
             integratorContext.width                  = width;

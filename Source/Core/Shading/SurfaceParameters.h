@@ -14,7 +14,7 @@
 
 namespace Selas
 {
-    struct KernelContext;
+    struct GIIntegrationContext;
     struct HitParameters;
     struct SceneResource;
     struct Material;
@@ -52,7 +52,7 @@ namespace Selas
         #endif
     };
 
-    bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const GIIntegrationContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
     bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
 

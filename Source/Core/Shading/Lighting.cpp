@@ -33,7 +33,7 @@
 namespace Selas
 {
     //==============================================================================
-    bool SampleBsdfFunction(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleBsdfFunction(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         if(surface.shader == eDisney) {
             return SampleDisneyBrdf(context, surface, v, sample);

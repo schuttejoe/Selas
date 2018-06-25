@@ -220,7 +220,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool CalculateSurfaceParams(const KernelContext* context, const Ray& ray, const HitParameters* __restrict hit, SurfaceParameters& surface)
+    bool CalculateSurfaceParams(const GIIntegrationContext* context, const Ray& ray, const HitParameters* __restrict hit, SurfaceParameters& surface)
     {
         const SceneResource* scene = context->sceneData->scene;
 

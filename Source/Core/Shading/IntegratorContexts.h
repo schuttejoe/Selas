@@ -36,7 +36,7 @@ namespace Selas
     };
 
     //==============================================================================
-    struct KernelContext
+    struct GIIntegrationContext
     {
         const RayCastCameraSettings* __restrict camera;
         SceneContext*                __restrict sceneData;
@@ -66,11 +66,11 @@ namespace Selas
     struct PathState
     {
         float3 position;
-        float3 direction;
-        float3 throughput;
-        float dVCM;
-        float dVC;
-        float dVM;
+        float3 direction;  // JSTODO - convert to octrahedral format
+        float3 throughput; // JSTODO - Testing convert to RGB9e5? Or even half format?
+        float dVCM;        // JSTODO - Test as half format
+        float dVC;         // JSTODO - Test as half format
+        float dVM;         // JSTODO - Test as half format
         uint32 pathLength : 31;
         uint32 isAreaMeasure : 1;
     };

@@ -5,6 +5,7 @@
 
 #include "PathTracer.h"
 #include "VCM.h"
+#include "DeferredVCM.h"
 #include "Shading/IntegratorContexts.h"
 
 #include "Shading/SurfaceParameters.h"
@@ -262,8 +263,9 @@ int main(int argc, char *argv[])
 
     timer = SystemTime::Now();
 
-    //PathTracer::GenerateImage(context, width, height, imageData);
-    VCM::GenerateImage(context, &frame);
+    //PathTracer::GenerateImage(context, &frame);
+    //VCM::GenerateImage(context, &frame);
+    DeferredVCM::GenerateImage(context, &frame);
 
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);

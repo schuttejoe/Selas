@@ -65,7 +65,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleIblWithDisneyBrdf(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleIblWithDisneyBrdf(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float r0 = Random::MersenneTwisterFloat(context->twister);
         float r1 = Random::MersenneTwisterFloat(context->twister);
@@ -94,7 +94,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleDisneyBrdf(KernelContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleDisneyBrdf(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 

@@ -223,7 +223,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void EmitIblLightSample(KernelContext* __restrict context, LightEmissionSample& sample)
+    void EmitIblLightSample(GIIntegrationContext* __restrict context, LightEmissionSample& sample)
     {
         // -- http://www.iliyan.com/publications/ImplementingVCM/ImplementingVCM_TechRep2012_rev2.pdf
         // -- see section 5.1 of ^ to understand the position and emission pdf calculation
@@ -266,7 +266,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void DirectIblLightSample(KernelContext* __restrict context, LightDirectSample& sample)
+    void DirectIblLightSample(GIIntegrationContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
         float r0 = Random::MersenneTwisterFloat(context->twister);
@@ -292,7 +292,7 @@ namespace Selas
     }
 
     //==============================================================================
-    float3 IblCalculateRadiance(KernelContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
+    float3 IblCalculateRadiance(GIIntegrationContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
     {
         float iblPdfA;
         float3 radiance = SampleIbl(context->sceneData->ibl, direction, iblPdfA);

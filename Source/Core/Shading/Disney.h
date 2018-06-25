@@ -8,7 +8,7 @@
 
 namespace Selas
 {
-    struct KernelContext;
+    struct GIIntegrationContext;
     struct HitParameters;
     struct SurfaceParameters;
     struct BsdfSample;
@@ -17,6 +17,6 @@ namespace Selas
     float3 EvaluateDisneyBrdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
-    bool SampleIblWithDisneyBrdf(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
-    bool SampleDisneyBrdf(KernelContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleIblWithDisneyBrdf(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleDisneyBrdf(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
 }
