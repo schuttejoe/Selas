@@ -215,6 +215,10 @@ namespace Selas
                 return;
             }
 
+            float constProb = ContinuationProbability(surface);
+            bsdfForwardPdf *= constProb;
+            bsdfReversePdf *= constProb;
+
             float lightPartialWeight = (cameraPdfA / lightPathCount) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdf);
             float misWeight = 1.0f / (lightPartialWeight + 1.0f);
 
@@ -253,6 +257,10 @@ namespace Selas
             if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
                 return float3::Zero_;
             }
+
+            float contProb = ContinuationProbability(surface);
+            bsdfForwardPdfW *= contProb;
+            bsdfReversePdfW *= contProb;
 
             float cosThetaSurface = Math::Absf(Dot(surface.perturbedNormal, sample.direction));
 
@@ -305,6 +313,14 @@ namespace Selas
                 return float3::Zero_;
             }
 
+            // -- russian roulette
+            float cameraContProb = ContinuationProbability(surface);
+            cameraBsdfForwardPdfW *= cameraContProb;
+            cameraBsdfReversePdfW *= cameraContProb;
+            float lightContProb = ContinuationProbability(lightVertex.surface);
+            lightBsdfForwardPdfW *= lightContProb;
+            lightBsdfReversePdfW *= lightContProb;
+
             // -- convert pdfs from solid angle to area measure
             float cameraBsdfPdfA = cameraBsdfForwardPdfW * Math::Absf(cosThetaLight) / distanceSquared;
             float lightBsdfPdfA = lightBsdfForwardPdfW * Math::Absf(cosThetaCamera) / distanceSquared;
@@ -351,6 +367,9 @@ namespace Selas
                 return;
             }
 
+            bsdfForwardPdfW *= ContinuationProbability(surface);
+            bsdfReversePdfW *= ContinuationProbability(lightVertex.surface);
+
             float lightWeight = lightVertex.dVCM * vmData->vcWeight + lightVertex.dVM * bsdfForwardPdfW;
             float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
             float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
@@ -379,6 +398,14 @@ namespace Selas
             if(sample.reflectance.x == 0.0f && sample.reflectance.y == 0.0f && sample.reflectance.z == 0.0f) {
                 return false;
             }
+
+            float contProb = ContinuationProbability(surface);
+            float russianRouletteSample = Random::MersenneTwisterFloat(context->twister);
+            if(russianRouletteSample > contProb) {
+                return false;
+            }
+            sample.forwardPdfW *= contProb;
+            sample.reversePdfW *= contProb;
 
             float cosThetaBsdf = Math::Absf(Dot(sample.wi, surface.perturbedNormal));
 

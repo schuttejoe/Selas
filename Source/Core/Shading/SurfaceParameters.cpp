@@ -250,4 +250,11 @@ namespace Selas
         float3 offset = signedBiasDistance * surface.geometricNormal;
         return surface.position + offset;
     }
+
+    //==============================================================================
+    float ContinuationProbability(const SurfaceParameters& surface)
+    {
+        float3 value = (1.0f - surface.metalness) * surface.albedo + surface.metalness * surface.specularColor;
+        return Saturate(Max(Max(value.x, value.y), value.z));
+    }
 }

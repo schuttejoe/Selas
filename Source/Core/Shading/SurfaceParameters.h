@@ -44,4 +44,6 @@ namespace Selas
 
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale);
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance);
+
+    float ContinuationProbability(const SurfaceParameters& surface);
 }
