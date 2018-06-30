@@ -18,7 +18,7 @@ namespace Selas
     {
         static_assert(sizeof(int32) == sizeof(long), "Unexpected primitive size");
 
-        long initialValue = InterlockedIncrement(reinterpret_cast<long volatile*>(destination));
+        long initialValue = InterlockedIncrement(reinterpret_cast<long volatile*>(destination)) - 1;
         return initialValue;
     }
 
@@ -27,7 +27,7 @@ namespace Selas
     {
         static_assert(sizeof(int64) == sizeof(long long), "Unexpected primitive size");
 
-        long long initialValue = InterlockedIncrement64(reinterpret_cast<long long volatile*>(destination));
+        long long initialValue = InterlockedIncrement64(reinterpret_cast<long long volatile*>(destination)) - 1;
         return initialValue;
     }
 
@@ -36,7 +36,7 @@ namespace Selas
     {
         static_assert(sizeof(int32) == sizeof(long), "Unexpected primitive size");
 
-        long initialValue = InterlockedDecrement(reinterpret_cast<long volatile*>(destination));
+        long initialValue = InterlockedDecrement(reinterpret_cast<long volatile*>(destination)) + 1;
         return initialValue;
     }
 
@@ -45,7 +45,7 @@ namespace Selas
     {
         static_assert(sizeof(int64) == sizeof(long long), "Unexpected primitive size");
 
-        long long initialValue = InterlockedDecrement64(reinterpret_cast<long long volatile*>(destination));
+        long long initialValue = InterlockedDecrement64(reinterpret_cast<long long volatile*>(destination)) + 1;
         return initialValue;
     }
 

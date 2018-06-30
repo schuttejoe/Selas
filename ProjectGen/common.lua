@@ -14,6 +14,8 @@ CoreDir           = RootDirectory .. "Source/Core/"
 BuildTempDir      = RootDirectory .. "_BuildTemp/"
 ProjectsTempDir   = RootDirectory .. "_Projects/"
 
+LinkWinPixRuntime = false
+
 --=================================================================================================
 -- Oh Lua...
 function FileExists(name)
@@ -55,6 +57,10 @@ function CommonSetup (architecture, solutionName, extraDefines)
   configuration { "windows" }
     flags { "NoMinimalRebuild" }
     buildoptions { "/MP" }
+
+    if LinkWinPixRuntime then
+      defines { "USE_PIX" }
+    end
 
   -- common debug defines
   configuration { "Debug" }

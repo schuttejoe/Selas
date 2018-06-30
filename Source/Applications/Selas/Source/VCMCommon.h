@@ -48,14 +48,6 @@ namespace Selas
         void GenerateLightSample(GIIntegrationContext* context, float vcWeight, PathState& state);
         void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state);
 
-        float3 ConnectToSkyLight(GIIntegrationContext* context, PathState& state);
-
-        void ConnectLightPathToCamera(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight, float lightPathCount);
-        float3 ConnectCameraPathToLight(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight);
-
-        float3 ConnectPathVertices(GIIntegrationContext* context, const SurfaceParameters& surface, const PathState& cameraState, const VcmVertex& lightVertex, float vmWeight);
-        void MergeVertices(uint vertexIndex, void* userData);
-
-        bool SampleBsdfScattering(GIIntegrationContext* context, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState);
+        float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex);
     }
 }

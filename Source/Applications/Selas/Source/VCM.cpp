@@ -19,6 +19,8 @@
 #include "SystemLib/Atomic.h"
 #include "SystemLib/MinMax.h"
 #include "SystemLib/SystemTime.h"
+#include "SystemLib/Profiling.h"
+#include "SystemLib/Logging.h"
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -58,8 +60,63 @@ namespace Selas
         };
 
         //==============================================================================
-        bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
+        static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
         {
+            ProfileEventMarker_(0x88FFFFFF, "OcclusionRay");
+
+            float3 origin = OffsetRayOrigin(surface, direction, 0.1f);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            Align_(16) RTCRay ray;
+            ray.org_x = origin.x;
+            ray.org_y = origin.y;
+            ray.org_z = origin.z;
+            ray.dir_x = direction.x;
+            ray.dir_y = direction.y;
+            ray.dir_z = direction.z;
+            ray.tnear = surface.error;
+            ray.tfar = distance;
+
+            rtcOccluded1(rtcScene, &context, &ray);
+
+            // -- ray.tfar == -inf when hit occurs
+            return (ray.tfar >= 0.0f);
+        }
+
+        //==============================================================================
+        static bool VcOcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "VcOcclusionRay");
+
+            float biasDistance;
+            float3 origin = OffsetRayOrigin(surface, direction, 0.1f, biasDistance);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            Align_(16) RTCRay ray;
+            ray.org_x = origin.x;
+            ray.org_y = origin.y;
+            ray.org_z = origin.z;
+            ray.dir_x = direction.x;
+            ray.dir_y = direction.y;
+            ray.dir_z = direction.z;
+            ray.tnear = surface.error;
+            ray.tfar = distance - 16.0f * Math::Absf(biasDistance);
+
+            rtcOccluded1(rtcScene, &context, &ray);
+
+            // -- ray.tfar == -inf when hit occurs
+            return (ray.tfar >= 0.0f);
+        }
+
+        //==============================================================================
+        static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "RayPick");
+
             RTCIntersectContext context;
             rtcInitIntersectContext(&context);
 
@@ -100,9 +157,245 @@ namespace Selas
         }
 
         //==============================================================================
+        static float3 ConnectToSkyLight(GIIntegrationContext* context, PathState& state)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "ConnectToSkyLight");
+
+            float directPdfA;
+            float emissionPdfW;
+            float3 radiance = IblCalculateRadiance(context, state.direction, directPdfA, emissionPdfW);
+
+            if(state.pathLength == 1) {
+                return radiance;
+            }
+
+            float cameraWeight = directPdfA * state.dVCM + emissionPdfW * state.dVC;
+            float misWeight = 1.0f / (1.0f + cameraWeight);
+
+            return misWeight * radiance;
+        }
+
+        //==============================================================================
+        static void ConnectLightPathToCamera(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight, float lightPathCount)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "ConnectLightPathToCamera");
+
+            const RayCastCameraSettings* __restrict camera = context->camera;
+
+            float3 toPosition = surface.position - camera->position;
+            if(Dot(camera->forward, toPosition) <= 0.0f) {
+                return;
+            }
+
+            int2 imagePosition = WorldToImage(camera, surface.position);
+            if(imagePosition.x < 0 || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0 || imagePosition.y >= camera->viewportHeight) {
+                return;
+            }
+
+            float distance = Length(toPosition);
+            toPosition = (1.0f / distance) * toPosition;
+
+            float cosThetaSurface = Math::Absf(Dot(surface.geometricNormal, -toPosition));
+            float cosThetaCamera = Dot(camera->forward, toPosition);
+
+            float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;
+            float imageToSolidAngle = imagePointToCameraDistance * imagePointToCameraDistance / cosThetaCamera;
+            float imageToSurface = imageToSolidAngle * cosThetaCamera;
+            float surfaceToImage = 1.0f / imageToSurface;
+            float cameraPdfA = imageToSurface;
+
+            // -- evaluate BSDF
+            float bsdfForwardPdf;
+            float bsdfReversePdf;
+            float3 bsdf = EvaluateBsdf(surface, -state.direction, -toPosition, bsdfForwardPdf, bsdfReversePdf);
+            if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
+                return;
+            }
+
+            float lightPartialWeight = (cameraPdfA / lightPathCount) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdf);
+            float misWeight = 1.0f / (lightPartialWeight + 1.0f);
+
+            float3 pathContribution = misWeight * state.throughput * bsdf * (1.0f / (lightPathCount * surfaceToImage));
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
+                return;
+            }
+
+            if(OcclusionRay(context->sceneData->rtcScene, surface, -toPosition, distance)) {
+                FramebufferWriter_Write(&context->frameWriter, pathContribution, imagePosition.x, imagePosition.y);
+            }
+        }
+
+        //==============================================================================
+        static float3 ConnectCameraPathToLight(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "ConnectCameraPathToLight");
+
+            // -- only using the ibl for now
+            float lightSampleWeight = 1.0f;
+
+            // -- choose direction to sample the ibl
+            float r0 = Random::MersenneTwisterFloat(context->twister);
+            float r1 = Random::MersenneTwisterFloat(context->twister);
+
+            LightDirectSample sample;
+            {
+                // -- JSTODO - Sample area lights and such
+                DirectIblLightSample(context, sample);
+                sample.directionPdfA *= lightSampleWeight;
+            }
+
+            float bsdfForwardPdfW;
+            float bsdfReversePdfW;
+            float3 bsdf = EvaluateBsdf(surface, -state.direction, sample.direction, bsdfForwardPdfW, bsdfReversePdfW);
+            if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float cosThetaSurface = Math::Absf(Dot(surface.perturbedNormal, sample.direction));
+
+            float lightWeight = bsdfForwardPdfW / sample.directionPdfA;
+            float cameraWeight = (sample.emissionPdfW * cosThetaSurface / (sample.directionPdfA * sample.cosThetaLight)) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdfW);
+            float misWeight = 1.0f / (lightWeight + 1 + cameraWeight);
+
+            float3 pathContribution = (misWeight * cosThetaSurface / sample.directionPdfA) * sample.radiance * bsdf;
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
+                return float3::Zero_;
+            }
+
+            if(OcclusionRay(context->sceneData->rtcScene, surface, sample.direction, sample.distance)) {
+                return pathContribution;
+            }
+
+            return float3::Zero_;
+        }
+
+        //==============================================================================
+        static float3 ConnectPathVertices(GIIntegrationContext* context, const SurfaceParameters& surface, const PathState& cameraState, const VcmVertex& lightVertex, float vmWeight)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "ConnectPathVertices");
+
+            float3 direction = lightVertex.surface.position - surface.position;
+            float distanceSquared = LengthSquared(direction);
+            float distance = Math::Sqrtf(distanceSquared);
+            direction = (1.0f / distance) * direction;
+
+            float cameraBsdfForwardPdfW;
+            float cameraBsdfReversePdfW;
+            float3 cameraBsdf = EvaluateBsdf(surface, -cameraState.direction, direction, cameraBsdfForwardPdfW, cameraBsdfReversePdfW);
+            if(cameraBsdf.x == 0 && cameraBsdf.y == 0 && cameraBsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float lightBsdfForwardPdfW;
+            float lightBsdfReversePdfW;
+            float3 lightBsdf = EvaluateBsdf(lightVertex.surface, -direction, lightVertex.surface.view, lightBsdfForwardPdfW, lightBsdfReversePdfW);
+            if(lightBsdf.x == 0 && lightBsdf.y == 0 && lightBsdf.z == 0) {
+                return float3::Zero_;
+            }
+
+            float cosThetaCamera = Math::Absf(Dot(direction, surface.perturbedNormal));
+            float cosThetaLight = Math::Absf(Dot(-direction, lightVertex.surface.perturbedNormal));
+
+            float geometryTerm = cosThetaLight * cosThetaCamera / distanceSquared;
+            if(geometryTerm < 0.0f) {
+                // -- JSTODO - For this to be possible the cosTheta terms would need to be negative. But with transparent surfaces the normal will often be for the other side of the surface.
+                return float3::Zero_;
+            }
+
+            // -- convert pdfs from solid angle to area measure
+            float cameraBsdfPdfA = cameraBsdfForwardPdfW * Math::Absf(cosThetaLight) / distanceSquared;
+            float lightBsdfPdfA = lightBsdfForwardPdfW * Math::Absf(cosThetaCamera) / distanceSquared;
+            float lightWeight = cameraBsdfPdfA * (vmWeight + lightVertex.dVCM + lightVertex.dVC * lightBsdfReversePdfW);
+            float cameraWeight = lightBsdfPdfA * (vmWeight + cameraState.dVCM + cameraState.dVC * cameraBsdfReversePdfW);
+            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
+
+            float3 pathContribution = misWeight * geometryTerm * cameraBsdf * lightBsdf;
+            if(pathContribution.x == 0 && pathContribution.y == 0 && pathContribution.z == 0) {
+                return float3::Zero_;
+            }
+
+            if(VcOcclusionRay(context->sceneData->rtcScene, surface, direction, distance)) {
+                return pathContribution;
+            }
+
+            return float3::Zero_;
+        }
+
+        //==============================================================================
+        static void MergeVertices(uint vertexIndex, void* userData)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "MergeVertices");
+
+            VertexMergingCallbackStruct* vmData = (VertexMergingCallbackStruct*)userData;
+            const GIIntegrationContext* context = vmData->context;
+            const SurfaceParameters& surface = *vmData->surface;
+            const PathState& cameraState = *vmData->cameraState;
+            const VcmVertex& lightVertex = vmData->pathVertices->GetData()[vertexIndex];
+
+            if(cameraState.pathLength + lightVertex.pathLength > context->maxPathLength) {
+                return;
+            }
+
+            // JSTODO - This is a hack :(. How do I correctly prevent ringing around the base of glossy transparent objects?
+            if((surface.materialFlags & eTransparent) != (lightVertex.surface.materialFlags & eTransparent)) {
+                return;
+            }
+
+            float bsdfForwardPdfW;
+            float bsdfReversePdfW;
+            float3 bsdf = EvaluateBsdf(surface, -cameraState.direction, lightVertex.surface.view, bsdfForwardPdfW, bsdfReversePdfW);
+            if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
+                return;
+            }
+
+            float lightWeight = lightVertex.dVCM * vmData->vcWeight + lightVertex.dVM * bsdfForwardPdfW;
+            float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
+            float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
+
+            #if CheckForNaNs_
+            Assert_(!Math::IsNaN(bsdf.x));
+            Assert_(!Math::IsNaN(bsdf.y));
+            Assert_(!Math::IsNaN(bsdf.z));
+            Assert_(!Math::IsNaN(lightVertex.throughput.x));
+            Assert_(!Math::IsNaN(lightVertex.throughput.y));
+            Assert_(!Math::IsNaN(lightVertex.throughput.z));
+            #endif
+
+            vmData->result += misWeight * bsdf * lightVertex.throughput;
+        }
+
+        //==============================================================================
+        static bool SampleBsdfScattering(GIIntegrationContext* context, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState)
+        {
+            ProfileEventMarker_(0x88FFFFFF, "SampleBsdfScattering");
+
+            BsdfSample sample;
+            if(SampleBsdfFunction(context, surface, -pathState.direction, sample) == false) {
+                return false;
+            }
+            if(sample.reflectance.x == 0.0f && sample.reflectance.y == 0.0f && sample.reflectance.z == 0.0f) {
+                return false;
+            }
+
+            float cosThetaBsdf = Math::Absf(Dot(sample.wi, surface.perturbedNormal));
+
+            pathState.position = surface.position;
+            pathState.throughput = pathState.throughput * sample.reflectance;
+            pathState.dVC = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVC * sample.reversePdfW + pathState.dVCM + vmWeight);
+            pathState.dVM = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVM * sample.reversePdfW + pathState.dVCM * vcWeight + 1.0f);
+            pathState.dVCM = 1.0f / sample.forwardPdfW;
+            pathState.direction = sample.wi;
+            ++pathState.pathLength;
+
+            return true;
+        }
+
+        //==============================================================================
         static void VertexConnectionAndMerging(GIIntegrationContext* context, CArray<VcmVertex>& pathVertices, HashGrid& hashGrid, float vmSearchRadius, uint width, uint height)
         {
-            uint vmCount = width * height;
+            ProfileEventMarker_(0, "VertexConnectionAndMerging");
+
+            uint vmCount = 1 * width * height;
             uint vcCount = 1;
 
             float vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
@@ -164,10 +457,10 @@ namespace Selas
                     deletememaybe.Add(surface.position);
 
                     // -- connect the path to the camera
-                    VCMCommon::ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
+                    ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
 
                     // -- bsdf scattering to advance the path
-                    if(VCMCommon::SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
+                    if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
                         break;
                     }
                 }
@@ -197,7 +490,7 @@ namespace Selas
                         HitParameters hit;
                         if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
                             // -- if the ray exits the scene then we sample the ibl and accumulate the results.
-                            float3 sample = cameraPathState.throughput * VCMCommon::ConnectToSkyLight(context, cameraPathState);
+                            float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
                             color += sample;
                             break;
                         }
@@ -220,22 +513,26 @@ namespace Selas
 
                         // -- Vertex connection to a light source
                         if(cameraPathState.pathLength + 1 < context->maxPathLength) {
-                            float3 sample = cameraPathState.throughput * VCMCommon::ConnectCameraPathToLight(context, cameraPathState, surface, vmWeight);
+                            float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, vmWeight);
                             color += sample; 
                         }
 
                         // -- Vertex connection to a light vertex
                         {
-                            uint pathStart = (index == 0) ? 0 : pathEnds[index - 1];
-                            uint pathEnd = pathEnds[index];
+                            for(uint vcScan = 0; vcScan < vcCount; ++vcScan) {
 
-                            for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
-                                const VcmVertex& lightVertex = pathVertices[lightVertexIndex];
-                                if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
-                                    break;
+                                uint vcIndex = vcCount * index + vcScan;
+                                uint pathStart = (vcIndex == 0) ? 0 : pathEnds[vcIndex - 1];
+                                uint pathEnd = pathEnds[vcIndex];
+
+                                for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
+                                    const VcmVertex& lightVertex = pathVertices[lightVertexIndex];
+                                    if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
+                                        break;
+                                    }
+
+                                    color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, vmWeight);
                                 }
-
-                                color += cameraPathState.throughput * lightVertex.throughput * VCMCommon::ConnectPathVertices(context, surface, cameraPathState, lightVertex, vmWeight);
                             }
                         }
 
@@ -248,13 +545,13 @@ namespace Selas
                             callbackData.cameraState = &cameraPathState;
                             callbackData.vcWeight = vcWeight;
                             callbackData.result = float3::Zero_;
-                            SearchHashGrid(&hashGrid, deletememaybe, surface.position, &callbackData, VCMCommon::MergeVertices);
+                            SearchHashGrid(&hashGrid, deletememaybe, surface.position, &callbackData, MergeVertices);
 
                             color += cameraPathState.throughput * vmNormalization * callbackData.result;
                         }
 
                         // -- bsdf scattering to advance the path
-                        if(VCMCommon::SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
+                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
                             break;
                         }
                     }
@@ -305,23 +602,22 @@ namespace Selas
             context.imageHeight      = height;
             context.twister          = &twister;
             context.maxPathLength    = vcmKernelData->maxBounceCount;
-
             FramebufferWriter_Initialize(&context.frameWriter, vcmKernelData->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             HashGrid hashGrid;
             CArray<VcmVertex> lightVertices;
 
-            int64 pathsTracedPerPixel = 0;
+            int64 iterationCount = 0;
             float elapsedSeconds = 0.0f;
             while(elapsedSeconds < vcmKernelData->integrationSeconds) {
                 int64 index = Atomic::Increment64(vcmKernelData->vcmPassCount);
                 float iterationIndex = index + 1.0f;
 
-                float vcmKernelRadius = vcmKernelData->vcmRadius / Math::Powf(iterationIndex, 0.5f * (1.0f - vcmKernelData->vcmRadiusAlpha));
+                float vcmKernelRadius = VCMCommon::SearchRadius(vcmKernelData->vcmRadius, vcmKernelData->vcmRadiusAlpha, iterationIndex);
 
                 VertexConnectionAndMerging(&context, lightVertices, hashGrid, vcmKernelRadius, width, height);
-                ++pathsTracedPerPixel;
+                ++iterationCount;
 
                 elapsedSeconds = SystemTime::ElapsedSecondsF(vcmKernelData->integrationStartTime);
             }
@@ -329,7 +625,7 @@ namespace Selas
             ShutdownHashGrid(&hashGrid);
             lightVertices.Close();
 
-            Atomic::Add64(vcmKernelData->iterationsPerPixel, pathsTracedPerPixel);
+            Atomic::Add64(vcmKernelData->iterationsPerPixel, iterationCount);
 
             Random::MersenneTwisterShutdown(&twister);
 
@@ -351,11 +647,11 @@ namespace Selas
 
             int64 completedThreads = 0;
             int64 kernelIndex = 0;
-            int64 pathsEvaluatedPerPixel = 0;
+            int64 iterationsPerPixel = 0;
             int64 vcmPassCount = 0;
 
             #if EnableMultiThreading_ 
-                const uint additionalThreadCount = 7;
+                const uint additionalThreadCount = 6;
             #else
                 const uint additionalThreadCount = 0;
             #endif
@@ -369,7 +665,7 @@ namespace Selas
             integratorContext.maxBounceCount         = MaxBounceCount_;
             integratorContext.integrationStartTime   = SystemTime::Now();
             integratorContext.integrationSeconds     = IntegrationSeconds_;
-            integratorContext.iterationsPerPixel     = &pathsEvaluatedPerPixel;
+            integratorContext.iterationsPerPixel     = &iterationsPerPixel;
             integratorContext.vcmPassCount           = &vcmPassCount;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
@@ -397,7 +693,9 @@ namespace Selas
                 }
             #endif
 
-            FrameBuffer_Normalize(frame, (1.0f / pathsEvaluatedPerPixel));
+            Logging::WriteDebugInfo("Vcm integration performed with %lld iterations", iterationsPerPixel);
+
+            FrameBuffer_Normalize(frame, (1.0f / iterationsPerPixel));
         }
     }
 }
