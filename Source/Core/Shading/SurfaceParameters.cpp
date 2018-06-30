@@ -151,64 +151,6 @@ namespace Selas
     }
 
     //==============================================================================
-    static void CalculateSurfaceDifferentials(const HitParameters* __restrict hit, float3 n, float3 dpdu, float3 dpdv, SurfaceDifferentials& outputs)
-    {
-        {
-            // -- See section 10.1.1 of PBRT 2nd edition
-
-            float d = Dot(n, hit->position);
-            float tx = -(Dot(n, hit->rxOrigin) - d) / Dot(n, hit->rxDirection);
-            if(Math::IsInf(tx) || Math::IsNaN(tx))
-                goto fail;
-            float3 px = hit->rxOrigin + tx * hit->rxDirection;
-
-            float ty = -(Dot(n, hit->ryOrigin) - d) / Dot(n, hit->ryDirection);
-            if(Math::IsInf(ty) || Math::IsNaN(ty))
-                goto fail;
-            float3 py = hit->ryOrigin + ty * hit->ryDirection;
-
-            outputs.dpdx = px - hit->position;
-            outputs.dpdy = py - hit->position;
-
-            // Initialize A, Bx, and By matrices for offset computation
-            float2x2 A;
-            float2 Bx;
-            float2 By;
-
-            if(Math::Absf(n.x) > Math::Absf(n.y) && Math::Absf(n.x) > Math::Absf(n.z)) {
-                A.r0 = float2(dpdu.y, dpdv.y);
-                A.r1 = float2(dpdu.z, dpdv.z);
-                Bx = float2(px.y - hit->position.y, px.z - hit->position.z);
-                By = float2(py.y - hit->position.y, py.z - hit->position.z);
-            }
-            else if(Math::Absf(n.y) > Math::Absf(n.z)) {
-                A.r0 = float2(dpdu.x, dpdv.x);
-                A.r1 = float2(dpdu.z, dpdv.z);
-                Bx = float2(px.x - hit->position.x, px.z - hit->position.z);
-                By = float2(py.x - hit->position.x, py.z - hit->position.z);
-            }
-            else {
-                A.r0 = float2(dpdu.x, dpdv.x);
-                A.r1 = float2(dpdu.y, dpdv.y);
-                Bx = float2(px.x - hit->position.x, px.y - hit->position.y);
-                By = float2(py.x - hit->position.x, py.y - hit->position.y);
-            }
-
-            if(!Matrix2x2::SolveLinearSystem(A, Bx, outputs.duvdx)) {
-                outputs.duvdx = float2::Zero_;
-            }
-
-            if(!Matrix2x2::SolveLinearSystem(A, By, outputs.duvdy)) {
-                outputs.duvdy = float2::Zero_;
-            }
-            return;
-        }
-
-        fail:
-            outputs = SurfaceDifferentials();
-    }
-
-    //==============================================================================
     static Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId, uint32 primId)
     {
         Assert_(geomId < eMeshIndexTypeCount);

@@ -17,7 +17,6 @@ namespace Selas
         };
 
         #define ProfileEventMarker_(color, name) ScopedProfileEvent __profileEventMarker(color, name)
-
     #else
         #define ProfileEventMarker_(color, name)
     #endif

@@ -101,11 +101,6 @@ namespace Selas
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
 
-            hit.rxOrigin = ray.rxOrigin;
-            hit.rxDirection = ray.rxDirection;
-            hit.ryOrigin = ray.ryOrigin;
-            hit.ryDirection = ray.ryDirection;
-
             return true;
         }
 

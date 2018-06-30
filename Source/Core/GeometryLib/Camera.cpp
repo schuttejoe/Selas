@@ -35,20 +35,11 @@ namespace Selas
         float vy = viewY + MersenneTwisterFloat(twister);
 
         float3 p  = ImageToWorld(camera, vx, vy);
-        float3 px = ImageToWorld(camera, vx + 1.0f, vy);
-        float3 py = ImageToWorld(camera, vx, vy + 1.0f);
-
         float3 d  = Normalize(p  - camera->position);
-        float3 dx = Normalize(px - camera->position);
-        float3 dy = Normalize(py - camera->position);
 
         Ray result;
         result.origin      = p;
         result.direction   = d;
-        result.rxOrigin    = px;
-        result.rxDirection = dx;
-        result.ryOrigin    = py;
-        result.ryDirection = dy;
 
         return result;
     }

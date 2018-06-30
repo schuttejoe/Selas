@@ -5,12 +5,8 @@
 //==============================================================================
 
 #include "SceneLib/SceneResource.h"
-#include "GeometryLib/SurfaceDifferentials.h"
 #include "MathLib/FloatStructs.h"
 #include "SystemLib/BasicTypes.h"
-
-// -- Needs some rework. Don't think the implementation was correct anyway.
-#define EnableDifferentials_ 0
 
 namespace Selas
 {
@@ -40,16 +36,6 @@ namespace Selas
 
         float currentIor;
         float exitIor; // -- only valid if total internal reflection doesn't occur
-
-        #if EnableDifferentials_
-            // -- spatial differentials
-            float3 dpdu, dpdv;
-            float3 rxDirection;
-            float3 ryDirection;
-
-            // -- uv differentials.
-            SurfaceDifferentials differentials;
-        #endif
     };
 
     bool CalculateSurfaceParams(const GIIntegrationContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);

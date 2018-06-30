@@ -28,7 +28,7 @@
 #define MaxBounceCount_         10
 
 #define EnableMultiThreading_   1
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     300.0f
 
 #define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
@@ -57,6 +57,14 @@ namespace Selas
             volatile int64* vcmPassCount;
 
             Framebuffer* frame;
+        };
+
+        struct LightPathSet
+        {
+            HashGrid hashGrid;
+            CArray<VcmVertex> lightVertices;
+            CArray<uint32> pathEnds;
+            CArray<float3> vertexPositions;
         };
 
         //==============================================================================
@@ -147,11 +155,6 @@ namespace Selas
 
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
-
-            hit.rxOrigin = ray.rxOrigin;
-            hit.rxDirection = ray.rxDirection;
-            hit.ryOrigin = ray.ryOrigin;
-            hit.ryDirection = ray.ryDirection;
 
             return true;
         }
@@ -391,7 +394,7 @@ namespace Selas
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(GIIntegrationContext* context, CArray<VcmVertex>& pathVertices, HashGrid& hashGrid, float vmSearchRadius, uint width, uint height)
+        static void VertexConnectionAndMerging(GIIntegrationContext* context, LightPathSet* lightPathSet, float vmSearchRadius, uint width, uint height)
         {
             ProfileEventMarker_(0, "VertexConnectionAndMerging");
 
@@ -403,12 +406,12 @@ namespace Selas
             float vmWeight          = Math::Pi_ * vmSearchRadiusSqr * vmCount / vcCount;
             float vcWeight          = vcCount / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
 
-            pathVertices.Clear();
-            pathVertices.Reserve((uint32)(vmCount));
-            CArray<uint32> pathEnds;
-            pathEnds.Reserve((uint32)(vmCount));
-            CArray<float3> deletememaybe;
-            deletememaybe.Reserve((uint32)(vmCount));
+            lightPathSet->lightVertices.Clear();
+            lightPathSet->pathEnds.Clear();
+            lightPathSet->vertexPositions.Clear();
+            lightPathSet->lightVertices.Reserve((uint32)(vmCount));
+            lightPathSet->pathEnds.Reserve((uint32)(vmCount));
+            lightPathSet->vertexPositions.Reserve((uint32)(vmCount));
 
             // -- generate light paths
             for(uint scan = 0; scan < vmCount; ++scan) {
@@ -453,8 +456,8 @@ namespace Selas
                     vcmVertex.dVC = state.dVC;
                     vcmVertex.dVM = state.dVM;
                     vcmVertex.surface = surface;
-                    pathVertices.Add(vcmVertex);
-                    deletememaybe.Add(surface.position);
+                    lightPathSet->lightVertices.Add(vcmVertex);
+                    lightPathSet->vertexPositions.Add(surface.position);
 
                     // -- connect the path to the camera
                     ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
@@ -465,11 +468,11 @@ namespace Selas
                     }
                 }
 
-                pathEnds.Add(pathVertices.Length());
+                lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
             }
 
             // -- build the hash grid
-            BuildHashGrid(&hashGrid, vmCount, vmSearchRadius, deletememaybe);
+            BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->vertexPositions);
 
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
@@ -522,11 +525,11 @@ namespace Selas
                             for(uint vcScan = 0; vcScan < vcCount; ++vcScan) {
 
                                 uint vcIndex = vcCount * index + vcScan;
-                                uint pathStart = (vcIndex == 0) ? 0 : pathEnds[vcIndex - 1];
-                                uint pathEnd = pathEnds[vcIndex];
+                                uint pathStart = (vcIndex == 0) ? 0 : lightPathSet->pathEnds[vcIndex - 1];
+                                uint pathEnd = lightPathSet->pathEnds[vcIndex];
 
                                 for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
-                                    const VcmVertex& lightVertex = pathVertices[lightVertexIndex];
+                                    const VcmVertex& lightVertex = lightPathSet->lightVertices[lightVertexIndex];
                                     if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
                                         break;
                                     }
@@ -541,11 +544,11 @@ namespace Selas
                             VertexMergingCallbackStruct callbackData;
                             callbackData.context = context;
                             callbackData.surface = &surface;
-                            callbackData.pathVertices = &pathVertices;
+                            callbackData.pathVertices = &lightPathSet->lightVertices;
                             callbackData.cameraState = &cameraPathState;
                             callbackData.vcWeight = vcWeight;
                             callbackData.result = float3::Zero_;
-                            SearchHashGrid(&hashGrid, deletememaybe, surface.position, &callbackData, MergeVertices);
+                            SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->vertexPositions, surface.position, &callbackData, MergeVertices);
 
                             color += cameraPathState.throughput * vmNormalization * callbackData.result;
                         }
@@ -605,8 +608,7 @@ namespace Selas
             FramebufferWriter_Initialize(&context.frameWriter, vcmKernelData->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
-            HashGrid hashGrid;
-            CArray<VcmVertex> lightVertices;
+            LightPathSet lightPathSet;
 
             int64 iterationCount = 0;
             float elapsedSeconds = 0.0f;
@@ -616,14 +618,16 @@ namespace Selas
 
                 float vcmKernelRadius = VCMCommon::SearchRadius(vcmKernelData->vcmRadius, vcmKernelData->vcmRadiusAlpha, iterationIndex);
 
-                VertexConnectionAndMerging(&context, lightVertices, hashGrid, vcmKernelRadius, width, height);
+                VertexConnectionAndMerging(&context, &lightPathSet, vcmKernelRadius, width, height);
                 ++iterationCount;
 
                 elapsedSeconds = SystemTime::ElapsedSecondsF(vcmKernelData->integrationStartTime);
             }
 
-            ShutdownHashGrid(&hashGrid);
-            lightVertices.Close();
+            ShutdownHashGrid(&lightPathSet.hashGrid);
+            lightPathSet.lightVertices.Close();
+            lightPathSet.pathEnds.Close();
+            lightPathSet.vertexPositions.Close();
 
             Atomic::Add64(vcmKernelData->iterationsPerPixel, iterationCount);
 

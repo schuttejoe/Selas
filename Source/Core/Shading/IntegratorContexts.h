@@ -56,11 +56,6 @@ namespace Selas
         int32 primId;
 
         float2 baryCoords;
-
-        float3 rxOrigin;
-        float3 rxDirection;
-        float3 ryOrigin;
-        float3 ryDirection;
     };
 
     struct PathState
