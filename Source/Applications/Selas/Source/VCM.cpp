@@ -28,7 +28,7 @@
 #define MaxBounceCount_         10
 
 #define EnableMultiThreading_   1
-#define IntegrationSeconds_     300.0f
+#define IntegrationSeconds_     30.0f
 
 #define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
@@ -38,7 +38,7 @@ namespace Selas
     namespace VCM
     {
         //==============================================================================
-        struct VCMKernelData
+        struct VCMSharedData
         {
             SceneContext* sceneData;
             RayCastCameraSettings camera;
@@ -241,8 +241,6 @@ namespace Selas
             float lightSampleWeight = 1.0f;
 
             // -- choose direction to sample the ibl
-            float r0 = Random::MersenneTwisterFloat(context->twister);
-            float r1 = Random::MersenneTwisterFloat(context->twister);
 
             LightDirectSample sample;
             {
@@ -375,12 +373,12 @@ namespace Selas
             float misWeight = 1.0f / (lightWeight + 1.0f + cameraWeight);
 
             #if CheckForNaNs_
-            Assert_(!Math::IsNaN(bsdf.x));
-            Assert_(!Math::IsNaN(bsdf.y));
-            Assert_(!Math::IsNaN(bsdf.z));
-            Assert_(!Math::IsNaN(lightVertex.throughput.x));
-            Assert_(!Math::IsNaN(lightVertex.throughput.y));
-            Assert_(!Math::IsNaN(lightVertex.throughput.z));
+                Assert_(!Math::IsNaN(bsdf.x));
+                Assert_(!Math::IsNaN(bsdf.y));
+                Assert_(!Math::IsNaN(bsdf.z));
+                Assert_(!Math::IsNaN(lightVertex.throughput.x));
+                Assert_(!Math::IsNaN(lightVertex.throughput.y));
+                Assert_(!Math::IsNaN(lightVertex.throughput.z));
             #endif
 
             vmData->result += misWeight * bsdf * lightVertex.throughput;
@@ -445,7 +443,7 @@ namespace Selas
                 
                 // -- create initial light path vertex y_0 
                 PathState state;
-                VCMCommon::GenerateLightSample(context, vcWeight, state);
+                    VCMCommon::GenerateLightSample(context, vcWeight, state);
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
@@ -454,15 +452,15 @@ namespace Selas
 
                     // -- Cast the ray against the scene
                     HitParameters hit;
-                    if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
-                        break;
-                    }
+                        if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                            break;
+                        }
 
                     // -- Calculate all surface information for this hit position
                     SurfaceParameters surface;
-                    if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
-                        break;
-                    }
+                        if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
+                            break;
+                        }
 
                     float connectionLengthSqr = LengthSquared(state.position - surface.position);
                     float absDotNL = Math::Absf(Dot(surface.perturbedNormal, surface.view));
@@ -490,16 +488,16 @@ namespace Selas
                     ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
 
                     // -- bsdf scattering to advance the path
-                    if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
-                        break;
+                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
+                            break;
+                        }
                     }
-                }
 
                 lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
             }
 
             // -- build the hash grid
-            BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->vertexPositions);
+                BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->vertexPositions);
 
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
@@ -507,7 +505,7 @@ namespace Selas
                     uint index = y * width + x;
 
                     PathState cameraPathState;
-                    VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
+                        VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
 
                     float3 color = float3::Zero_;
 
@@ -518,18 +516,18 @@ namespace Selas
 
                         // -- Cast the ray against the scene
                         HitParameters hit;
-                        if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
-                            // -- if the ray exits the scene then we sample the ibl and accumulate the results.
-                            float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
-                            color += sample;
-                            break;
-                        }
+                            if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                                // -- if the ray exits the scene then we sample the ibl and accumulate the results.
+                                float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
+                                color += sample;
+                                break;
+                            }
 
                         // -- Calculate all surface information for this hit position
                         SurfaceParameters surface;
-                        if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
-                            break;
-                        }
+                            if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
+                                break;
+                            }
 
                         float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
                         float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
@@ -581,10 +579,10 @@ namespace Selas
                         }
 
                         // -- bsdf scattering to advance the path
-                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
-                            break;
+                            if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
+                                break;
+                            }
                         }
-                    }
 
                     FramebufferWriter_Write(&context->frameWriter, color, (uint32)x, (uint32)y);
                 }
@@ -616,39 +614,39 @@ namespace Selas
         //==============================================================================
         static void VCMKernel(void* userData)
         {
-            VCMKernelData* vcmKernelData = static_cast<VCMKernelData*>(userData);
-            int64 kernelIndex = Atomic::Increment64(vcmKernelData->kernelIndices);
+            VCMSharedData* sharedData = static_cast<VCMSharedData*>(userData);
+            int64 kernelIndex = Atomic::Increment64(sharedData->kernelIndices);
 
             Random::MersenneTwister twister;
             Random::MersenneTwisterInitialize(&twister, (uint32)kernelIndex);
 
-            uint width = vcmKernelData->width;
-            uint height = vcmKernelData->height;
+            uint width = sharedData->width;
+            uint height = sharedData->height;
 
             GIIntegrationContext context;
-            context.sceneData        = vcmKernelData->sceneData;
-            context.camera           = &vcmKernelData->camera;
+            context.sceneData        = sharedData->sceneData;
+            context.camera           = &sharedData->camera;
             context.imageWidth       = width;
             context.imageHeight      = height;
             context.twister          = &twister;
-            context.maxPathLength    = vcmKernelData->maxBounceCount;
-            FramebufferWriter_Initialize(&context.frameWriter, vcmKernelData->frame,
+            context.maxPathLength    = sharedData->maxBounceCount;
+            FramebufferWriter_Initialize(&context.frameWriter, sharedData->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             LightPathSet lightPathSet;
 
             int64 iterationCount = 0;
             float elapsedSeconds = 0.0f;
-            while(elapsedSeconds < vcmKernelData->integrationSeconds) {
-                int64 index = Atomic::Increment64(vcmKernelData->vcmPassCount);
+            while(elapsedSeconds < sharedData->integrationSeconds) {
+                int64 index = Atomic::Increment64(sharedData->vcmPassCount);
                 float iterationIndex = index + 1.0f;
 
-                float vcmKernelRadius = VCMCommon::SearchRadius(vcmKernelData->vcmRadius, vcmKernelData->vcmRadiusAlpha, iterationIndex);
+                float vcmKernelRadius = VCMCommon::SearchRadius(sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
 
                 VertexConnectionAndMerging(&context, &lightPathSet, vcmKernelRadius, width, height);
                 ++iterationCount;
 
-                elapsedSeconds = SystemTime::ElapsedSecondsF(vcmKernelData->integrationStartTime);
+                elapsedSeconds = SystemTime::ElapsedSecondsF(sharedData->integrationStartTime);
             }
 
             ShutdownHashGrid(&lightPathSet.hashGrid);
@@ -656,12 +654,12 @@ namespace Selas
             lightPathSet.pathEnds.Close();
             lightPathSet.vertexPositions.Close();
 
-            Atomic::Add64(vcmKernelData->iterationsPerPixel, iterationCount);
+            Atomic::Add64(sharedData->iterationsPerPixel, iterationCount);
 
             Random::MersenneTwisterShutdown(&twister);
 
             FramebufferWriter_Shutdown(&context.frameWriter);
-            Atomic::Increment64(vcmKernelData->completedThreads);
+            Atomic::Increment64(sharedData->completedThreads);
         }
 
         //==============================================================================
@@ -687,37 +685,37 @@ namespace Selas
                 const uint additionalThreadCount = 0;
             #endif
 
-            VCMKernelData integratorContext;
-            integratorContext.sceneData              = &context;
-            integratorContext.camera                 = camera;
-            integratorContext.frame                  = frame;
-            integratorContext.width                  = width;
-            integratorContext.height                 = height;
-            integratorContext.maxBounceCount         = MaxBounceCount_;
-            integratorContext.integrationStartTime   = SystemTime::Now();
-            integratorContext.integrationSeconds     = IntegrationSeconds_;
-            integratorContext.iterationsPerPixel     = &iterationsPerPixel;
-            integratorContext.vcmPassCount           = &vcmPassCount;
-            integratorContext.completedThreads       = &completedThreads;
-            integratorContext.kernelIndices          = &kernelIndex;
-            integratorContext.vcmRadius              = VcmRadiusFactor_ * sceneData->boundingSphere.w;
-            integratorContext.vcmRadiusAlpha         = VcmRadiusAlpha_;
+            VCMSharedData sharedData;
+            sharedData.sceneData              = &context;
+            sharedData.camera                 = camera;
+            sharedData.frame                  = frame;
+            sharedData.width                  = width;
+            sharedData.height                 = height;
+            sharedData.maxBounceCount         = MaxBounceCount_;
+            sharedData.integrationStartTime   = SystemTime::Now();
+            sharedData.integrationSeconds     = IntegrationSeconds_;
+            sharedData.iterationsPerPixel     = &iterationsPerPixel;
+            sharedData.vcmPassCount           = &vcmPassCount;
+            sharedData.completedThreads       = &completedThreads;
+            sharedData.kernelIndices          = &kernelIndex;
+            sharedData.vcmRadius              = VcmRadiusFactor_ * sceneData->boundingSphere.w;
+            sharedData.vcmRadiusAlpha         = VcmRadiusAlpha_;
 
             #if EnableMultiThreading_
                 ThreadHandle threadHandles[additionalThreadCount];
 
                 // -- fork threads
                 for(uint scan = 0; scan < additionalThreadCount; ++scan) {
-                    threadHandles[scan] = CreateThread(VCMKernel, &integratorContext);
+                    threadHandles[scan] = CreateThread(VCMKernel, &sharedData);
                 }
             #endif
 
             // -- do work on the main thread too
-            VCMKernel(&integratorContext);
+            VCMKernel(&sharedData);
 
             #if EnableMultiThreading_ 
                 // -- wait for any other threads to finish
-                while(*integratorContext.completedThreads != *integratorContext.kernelIndices);
+                while(*sharedData.completedThreads != *sharedData.kernelIndices);
 
                 for(uint scan = 0; scan < additionalThreadCount; ++scan) {
                     ShutdownThread(threadHandles[scan]);
