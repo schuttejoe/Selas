@@ -29,7 +29,7 @@ namespace Selas
         float dVC;
         float dVM;
 
-        SurfaceParameters surface;
+        HitParameters hit;
     };
 
     struct VertexMergingCallbackStruct

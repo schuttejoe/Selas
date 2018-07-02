@@ -97,6 +97,7 @@ namespace Selas
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
             hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
+            hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
@@ -116,7 +117,7 @@ namespace Selas
 
                 if(rayCastHit) {
                     SurfaceParameters surface;
-                    if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
+                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
                         break;
                     }
 

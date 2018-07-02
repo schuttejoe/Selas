@@ -38,7 +38,7 @@ namespace Selas
         float exitIor; // -- only valid if total internal reflection doesn't occur
     };
 
-    bool CalculateSurfaceParams(const GIIntegrationContext* context, const Ray& ray, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* hit, SurfaceParameters& surface);
     bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
 

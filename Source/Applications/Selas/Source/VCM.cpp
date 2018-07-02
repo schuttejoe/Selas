@@ -28,7 +28,7 @@
 #define MaxBounceCount_         10
 
 #define EnableMultiThreading_   1
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     300.0f
 
 #define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
@@ -152,6 +152,7 @@ namespace Selas
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
             hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
+            hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
@@ -283,7 +284,7 @@ namespace Selas
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectPathVertices");
 
-            float3 direction = lightVertex.surface.position - surface.position;
+            float3 direction = lightVertex.hit.position - surface.position;
             float distanceSquared = LengthSquared(direction);
             float distance = Math::Sqrtf(distanceSquared);
             direction = (1.0f / distance) * direction;
@@ -295,15 +296,20 @@ namespace Selas
                 return float3::Zero_;
             }
 
+            SurfaceParameters lightSurface;
+            if(CalculateSurfaceParams(context, &lightVertex.hit, lightSurface) == false) {
+                return float3::Zero_;
+            }
+
             float lightBsdfForwardPdfW;
             float lightBsdfReversePdfW;
-            float3 lightBsdf = EvaluateBsdf(lightVertex.surface, -direction, lightVertex.surface.view, lightBsdfForwardPdfW, lightBsdfReversePdfW);
+            float3 lightBsdf = EvaluateBsdf(lightSurface, -direction, lightSurface.view, lightBsdfForwardPdfW, lightBsdfReversePdfW);
             if(lightBsdf.x == 0 && lightBsdf.y == 0 && lightBsdf.z == 0) {
                 return float3::Zero_;
             }
 
             float cosThetaCamera = Math::Absf(Dot(direction, surface.perturbedNormal));
-            float cosThetaLight = Math::Absf(Dot(-direction, lightVertex.surface.perturbedNormal));
+            float cosThetaLight = Math::Absf(Dot(-direction, lightSurface.perturbedNormal));
 
             float geometryTerm = cosThetaLight * cosThetaCamera / distanceSquared;
             if(geometryTerm < 0.0f) {
@@ -315,7 +321,7 @@ namespace Selas
             float cameraContProb = ContinuationProbability(surface);
             cameraBsdfForwardPdfW *= cameraContProb;
             cameraBsdfReversePdfW *= cameraContProb;
-            float lightContProb = ContinuationProbability(lightVertex.surface);
+            float lightContProb = ContinuationProbability(lightSurface);
             lightBsdfForwardPdfW *= lightContProb;
             lightBsdfReversePdfW *= lightContProb;
 
@@ -353,20 +359,25 @@ namespace Selas
                 return;
             }
 
+            SurfaceParameters lightSurface;
+            if(CalculateSurfaceParams(context, &lightVertex.hit, lightSurface) == false) {
+                return;
+            }
+
             // JSTODO - This is a hack :(. How do I correctly prevent ringing around the base of glossy transparent objects?
-            if((surface.materialFlags & eTransparent) != (lightVertex.surface.materialFlags & eTransparent)) {
+            if((surface.materialFlags & eTransparent) != (lightSurface.materialFlags & eTransparent)) {
                 return;
             }
 
             float bsdfForwardPdfW;
             float bsdfReversePdfW;
-            float3 bsdf = EvaluateBsdf(surface, -cameraState.direction, lightVertex.surface.view, bsdfForwardPdfW, bsdfReversePdfW);
+            float3 bsdf = EvaluateBsdf(surface, -cameraState.direction, lightSurface.view, bsdfForwardPdfW, bsdfReversePdfW);
             if(bsdf.x == 0 && bsdf.y == 0 && bsdf.z == 0) {
                 return;
             }
 
             bsdfForwardPdfW *= ContinuationProbability(surface);
-            bsdfReversePdfW *= ContinuationProbability(lightVertex.surface);
+            bsdfReversePdfW *= ContinuationProbability(lightSurface);
 
             float lightWeight = lightVertex.dVCM * vmData->vcWeight + lightVertex.dVM * bsdfForwardPdfW;
             float cameraWeight = cameraState.dVCM * vmData->vcWeight + cameraState.dVM * bsdfReversePdfW;
@@ -443,7 +454,7 @@ namespace Selas
                 
                 // -- create initial light path vertex y_0 
                 PathState state;
-                    VCMCommon::GenerateLightSample(context, vcWeight, state);
+                VCMCommon::GenerateLightSample(context, vcWeight, state);
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
@@ -458,9 +469,9 @@ namespace Selas
 
                     // -- Calculate all surface information for this hit position
                     SurfaceParameters surface;
-                        if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
-                            break;
-                        }
+                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                        break;
+                    }
 
                     float connectionLengthSqr = LengthSquared(state.position - surface.position);
                     float absDotNL = Math::Absf(Dot(surface.perturbedNormal, surface.view));
@@ -480,7 +491,7 @@ namespace Selas
                     vcmVertex.dVCM = state.dVCM;
                     vcmVertex.dVC = state.dVC;
                     vcmVertex.dVM = state.dVM;
-                    vcmVertex.surface = surface;
+                    vcmVertex.hit = hit;
                     lightPathSet->lightVertices.Add(vcmVertex);
                     lightPathSet->vertexPositions.Add(surface.position);
 
@@ -488,16 +499,16 @@ namespace Selas
                     ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
 
                     // -- bsdf scattering to advance the path
-                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
-                            break;
-                        }
+                    if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
+                        break;
                     }
+                }
 
                 lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
             }
 
             // -- build the hash grid
-                BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->vertexPositions);
+            BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->vertexPositions);
 
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
@@ -505,7 +516,7 @@ namespace Selas
                     uint index = y * width + x;
 
                     PathState cameraPathState;
-                        VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
+                    VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
 
                     float3 color = float3::Zero_;
 
@@ -516,18 +527,18 @@ namespace Selas
 
                         // -- Cast the ray against the scene
                         HitParameters hit;
-                            if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
-                                // -- if the ray exits the scene then we sample the ibl and accumulate the results.
-                                float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
-                                color += sample;
-                                break;
-                            }
+                        if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                            // -- if the ray exits the scene then we sample the ibl and accumulate the results.
+                            float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
+                            color += sample;
+                            break;
+                        }
 
                         // -- Calculate all surface information for this hit position
                         SurfaceParameters surface;
-                            if(CalculateSurfaceParams(context, ray, &hit, surface) == false) {
-                                break;
-                            }
+                        if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                            break;
+                        }
 
                         float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
                         float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
@@ -579,10 +590,10 @@ namespace Selas
                         }
 
                         // -- bsdf scattering to advance the path
-                            if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
-                                break;
-                            }
+                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
+                            break;
                         }
+                    }
 
                     FramebufferWriter_Write(&context->frameWriter, color, (uint32)x, (uint32)y);
                 }

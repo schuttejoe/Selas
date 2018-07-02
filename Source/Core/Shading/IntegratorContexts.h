@@ -51,6 +51,7 @@ namespace Selas
     struct HitParameters
     {
         float3 position;
+        float3 incDirection; // pointers in the direction the path that hit this position came from
         float error;
         int32 geomId;
         int32 primId;
