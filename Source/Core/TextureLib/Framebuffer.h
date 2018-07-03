@@ -12,7 +12,7 @@
 namespace Selas
 {
     #define DefaultFrameWriterCapacity_     4096
-    #define DefaultFrameWriterSoftCapacity_ 3968
+    #define DefaultFrameWriterSoftCapacity_ 3840
 
     struct Framebuffer
     {

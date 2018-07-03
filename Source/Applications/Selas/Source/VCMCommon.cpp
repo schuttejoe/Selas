@@ -12,7 +12,6 @@
 #include "TextureLib/Framebuffer.h"
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
-#include "GeometryLib/HashGrid.h"
 #include "ThreadingLib/Thread.h"
 #include "SystemLib/OSThreading.h"
 #include "SystemLib/Atomic.h"

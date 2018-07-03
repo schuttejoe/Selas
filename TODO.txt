@@ -15,7 +15,6 @@ Depth of field
 Optimizations:
 --------------
 SIMD shading
-Russian Roulette path termination
 
 Engine:
 -------

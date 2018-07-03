@@ -35,7 +35,7 @@
 
 namespace Selas
 {
-    namespace VCM
+    namespace VCMTask
     {
         //==============================================================================
         struct VCMSharedData
@@ -428,12 +428,15 @@ namespace Selas
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(GIIntegrationContext* context, LightPathSet* lightPathSet, float vmSearchRadius, uint width, uint height)
+        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegrationContext* context, LightPathSet* lightPathSet, float vmSearchRadius, uint width, uint height)
         {
             ProfileEventMarker_(0, "VertexConnectionAndMerging");
 
             uint vmCount = 1 * width * height;
             uint vcCount = 1;
+
+            pathVertices.Clear();
+            pathVertices.Resize((uint32)vmCount);
 
             float vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
             float vmNormalization   = 1.0f / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
@@ -445,12 +448,15 @@ namespace Selas
             lightPathSet->lightVertices.Reserve((uint32)(vmCount));
             lightPathSet->pathEnds.Reserve((uint32)(vmCount));
 
+            for(uint scan = 0; scan < vmCount; ++scan) {
+                VCMCommon::GenerateLightSample(context, vcWeight, pathVertices[scan]);
+            }
+
             // -- generate light paths
             for(uint scan = 0; scan < vmCount; ++scan) {
                 
                 // -- create initial light path vertex y_0 
-                PathState state;
-                VCMCommon::GenerateLightSample(context, vcWeight, state);
+                PathState& state = pathVertices[scan];
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
@@ -505,13 +511,21 @@ namespace Selas
             // -- build the hash grid
             BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->lightVertices);
 
+            pathVertices.Clear();
+
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
                 for(uint x = 0; x < width; ++x) {
                     uint index = y * width + x;
+                    VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, pathVertices[index]);
+                }
+            }
 
-                    PathState cameraPathState;
-                    VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
+            for(uint y = 0; y < height; ++y) {
+                for(uint x = 0; x < width; ++x) {
+                    uint index = y * width + x;
+
+                    PathState& cameraPathState = pathVertices[index];
 
                     float3 color = float3::Zero_;
 
@@ -641,6 +655,8 @@ namespace Selas
 
             LightPathSet lightPathSet;
 
+            CArray<PathState> pathVertices;
+
             int64 iterationCount = 0;
             float elapsedSeconds = 0.0f;
             while(elapsedSeconds < sharedData->integrationSeconds) {
@@ -649,7 +665,7 @@ namespace Selas
 
                 float vcmKernelRadius = VCMCommon::SearchRadius(sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
 
-                VertexConnectionAndMerging(&context, &lightPathSet, vcmKernelRadius, width, height);
+                VertexConnectionAndMerging(pathVertices, &context, &lightPathSet, vcmKernelRadius, width, height);
                 ++iterationCount;
 
                 elapsedSeconds = SystemTime::ElapsedSecondsF(sharedData->integrationStartTime);

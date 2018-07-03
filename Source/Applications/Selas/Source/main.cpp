@@ -5,6 +5,7 @@
 
 #include "PathTracer.h"
 #include "VCM.h"
+#include "VCMTask.h"
 #include "Shading/IntegratorContexts.h"
 
 #include "Shading/SurfaceParameters.h"

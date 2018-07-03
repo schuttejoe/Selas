@@ -2,7 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
-#include "GeometryLib/HashGrid.h"
+#include "VCMHashGrid.h"
+#include "VCMCommon.h"
 #include "MathLib/IntStructs.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/Trigonometric.h"
@@ -21,7 +22,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static uint CalculateCellIndex(HashGrid* __restrict hashGrid, float3 point)
+    static uint CalculateCellIndex(VCMHashGrid* __restrict hashGrid, float3 point)
     {
         float3 fromCorner = point - hashGrid->aaBox.min;
 
@@ -34,7 +35,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static int2 GetCellRange(HashGrid* __restrict hashGrid, uint cellIndex)
+    static int2 GetCellRange(VCMHashGrid* __restrict hashGrid, uint cellIndex)
     {
         if(cellIndex == 0) {
             return int2(0, hashGrid->cellRangeEnds[0]);
@@ -44,7 +45,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void BuildHashGrid(HashGrid* __restrict hashGrid, uint cellCount, float radius, const CArray<float3>& points)
+    void BuildHashGrid(VCMHashGrid* __restrict hashGrid, uint cellCount, float radius, const CArray<VCMVertex>& points)
     {
         float radiusSquare    = radius * radius;
         float cellSize        = 2.0f * radius;
@@ -64,7 +65,7 @@ namespace Selas
         // -- Prep the AABox
         MakeInvalid(&hashGrid->aaBox);
         for(uint scan = 0; scan < pointCount; ++scan) {
-            IncludePosition(&hashGrid->aaBox, points[scan]);
+            IncludePosition(&hashGrid->aaBox, points[scan].hit.position);
         }
         // JSTODO - Verify this. Seems like a bug in the original author's implementation to not do this.
         //hashGrid->aaBox.min = hashGrid->aaBox.min - radius;
@@ -72,7 +73,7 @@ namespace Selas
 
         // -- Count the number of particles that will be in each cell
         for(uint scan = 0; scan < pointCount; ++scan) {
-            uint cellIndex = CalculateCellIndex(hashGrid, points[scan]);
+            uint cellIndex = CalculateCellIndex(hashGrid, points[scan].hit.position);
             ++hashGrid->cellRangeEnds[cellIndex];
         }
 
@@ -87,7 +88,7 @@ namespace Selas
 
         // -- Assign each point to an index. This sums up each cell such that each cellRangeEnds[x] will now be the exclusive end index of that cell's range
         for(uint scan = 0; scan < pointCount; ++scan) {
-            uint cellIndex = CalculateCellIndex(hashGrid, points[scan]);
+            uint cellIndex = CalculateCellIndex(hashGrid, points[scan].hit.position);
 
             uint32 targetIndex = hashGrid->cellRangeEnds[cellIndex]++;
             hashGrid->cellIndices[targetIndex] = (uint32)scan;
@@ -95,14 +96,14 @@ namespace Selas
     }
 
     //==============================================================================
-    void ShutdownHashGrid(HashGrid* hashGrid)
+    void ShutdownHashGrid(VCMHashGrid* hashGrid)
     {
         hashGrid->cellIndices.Close();
         hashGrid->cellRangeEnds.Close();
     }
 
     //==============================================================================
-    void SearchHashGrid(HashGrid* __restrict hashGrid, const CArray<float3>& points, float3 position, void* userData, HashGridCallbackFunction callback)
+    void SearchHashGrid(VCMHashGrid* __restrict hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData, HashGridCallbackFunction callback)
     {
         // -- Verify the given position is within the range
         float3 deltaMin = position - hashGrid->aaBox.min;
@@ -139,11 +140,11 @@ namespace Selas
 
                     for(uint scan = cellRange.x; scan < cellRange.y; ++scan) {
                         uint particleIndex = hashGrid->cellIndices[scan];
-                        float3 particle = points[particleIndex];
+                        const VCMVertex& vertex = vertices[particleIndex];
 
-                        float distSquared = LengthSquared(position - particle);
+                        float distSquared = LengthSquared(position - vertex.hit.position);
                         if(distSquared <= hashGrid->radiusSquare) {
-                            callback(particleIndex, userData);
+                            callback(vertex, userData);
                         }
                     }
                 }

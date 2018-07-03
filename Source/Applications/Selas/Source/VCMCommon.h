@@ -20,8 +20,7 @@ namespace Selas
     struct SceneContext;
     struct Framebuffer;
 
-    // JSTODO - This uses a lot of memory. Maybe store hit position and resample the material for each use?
-    struct VcmVertex
+    struct VCMVertex
     {
         float3 throughput;
         uint32 pathLength;
@@ -36,7 +35,7 @@ namespace Selas
     {
         const GIIntegrationContext* context;
         const SurfaceParameters* surface;
-        const CArray<VcmVertex>* pathVertices;
+        const CArray<VCMVertex>* pathVertices;
         const PathState* cameraState;
         float vcWeight;
 
