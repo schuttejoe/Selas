@@ -22,7 +22,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static uint CalculateCellIndex(VCMHashGrid* __restrict hashGrid, float3 point)
+    static uint CalculateCellIndex(const VCMHashGrid* __restrict hashGrid, float3 point)
     {
         float3 fromCorner = point - hashGrid->aaBox.min;
 
@@ -35,7 +35,7 @@ namespace Selas
     }
 
     //==============================================================================
-    static int2 GetCellRange(VCMHashGrid* __restrict hashGrid, uint cellIndex)
+    static int2 GetCellRange(const VCMHashGrid* __restrict hashGrid, uint cellIndex)
     {
         if(cellIndex == 0) {
             return int2(0, hashGrid->cellRangeEnds[0]);
@@ -103,7 +103,7 @@ namespace Selas
     }
 
     //==============================================================================
-    void SearchHashGrid(VCMHashGrid* __restrict hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData, HashGridCallbackFunction callback)
+    void SearchHashGrid(const VCMHashGrid* __restrict hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData, HashGridCallbackFunction callback)
     {
         // -- Verify the given position is within the range
         float3 deltaMin = position - hashGrid->aaBox.min;

@@ -45,6 +45,7 @@ namespace Selas
 
     void FramebufferWriter_Initialize(FramebufferWriter* writer, Framebuffer* frame, uint32 capacity, uint32 softCapacity);
     void FramebufferWriter_Write(FramebufferWriter* writer, float3 sample, uint32 x, uint32 y);
+    void FramebufferWriter_Write(FramebufferWriter* writer, float3 sample, uint32 index);
     void FramebufferWriter_Flush(FramebufferWriter* writer);
     void FramebufferWriter_Shutdown(FramebufferWriter* writer);
 }

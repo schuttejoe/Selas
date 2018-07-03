@@ -428,29 +428,21 @@ namespace Selas
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(GIIntegrationContext* context, LightPathSet* lightPathSet, float vmSearchRadius, uint width, uint height)
+        static void VertexConnectionAndMerging(GIIntegrationContext* context, LightPathSet* lightPathSet, const VCMIterationConstants& constants, uint width, uint height)
         {
             ProfileEventMarker_(0, "VertexConnectionAndMerging");
 
-            uint vmCount = 1 * width * height;
-            uint vcCount = 1;
-
-            float vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
-            float vmNormalization   = 1.0f / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
-            float vmWeight          = Math::Pi_ * vmSearchRadiusSqr * vmCount / vcCount;
-            float vcWeight          = vcCount / (Math::Pi_ * vmSearchRadiusSqr * vmCount);
-
             lightPathSet->lightVertices.Clear();
             lightPathSet->pathEnds.Clear();
-            lightPathSet->lightVertices.Reserve((uint32)(vmCount));
-            lightPathSet->pathEnds.Reserve((uint32)(vmCount));
+            lightPathSet->lightVertices.Reserve((uint32)(constants.vmCount));
+            lightPathSet->pathEnds.Reserve((uint32)(constants.vmCount));
 
             // -- generate light paths
-            for(uint scan = 0; scan < vmCount; ++scan) {
+            for(uint scan = 0; scan < constants.vmCount; ++scan) {
                 
                 // -- create initial light path vertex y_0 
                 PathState state;
-                VCMCommon::GenerateLightSample(context, vcWeight, state);
+                VCMCommon::GenerateLightSample(context, constants.vcWeight, scan, state);
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
@@ -491,10 +483,10 @@ namespace Selas
                     lightPathSet->lightVertices.Add(vcmVertex);
 
                     // -- connect the path to the camera
-                    ConnectLightPathToCamera(context, state, surface, vmWeight, (float)vmCount);
+                    ConnectLightPathToCamera(context, state, surface, constants.vmWeight, (float)constants.vmCount);
 
                     // -- bsdf scattering to advance the path
-                    if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, state) == false) {
+                    if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, state) == false) {
                         break;
                     }
                 }
@@ -503,7 +495,7 @@ namespace Selas
             }
 
             // -- build the hash grid
-            BuildHashGrid(&lightPathSet->hashGrid, vmCount, vmSearchRadius, lightPathSet->lightVertices);
+            BuildHashGrid(&lightPathSet->hashGrid, constants.vmCount, constants.vmSearchRadius, lightPathSet->lightVertices);
 
             // -- generate camera paths
             for(uint y = 0; y < height; ++y) {
@@ -511,7 +503,7 @@ namespace Selas
                     uint index = y * width + x;
 
                     PathState cameraPathState;
-                    VCMCommon::GenerateCameraSample(context, x, y, (float)vmCount, cameraPathState);
+                    VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, cameraPathState);
 
                     float3 color = float3::Zero_;
 
@@ -547,15 +539,15 @@ namespace Selas
 
                         // -- Vertex connection to a light source
                         if(cameraPathState.pathLength + 1 < context->maxPathLength) {
-                            float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, vmWeight);
+                            float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, constants.vmWeight);
                             color += sample; 
                         }
 
                         // -- Vertex connection to a light vertex
                         {
-                            for(uint vcScan = 0; vcScan < vcCount; ++vcScan) {
+                            for(uint vcScan = 0; vcScan < constants.vcCount; ++vcScan) {
 
-                                uint vcIndex = vcCount * index + vcScan;
+                                uint vcIndex = constants.vcCount * index + vcScan;
                                 uint pathStart = (vcIndex == 0) ? 0 : lightPathSet->pathEnds[vcIndex - 1];
                                 uint pathEnd = lightPathSet->pathEnds[vcIndex];
 
@@ -565,7 +557,7 @@ namespace Selas
                                         break;
                                     }
 
-                                    color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, vmWeight);
+                                    color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, constants.vmWeight);
                                 }
                             }
                         }
@@ -577,15 +569,15 @@ namespace Selas
                             callbackData.surface = &surface;
                             callbackData.pathVertices = &lightPathSet->lightVertices;
                             callbackData.cameraState = &cameraPathState;
-                            callbackData.vcWeight = vcWeight;
+                            callbackData.vcWeight = constants.vcWeight;
                             callbackData.result = float3::Zero_;
                             SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->lightVertices, surface.position, &callbackData, MergeVertices);
 
-                            color += cameraPathState.throughput * vmNormalization * callbackData.result;
+                            color += cameraPathState.throughput * constants.vmNormalization * callbackData.result;
                         }
 
                         // -- bsdf scattering to advance the path
-                        if(SampleBsdfScattering(context, surface, vmWeight, vcWeight, cameraPathState) == false) {
+                        if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
                             break;
                         }
                     }
@@ -647,9 +639,12 @@ namespace Selas
                 int64 index = Atomic::Increment64(sharedData->vcmPassCount);
                 float iterationIndex = index + 1.0f;
 
-                float vcmKernelRadius = VCMCommon::SearchRadius(sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
+                uint vmCount = 1 * width * height;
+                uint vcCount = 1;
 
-                VertexConnectionAndMerging(&context, &lightPathSet, vcmKernelRadius, width, height);
+                VCMIterationConstants constants = VCMCommon::CalculateIterationConstants(vmCount, vcCount, sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
+
+                VertexConnectionAndMerging(&context, &lightPathSet, constants, width, height);
                 ++iterationCount;
 
                 elapsedSeconds = SystemTime::ElapsedSecondsF(sharedData->integrationStartTime);

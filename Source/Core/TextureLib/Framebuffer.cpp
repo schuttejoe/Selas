@@ -86,11 +86,17 @@ namespace Selas
     //==============================================================================
     void FramebufferWriter_Write(FramebufferWriter* __restrict writer, float3 sample, uint32 x, uint32 y)
     {
+        uint32 index = writer->framebuffer->width * y + x;
+        FramebufferWriter_Write(writer, sample, index);
+    }
+
+    //==============================================================================
+    void FramebufferWriter_Write(FramebufferWriter* writer, float3 sample, uint32 index)
+    {
         if(writer->count == writer->capacity) {
             FramebufferWriter_Flush(writer);
         }
 
-        uint32 index = writer->framebuffer->width * y + x;
         writer->samples[writer->count].index = index;
         writer->samples[writer->count].value = sample;
         ++writer->count;

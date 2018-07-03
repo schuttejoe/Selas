@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
     timer = SystemTime::Now();
 
     //PathTracer::GenerateImage(context, &frame);
-    VCM::GenerateImage(context, &frame);
+    VCMTask::GenerateImage(context, &frame);
 
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);

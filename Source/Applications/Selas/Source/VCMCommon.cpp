@@ -34,8 +34,10 @@ namespace Selas
     namespace VCMCommon
     {
         //==============================================================================
-        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, PathState& state)
+        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, uint index, PathState& state)
         {
+            Assert_(index < (1 << PathStateIndexBitCount_));
+
             // -- right now we're just generating a sample on the ibl
             float lightSampleWeight = 1.0f;
 
@@ -56,6 +58,7 @@ namespace Selas
             state.dVM             = sample.cosThetaLight / sample.emissionPdfW * vcWeight;
             state.pathLength      = 1;
             state.isAreaMeasure   = 0; // -- this would be true for any non infinite light source. false here since we only sample the ibl.
+            state.index           = index;
         }
 
         //==============================================================================
@@ -78,12 +81,32 @@ namespace Selas
             state.dVM           = 0;
             state.pathLength    = 1;
             state.isAreaMeasure = 1;
+            state.index         = y * context->imageWidth + x;
+
+            Assert_(state.index < (1 << PathStateIndexBitCount_));
         }
 
         //==============================================================================
         float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex)
         {
             return baseRadius / Math::Powf(iterationIndex, 0.5f * (1.0f - radiusAlpha));
+        }
+
+        //==============================================================================
+        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha, float iterationIndex)
+        {
+            float vmSearchRadius = SearchRadius(baseRadius, radiusAlpha, iterationIndex);
+
+            VCMIterationConstants constants;
+            constants.vmCount = vmCount;
+            constants.vcCount = vcCount;            
+            constants.vmSearchRadius = vmSearchRadius;
+            constants.vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
+            constants.vmNormalization = 1.0f / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
+            constants.vmWeight = Math::Pi_ * constants.vmSearchRadiusSqr * vmCount / vcCount;
+            constants.vcWeight = vcCount / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
+
+            return constants;
         }
     }
 }

@@ -59,6 +59,9 @@ namespace Selas
         float2 baryCoords;
     };
 
+    #define PathStateIndexBitCount_ 26
+    #define PathStatePathLengthBitCount_ 5
+    
     struct PathState
     {
         float3 position;
@@ -67,7 +70,9 @@ namespace Selas
         float dVCM;        // JSTODO - Test as half format
         float dVC;         // JSTODO - Test as half format
         float dVM;         // JSTODO - Test as half format
-        uint32 pathLength : 31;
+        
+        uint32 index         : PathStateIndexBitCount_;          // caps paths per iteration to 67,108,864
+        uint32 pathLength    : PathStatePathLengthBitCount_;      // caps max path length to 32
         uint32 isAreaMeasure : 1;
     };
 

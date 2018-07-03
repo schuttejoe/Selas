@@ -20,6 +20,17 @@ namespace Selas
     struct SceneContext;
     struct Framebuffer;
 
+    struct VCMIterationConstants
+    {
+        uint vmCount;
+        uint vcCount;
+        float vmSearchRadius;
+        float vmSearchRadiusSqr;
+        float vmNormalization;
+        float vmWeight;
+        float vcWeight;
+    };
+
     struct VCMVertex
     {
         float3 throughput;
@@ -44,9 +55,10 @@ namespace Selas
 
     namespace VCMCommon
     {
-        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, PathState& state);
+        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, uint index, PathState& state);
         void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state);
 
         float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex);
+        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha, float iterationIndex);
     }
 }
