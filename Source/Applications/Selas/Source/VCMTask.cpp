@@ -28,7 +28,7 @@
 #define MaxBounceCount_         10
 
 #define EnableMultiThreading_   1
-#define IntegrationSeconds_     300.0f
+#define IntegrationSeconds_     30.0f
 
 #define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
@@ -428,6 +428,59 @@ namespace Selas
         }
 
         //==============================================================================
+        static bool EvaluateLightPathHit(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                         PathState& state, HitParameters& hit, LightPathSet* lightPathSet)
+        {
+            // -- Calculate all surface information for this hit position
+            SurfaceParameters surface;
+            if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                return false;
+            }
+
+            float connectionLengthSqr = LengthSquared(state.position - surface.position);
+            float absDotNL = Math::Absf(Dot(surface.perturbedNormal, surface.view));
+
+            // -- Update accumulated MIS parameters with info from our new hit position
+            if(state.pathLength > 1 || state.isAreaMeasure) {
+                state.dVCM *= connectionLengthSqr;
+            }
+            state.dVCM *= (1.0f / absDotNL);
+            state.dVC *= (1.0f / absDotNL);
+            state.dVM *= (1.0f / absDotNL);
+
+            // -- store the vertex for use with vertex merging
+            VCMVertex vcmVertex;
+            vcmVertex.throughput = state.throughput;
+            vcmVertex.pathLength = state.pathLength;
+            vcmVertex.index = state.index;
+            vcmVertex.dVCM = state.dVCM;
+            vcmVertex.dVC = state.dVC;
+            vcmVertex.dVM = state.dVM;
+            vcmVertex.hit = hit;
+            
+            lightPathSet->lightVertices.Add(vcmVertex);
+
+            // -- connect the path to the camera
+            ConnectLightPathToCamera(context, state, surface, constants.vmWeight, (float)constants.vmCount);
+
+            // -- bsdf scattering to advance the path
+            if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, state) == false) {
+                return false;
+            }
+
+            return true;
+        }
+
+        //==============================================================================
+        static void GenerateLightSamples(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                         uint start, uint end, PathState* results)
+        {
+            for(uint scan = start; scan < end; ++scan) {
+                VCMCommon::GenerateLightSample(context, constants.vcWeight, scan, results[scan]);
+            }
+        }
+        
+        //==============================================================================
         static void EvaluateLightPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
                                        uint start, uint end, PathState* pathVertices, LightPathSet* lightPathSet)
         {
@@ -487,7 +540,19 @@ namespace Selas
                 lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
             }
         }
-        
+
+        //==============================================================================
+        static void GenerateCameraPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                        uint start, uint end, PathState* results)
+        {
+            for(uint scan = start; scan < end; ++scan) {
+                uint y = scan / context->imageWidth;
+                uint x = scan - y * context->imageWidth;
+
+                VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, results[scan]);
+            }
+        }
+
         //==============================================================================
         static void EvaluateCameraPaths(const VCMIterationConstants& constants, const LightPathSet* lightPathSet, 
                                         GIIntegrationContext* context, uint start, uint end, PathState* pathVertices)
@@ -591,25 +656,18 @@ namespace Selas
             lightPathSet->lightVertices.Reserve((uint32)(constants.vmCount));
             lightPathSet->pathEnds.Reserve((uint32)(constants.vmCount));
 
-            for(uint scan = 0; scan < constants.vmCount; ++scan) {
-                VCMCommon::GenerateLightSample(context, constants.vcWeight, scan, pathVertices[scan]);
+            {
+                GenerateLightSamples(constants, context, 0, constants.vmCount, pathVertices.GetData());
+                EvaluateLightPaths(constants, context, 0, constants.vmCount, pathVertices.GetData(), lightPathSet);
             }
-
-            EvaluateLightPaths(constants, context, 0, constants.vmCount, pathVertices.GetData(), lightPathSet);
 
             // -- build the hash grid
             BuildHashGrid(&lightPathSet->hashGrid, constants.vmCount, constants.vmSearchRadius, lightPathSet->lightVertices);
 
-            // -- generate camera paths
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-                    VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, pathVertices[index]);
-                }
+            {
+                GenerateCameraPaths(constants, context, 0, constants.vmCount, pathVertices.GetData());
+                EvaluateCameraPaths(constants, lightPathSet, context, 0, constants.vmCount, pathVertices.GetData());
             }
-
-            uint count = pathVertices.Length();
-            EvaluateCameraPaths(constants, lightPathSet, context, 0, count, pathVertices.GetData());
         }
 
         //==============================================================================

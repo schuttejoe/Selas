@@ -476,6 +476,7 @@ namespace Selas
                     VCMVertex vcmVertex;
                     vcmVertex.throughput = state.throughput;
                     vcmVertex.pathLength = state.pathLength;
+                    vcmVertex.index = state.index;
                     vcmVertex.dVCM = state.dVCM;
                     vcmVertex.dVC = state.dVC;
                     vcmVertex.dVM = state.dVM;
@@ -585,28 +586,6 @@ namespace Selas
                     FramebufferWriter_Write(&context->frameWriter, color, (uint32)x, (uint32)y);
                 }
             }
-
-            // -- debug tech
-            //for(uint scan = 0, count = pathVertices.Length(); scan < count; ++scan) {
-            //    const SurfaceParameters& surface = pathVertices[scan].surface;
-
-            //    float3 toPosition = surface.position - context->camera->position;
-            //    if(Dot(context->camera->forward, toPosition) > 0.0f) {
-            //        int2 imagePosition = WorldToImage(context->camera, surface.position);
-            //        if(imagePosition.x >= 0 && imagePosition.x < context->camera->viewportWidth && imagePosition.y > 0 && imagePosition.y < context->camera->viewportHeight) {
-
-            //            float3 color;
-            //            if(pathVertices[scan].pathLength == 1)
-            //                color = float3(0.0f, 0.0f, 10.0f);
-            //            else if(pathVertices[scan].pathLength >= 2 && pathVertices[scan].pathLength < 3)
-            //                color = float3(0.0f, 10.0f, 0.0f);
-            //            else
-            //                color = float3(10.0f, 0.0f, 0.0f);
-            //            uint index = imagePosition.y * context->imageWidth + imagePosition.x;
-            //            context->imageData[index] = context->imageData[index] + color;
-            //        }
-            //    }
-            //}
         }
 
         //==============================================================================

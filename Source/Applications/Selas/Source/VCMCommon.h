@@ -14,6 +14,10 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
+#define PathStateIndexBitCount_         26
+#define PathStatePathLengthBitCount_    5
+#define PathStateIsAreaMeasureBitCount_ 1
+
 namespace Selas
 {
     struct GIIntegrationContext;
@@ -34,12 +38,27 @@ namespace Selas
     struct VCMVertex
     {
         float3 throughput;
-        uint32 pathLength;
+        uint32 index      : PathStateIndexBitCount_;
+        uint32 pathLength : PathStatePathLengthBitCount_;
         float dVCM;
         float dVC;
         float dVM;
 
         HitParameters hit;
+    };
+
+    struct PathState
+    {
+        float3 position;
+        float3 direction;  // JSTODO - convert to octrahedral format
+        float3 throughput; // JSTODO - Testing convert to RGB9e5? Or even half format?
+        float dVCM;        // JSTODO - Test as half format
+        float dVC;         // JSTODO - Test as half format
+        float dVM;         // JSTODO - Test as half format
+
+        uint32 index         : PathStateIndexBitCount_;         // caps paths per iteration to 67,108,864
+        uint32 pathLength    : PathStatePathLengthBitCount_;    // caps max path length to 32
+        uint32 isAreaMeasure : PathStateIsAreaMeasureBitCount_;
     };
 
     struct VertexMergingCallbackStruct

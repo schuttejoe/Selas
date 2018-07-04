@@ -39,16 +39,17 @@ using namespace Selas;
 //==============================================================================
 static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
 {
-    Assert_(args->N == 1);
     int* valid = args->valid;
-    if(valid[0] != -1) {
-        return;
-    }
-
     SceneResource* scene = (SceneResource*)args->geometryUserPtr;
 
-    RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, 0);
-    valid[0] = CalculatePassesAlphaTest(scene, hit.geomID, hit.primID, { hit.u, hit.v });
+    for(uint32 scan = 0; scan < args->N; ++scan) {   
+        if(valid[scan] != -1) {
+            continue;
+        }   
+
+        RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, scan);
+        valid[scan] = CalculatePassesAlphaTest(scene, hit.geomID, hit.primID, { hit.u, hit.v });
+    }
 }
 
 #if EnableDisplacement_
