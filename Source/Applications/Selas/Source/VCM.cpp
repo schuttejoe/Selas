@@ -428,21 +428,67 @@ namespace Selas
         }
 
         //==============================================================================
-        static void VertexConnectionAndMerging(GIIntegrationContext* context, LightPathSet* lightPathSet, const VCMIterationConstants& constants, uint width, uint height)
+        static bool EvaluateLightPathHit(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                         PathState& state, HitParameters& hit, LightPathSet* lightPathSet)
         {
-            ProfileEventMarker_(0, "VertexConnectionAndMerging");
+            // -- Calculate all surface information for this hit position
+            SurfaceParameters surface;
+            if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                return false;
+            }
 
-            lightPathSet->lightVertices.Clear();
-            lightPathSet->pathEnds.Clear();
-            lightPathSet->lightVertices.Reserve((uint32)(constants.vmCount));
-            lightPathSet->pathEnds.Reserve((uint32)(constants.vmCount));
+            float connectionLengthSqr = LengthSquared(state.position - surface.position);
+            float absDotNL = Math::Absf(Dot(surface.perturbedNormal, surface.view));
 
+            // -- Update accumulated MIS parameters with info from our new hit position
+            if(state.pathLength > 1 || state.isAreaMeasure) {
+                state.dVCM *= connectionLengthSqr;
+            }
+            state.dVCM *= (1.0f / absDotNL);
+            state.dVC *= (1.0f / absDotNL);
+            state.dVM *= (1.0f / absDotNL);
+
+            // -- store the vertex for use with vertex merging
+            VCMVertex vcmVertex;
+            vcmVertex.throughput = state.throughput;
+            vcmVertex.pathLength = state.pathLength;
+            vcmVertex.index = state.index;
+            vcmVertex.dVCM = state.dVCM;
+            vcmVertex.dVC = state.dVC;
+            vcmVertex.dVM = state.dVM;
+            vcmVertex.hit = hit;
+
+            lightPathSet->lightVertices.Add(vcmVertex);
+
+            // -- connect the path to the camera
+            ConnectLightPathToCamera(context, state, surface, constants.vmWeight, (float)constants.vmCount);
+
+            // -- bsdf scattering to advance the path
+            if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, state) == false) {
+                return false;
+            }
+
+            return true;
+        }
+
+        //==============================================================================
+        static void GenerateLightSamples(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                         uint start, uint end, PathState* results)
+        {
+            for(uint scan = start; scan < end; ++scan) {
+                VCMCommon::GenerateLightSample(context, constants.vcWeight, scan, results[scan]);
+            }
+        }
+
+        //==============================================================================
+        static void EvaluateLightPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                       uint start, uint end, PathState* pathVertices, LightPathSet* lightPathSet)
+        {
             // -- generate light paths
-            for(uint scan = 0; scan < constants.vmCount; ++scan) {
-                
+            for(uint scan = start; scan < end; ++scan) {
+
                 // -- create initial light path vertex y_0 
-                PathState state;
-                VCMCommon::GenerateLightSample(context, constants.vcWeight, scan, state);
+                PathState& state = pathVertices[scan];
 
                 while(state.pathLength + 2 < context->maxPathLength) {
 
@@ -469,8 +515,8 @@ namespace Selas
                         state.dVCM *= connectionLengthSqr;
                     }
                     state.dVCM *= (1.0f / absDotNL);
-                    state.dVC  *= (1.0f / absDotNL);
-                    state.dVM  *= (1.0f / absDotNL);
+                    state.dVC *= (1.0f / absDotNL);
+                    state.dVM *= (1.0f / absDotNL);
 
                     // -- store the vertex for use with vertex merging
                     VCMVertex vcmVertex;
@@ -494,97 +540,134 @@ namespace Selas
 
                 lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
             }
+        }
+
+        //==============================================================================
+        static void GenerateCameraPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
+                                        uint start, uint end, PathState* results)
+        {
+            for(uint scan = start; scan < end; ++scan) {
+                uint y = scan / context->imageWidth;
+                uint x = scan - y * context->imageWidth;
+
+                VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, results[scan]);
+            }
+        }
+
+        //==============================================================================
+        static void EvaluateCameraPaths(const VCMIterationConstants& constants, const LightPathSet* lightPathSet,
+                                        GIIntegrationContext* context, uint start, uint end, PathState* pathVertices)
+        {
+            for(uint scan = start; scan < end; ++scan) {
+
+                PathState& cameraPathState = pathVertices[scan];
+
+                float3 color = float3::Zero_;
+
+                while(cameraPathState.pathLength < context->maxPathLength) {
+
+                    // -- Make a basic ray. No differentials are used atm...
+                    Ray ray = MakeRay(cameraPathState.position, cameraPathState.direction);
+
+                    // -- Cast the ray against the scene
+                    HitParameters hit;
+                    if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                        // -- if the ray exits the scene then we sample the ibl and accumulate the results.
+                        float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
+                        color += sample;
+                        break;
+                    }
+
+                    // -- Calculate all surface information for this hit position
+                    SurfaceParameters surface;
+                    if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                        break;
+                    }
+
+                    float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
+                    float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
+
+                    // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done at the previous vertex to 
+                    // -- convert the solid angle pdf to the area pdf of the outermost term.
+                    cameraPathState.dVCM *= connectionLengthSqr;
+                    cameraPathState.dVCM /= absDotNL;
+                    cameraPathState.dVC /= absDotNL;
+                    cameraPathState.dVM /= absDotNL;
+
+                    // -- Vertex connection to a light source
+                    if(cameraPathState.pathLength + 1 < context->maxPathLength) {
+                        float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, constants.vmWeight);
+                        color += sample;
+                    }
+
+                    // -- Vertex connection to a light vertex
+                    {
+                        for(uint vcScan = 0; vcScan < constants.vcCount; ++vcScan) {
+
+                            uint vcIndex = constants.vcCount * cameraPathState.index + vcScan;
+                            uint pathStart = (vcIndex == 0) ? 0 : lightPathSet->pathEnds[vcIndex - 1];
+                            uint pathEnd = lightPathSet->pathEnds[vcIndex];
+
+                            for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
+                                const VCMVertex& lightVertex = lightPathSet->lightVertices[lightVertexIndex];
+                                if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
+                                    break;
+                                }
+
+                                color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, constants.vmWeight);
+                            }
+                        }
+                    }
+
+                    // -- Vertex merging
+                    {
+                        VertexMergingCallbackStruct callbackData;
+                        callbackData.context = context;
+                        callbackData.surface = &surface;
+                        callbackData.pathVertices = &lightPathSet->lightVertices;
+                        callbackData.cameraState = &cameraPathState;
+                        callbackData.vcWeight = constants.vcWeight;
+                        callbackData.result = float3::Zero_;
+                        SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->lightVertices, surface.position, &callbackData, MergeVertices);
+
+                        color += cameraPathState.throughput * constants.vmNormalization * callbackData.result;
+                    }
+
+                    // -- bsdf scattering to advance the path
+                    if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
+                        break;
+                    }
+                }
+
+                FramebufferWriter_Write(&context->frameWriter, color, cameraPathState.index);
+            }
+        }
+
+        //==============================================================================
+        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegrationContext* context, LightPathSet* lightPathSet,
+                                               const VCMIterationConstants& constants, uint width, uint height)
+        {
+            ProfileEventMarker_(0, "VertexConnectionAndMerging");
+
+            pathVertices.Clear();
+            pathVertices.Resize((uint32)constants.vmCount);
+
+            lightPathSet->lightVertices.Clear();
+            lightPathSet->pathEnds.Clear();
+            lightPathSet->lightVertices.Reserve((uint32)(constants.vmCount));
+            lightPathSet->pathEnds.Reserve((uint32)(constants.vmCount));
+
+            {
+                GenerateLightSamples(constants, context, 0, constants.vmCount, pathVertices.GetData());
+                EvaluateLightPaths(constants, context, 0, constants.vmCount, pathVertices.GetData(), lightPathSet);
+            }
 
             // -- build the hash grid
             BuildHashGrid(&lightPathSet->hashGrid, constants.vmCount, constants.vmSearchRadius, lightPathSet->lightVertices);
 
-            // -- generate camera paths
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    uint index = y * width + x;
-
-                    PathState cameraPathState;
-                    VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, cameraPathState);
-
-                    float3 color = float3::Zero_;
-
-                    while(cameraPathState.pathLength < context->maxPathLength) {
-
-                       // -- Make a basic ray. No differentials are used atm...
-                        Ray ray = MakeRay(cameraPathState.position, cameraPathState.direction);
-
-                        // -- Cast the ray against the scene
-                        HitParameters hit;
-                        if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
-                            // -- if the ray exits the scene then we sample the ibl and accumulate the results.
-                            float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
-                            color += sample;
-                            break;
-                        }
-
-                        // -- Calculate all surface information for this hit position
-                        SurfaceParameters surface;
-                        if(CalculateSurfaceParams(context, &hit, surface) == false) {
-                            break;
-                        }
-
-                        float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
-                        float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
-
-                        // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done at the previous vertex to 
-                        // -- convert the solid angle pdf to the area pdf of the outermost term.
-                        cameraPathState.dVCM *= connectionLengthSqr;
-                        cameraPathState.dVCM /= absDotNL;
-                        cameraPathState.dVC  /= absDotNL;
-                        cameraPathState.dVM  /= absDotNL;
-
-                        // -- Vertex connection to a light source
-                        if(cameraPathState.pathLength + 1 < context->maxPathLength) {
-                            float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, constants.vmWeight);
-                            color += sample; 
-                        }
-
-                        // -- Vertex connection to a light vertex
-                        {
-                            for(uint vcScan = 0; vcScan < constants.vcCount; ++vcScan) {
-
-                                uint vcIndex = constants.vcCount * index + vcScan;
-                                uint pathStart = (vcIndex == 0) ? 0 : lightPathSet->pathEnds[vcIndex - 1];
-                                uint pathEnd = lightPathSet->pathEnds[vcIndex];
-
-                                for(uint lightVertexIndex = pathStart; lightVertexIndex < pathEnd; ++lightVertexIndex) {
-                                    const VCMVertex& lightVertex = lightPathSet->lightVertices[lightVertexIndex];
-                                    if(lightVertex.pathLength + 1 + cameraPathState.pathLength > context->maxPathLength) {
-                                        break;
-                                    }
-
-                                    color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, constants.vmWeight);
-                                }
-                            }
-                        }
-
-                        // -- Vertex merging
-                        {
-                            VertexMergingCallbackStruct callbackData;
-                            callbackData.context = context;
-                            callbackData.surface = &surface;
-                            callbackData.pathVertices = &lightPathSet->lightVertices;
-                            callbackData.cameraState = &cameraPathState;
-                            callbackData.vcWeight = constants.vcWeight;
-                            callbackData.result = float3::Zero_;
-                            SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->lightVertices, surface.position, &callbackData, MergeVertices);
-
-                            color += cameraPathState.throughput * constants.vmNormalization * callbackData.result;
-                        }
-
-                        // -- bsdf scattering to advance the path
-                        if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
-                            break;
-                        }
-                    }
-
-                    FramebufferWriter_Write(&context->frameWriter, color, (uint32)x, (uint32)y);
-                }
+            {
+                GenerateCameraPaths(constants, context, 0, constants.vmCount, pathVertices.GetData());
+                EvaluateCameraPaths(constants, lightPathSet, context, 0, constants.vmCount, pathVertices.GetData());
             }
         }
 
@@ -601,16 +684,18 @@ namespace Selas
             uint height = sharedData->height;
 
             GIIntegrationContext context;
-            context.sceneData        = sharedData->sceneData;
-            context.camera           = &sharedData->camera;
-            context.imageWidth       = width;
-            context.imageHeight      = height;
-            context.twister          = &twister;
-            context.maxPathLength    = sharedData->maxBounceCount;
+            context.sceneData = sharedData->sceneData;
+            context.camera = &sharedData->camera;
+            context.imageWidth = width;
+            context.imageHeight = height;
+            context.twister = &twister;
+            context.maxPathLength = sharedData->maxBounceCount;
             FramebufferWriter_Initialize(&context.frameWriter, sharedData->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
             LightPathSet lightPathSet;
+
+            CArray<PathState> pathVertices;
 
             int64 iterationCount = 0;
             float elapsedSeconds = 0.0f;
@@ -623,7 +708,7 @@ namespace Selas
 
                 VCMIterationConstants constants = VCMCommon::CalculateIterationConstants(vmCount, vcCount, sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
 
-                VertexConnectionAndMerging(&context, &lightPathSet, constants, width, height);
+                VertexConnectionAndMerging(pathVertices, &context, &lightPathSet, constants, width, height);
                 ++iterationCount;
 
                 elapsedSeconds = SystemTime::ElapsedSecondsF(sharedData->integrationStartTime);
