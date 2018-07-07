@@ -87,7 +87,6 @@ namespace Selas
         sample.reflectance = EvaluateDisneyBrdf(surface, v, worldWi, bsdfForwardPdf, bsdfReversePdf) * (1.0f / iblPdf);
         sample.forwardPdfW = iblPdf;
         sample.reversePdfW = iblPdf;
-        sample.reflection = true;
         sample.wi = worldWi;
 
         return true;
@@ -134,7 +133,6 @@ namespace Selas
 
             sample.reflectance = surface.metalness * F * (G2 / G1) + (1.0f - surface.metalness) * diffuse;
             sample.wi = Normalize(MatrixMultiply(wi, tangentToWorld));
-            sample.reflection = true;
             sample.forwardPdfW = Bsdf::GgxVndfPdf(dotLH, dotNL, dotNV, dotNH, a2);
             sample.reversePdfW = Bsdf::GgxVndfPdf(dotLH, dotNV, dotNL, dotNH, a2);
             return true;

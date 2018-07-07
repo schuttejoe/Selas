@@ -31,7 +31,6 @@ namespace Selas
         float3 wi          = float3::Zero_;
         float forwardPdfW  = 0.0f;
         float reversePdfW  = 0.0f;
-        bool reflection    = false;
     };
 
     // JSTODO - GIIntegrationContext is bad to pass in here since it gives the shaders access to data they shouldn't have. Need to break it into more nuanced pieces.

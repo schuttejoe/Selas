@@ -112,6 +112,7 @@ namespace Selas
 
             uint bounceCount = 0;
             while (bounceCount < context->maxPathLength) {
+                
                 HitParameters hit;
                 bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, hit);
 
@@ -125,14 +126,10 @@ namespace Selas
                     if(SampleBsdfFunction(context, surface, -ray.direction, sample) == false) {
                         break;
                     }
-
                     throughput = throughput * sample.reflectance;
 
-                    Ray bounceRay;
-                    if(sample.reflection)
-                        ray = CreateReflectionBounceRay(surface, hit, sample.wi, sample.reflectance);
-                    else
-                        ray = CreateRefractionBounceRay(surface, hit, sample.wi, sample.reflectance, surface.currentIor / surface.exitIor);
+                    float3 offsetOrigin = OffsetRayOrigin(surface, sample.wi, 1.0f);
+                    ray = MakeRay(offsetOrigin, sample.wi);
                     ++bounceCount;
                 }
                 else {

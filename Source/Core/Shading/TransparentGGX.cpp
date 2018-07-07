@@ -60,15 +60,12 @@ namespace Selas
         float r1 = Random::MersenneTwisterFloat(context->twister);
         float3 wm = Bsdf::GgxVndf(wo, surface.roughness, r0, r1);
 
-        bool usedReflection = false;
-
         float3 wi;
         float t = Random::MersenneTwisterFloat(context->twister);
         float F = Fresnel::SchlickDialectic(Math::Absf(Dot(wm, wo)), surface.currentIor, surface.exitIor);
         float scatterPdf = 1.0f - F;
         if(t < F || !Transmit(wm, wo, surface.currentIor, surface.exitIor, wi)) {
             wi = Reflect(wm, wo);
-            usedReflection = true;
             scatterPdf = F;
         }
         wi = Normalize(wi);
@@ -83,7 +80,6 @@ namespace Selas
         float G2 = Bsdf::SmithGGXMaskingShading(absDotNL, absDotNV, a2);
 
         sample.reflectance = surface.albedo * (G2 / G1);
-        sample.reflection = usedReflection;
         sample.wi = Normalize(MatrixMultiply(wi, tangentToWorld));
         sample.forwardPdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHV, absDotNL, absDotNV, absDotNH, a2);
         sample.reversePdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHL, absDotNV, absDotNL, absDotNH, a2);
