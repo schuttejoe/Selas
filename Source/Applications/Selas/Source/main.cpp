@@ -228,13 +228,14 @@ int main(int argc, char *argv[])
     auto timer = SystemTime::Now();
 
     SceneResource sceneResource;
-    ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~SanMiguel.fbx", &sceneResource));
+    //ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~SanMiguel.fbx", &sceneResource));
+    ExitMainOnError_(ReadSceneResource("Meshes~BusinessCard.fbx", &sceneResource));
     //ExitMainOnError_(ReadSceneResource("Meshes~plane_with_sphere.fbx", &sceneResource));
     //ExitMainOnError_(ReadSceneResource("Meshes~DisplacementTest.fbx", &sceneResource));
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
 
     ImageBasedLightResource iblResouce;
-    ExitMainOnError_(ReadImageBasedLightResource("HDR~noon_grass_4k_upper.hdr", &iblResouce));
+    ExitMainOnError_(ReadImageBasedLightResource("HDR~simons_town_rocks_4k_upper.hdr", &iblResouce));
 
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
@@ -249,8 +250,8 @@ int main(int argc, char *argv[])
     //sceneResource.data->camera.fov = 0.7f;
     //uint width = 256;
     //uint height = 256;
-    Selas::uint width = 1920;
-    Selas::uint height = 1080;
+    Selas::uint width = 1400;
+    Selas::uint height = 800;
 
     Framebuffer frame;
     FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
@@ -265,7 +266,7 @@ int main(int argc, char *argv[])
     timer = SystemTime::Now();
 
     //PathTracer::GenerateImage(context, &frame);
-    VCMTask::GenerateImage(context, &frame);
+    VCM::GenerateImage(context, &frame);
 
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);

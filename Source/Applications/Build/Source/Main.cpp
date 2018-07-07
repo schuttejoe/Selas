@@ -38,7 +38,8 @@ int main(int argc, char *argv[])
 
     //buildCore.BuildAsset(ContentId("fbx", "Meshes~DisplacementTest.fbx"));
     //buildCore.BuildAsset(ContentId("fbx", "Meshes~plane_with_sphere.fbx"));
-    buildCore.BuildAsset(ContentId("fbx", "Scenes~SanMiguel~SanMiguel.fbx"));
+    buildCore.BuildAsset(ContentId("fbx", "Meshes~BusinessCard.fbx"));
+    //buildCore.BuildAsset(ContentId("fbx", "Scenes~SanMiguel~SanMiguel.fbx"));
 
     buildCore.BuildAsset(ContentId("HDR", "HDR~simons_town_rocks_4k_upper.hdr"));
     buildCore.BuildAsset(ContentId("HDR", "HDR~noon_grass_4k_upper.hdr"));
