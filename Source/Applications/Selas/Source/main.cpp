@@ -5,21 +5,22 @@
 
 #include "PathTracer.h"
 #include "VCM.h"
-#include "Shading/IntegratorContexts.h"
 
-#include "Shading/SurfaceParameters.h"
+#include "BuildCommon/ImageBasedLightBuildProcessor.h"
+#include "BuildCommon/TextureBuildProcessor.h"
+#include "BuildCommon/SceneBuildProcessor.h"
+#include "BuildCore/BuildCore.h"
+#include "BuildCore/BuildDependencyGraph.h"
+#include "Shading/IntegratorContexts.h"
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/Framebuffer.h"
-#include "TextureLib/StbImage.h"
 #include "TextureLib/TextureFiltering.h"
-#include "TextureLib/TextureResource.h"
+#include "ThreadingLib/JobMgr.h"
 #include "IoLib/Environment.h"
 #include "StringLib/FixedString.h"
 #include "SystemLib/Error.h"
-#include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/BasicTypes.h"
-#include "SystemLib/Memory.h"
 #include "SystemLib/SystemTime.h"
 #include "SystemLib/Logging.h"
 
@@ -32,181 +33,40 @@
 
 using namespace Selas;
 
-#define EnableDisplacement_ 0
-#define TessellationRate_ 64.0f
+static cpointer sceneName = "Meshes~BusinessCard.fbx";
+static cpointer iblName = "HDR~simons_town_rocks_4k_upper.hdr";
 
 //==============================================================================
-static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
+Error ValidateAssetsAreBuilt()
 {
-    int* valid = args->valid;
-    SceneResource* scene = (SceneResource*)args->geometryUserPtr;
+    auto timer = SystemTime::Now();
 
-    for(uint32 scan = 0; scan < args->N; ++scan) {   
-        if(valid[scan] != -1) {
-            continue;
-        }   
+    CJobMgr jobMgr;
+    jobMgr.Initialize();
 
-        RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, scan);
-        valid[scan] = CalculatePassesAlphaTest(scene, hit.geomID, hit.primID, { hit.u, hit.v });
-    }
-}
+    CBuildDependencyGraph depGraph;
+    ReturnError_(depGraph.Initialize());
 
-#if EnableDisplacement_
-//==============================================================================
-static void DisplacementFunction(const RTCDisplacementFunctionNArguments* args)
-{
-    const float* nx = args->Ng_x;
-    const float* ny = args->Ng_y;
-    const float* nz = args->Ng_z;
+    CBuildCore buildCore;
+    buildCore.Initialize(&jobMgr, &depGraph);
 
-    const float* us = args->u;
-    const float* vs = args->v;
+    CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
-    float* px = args->P_x;
-    float* py = args->P_y;
-    float* pz = args->P_z;
+    buildCore.BuildAsset(ContentId("fbx", sceneName));
+    buildCore.BuildAsset(ContentId("HDR", iblName));
 
-    unsigned int N = args->N;
+    ReturnError_(buildCore.Execute());
+    buildCore.Shutdown();
 
-    SceneResource* scene = (SceneResource*)args->geometryUserPtr;
+    ReturnError_(depGraph.Shutdown());
+    jobMgr.Shutdown();
 
-    uint32 geomId = (args->geometry == scene->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
+    float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
+    WriteDebugInfo_("Scene build time %fms", elapsedMs);
 
-    for(unsigned int i = 0; i < N; i++) {
-        float3 position = float3(px[i], py[i], pz[i]);
-        float3 normal = float3(nx[i], ny[i], nz[i]);
-        float2 barys = float2(us[i], vs[i]);
-
-        Align_(16) float2 uvs;
-        rtcInterpolate0(args->geometry, args->primID, barys.x, barys.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
-
-        float displacement = CalculateDisplacement(scene, geomId, args->primID, uvs);
-
-        #if CheckForNaNs_
-            Assert_(!Math::IsNaN(normal.x));
-            Assert_(!Math::IsNaN(normal.y));
-            Assert_(!Math::IsNaN(normal.z));
-            Assert_(!Math::IsNaN(displacement));
-        #endif
-
-        float3 deltaPosition = displacement * normal;
-
-        px[i] += deltaPosition.x;
-        py[i] += deltaPosition.y;
-        pz[i] += deltaPosition.z;
-    }
-}
-#endif
-
-//==============================================================================
-static void SetVertexAttributes(RTCGeometry geom, SceneResource* scene)
-{
-    SceneMetaData* metadata = scene->data;
-    SceneGeometryData* geometry = scene->geometry;
-
-    Assert_(((uint)geometry->positions & (SceneResource::kSceneDataAlignment - 1)) == 0);
-    
-
-    Assert_(((uint)geometry->normals & (SceneResource::kSceneDataAlignment - 1)) == 0);
-    Assert_(((uint)geometry->tangents & (SceneResource::kSceneDataAlignment - 1)) == 0);
-    Assert_(((uint)geometry->uvs & (SceneResource::kSceneDataAlignment - 1)) == 0);
-
-    rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), metadata->totalVertexCount);
-
-    rtcSetGeometryVertexAttributeCount(geom, 3);
-    rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0, sizeof(float3), metadata->totalVertexCount);
-    rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0, sizeof(float4), metadata->totalVertexCount);
-    rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0, sizeof(float2), metadata->totalVertexCount);
-
-    rtcSetGeometryUserData(geom, scene);
-}
-
-//==============================================================================
-static void PopulateEmbreeScene(SceneResource* scene, RTCDevice& rtcDevice, RTCScene& rtcScene)
-{
-    SceneMetaData* metadata = scene->data;
-    SceneGeometryData* geometry = scene->geometry;
-
-    for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-        Assert_(((uint)geometry->indices[scan] & (SceneResource::kSceneDataAlignment - 1)) == 0);
-    }
-    Assert_(((uint)geometry->faceIndexCounts & (SceneResource::kSceneDataAlignment - 1)) == 0);
-
-    if(metadata->indexCounts[eMeshStandard] > 0) {
-        RTCGeometry solidMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-        SetVertexAttributes(solidMeshHandle, scene);
-        rtcSetSharedGeometryBuffer(solidMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshStandard], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshStandard] / 3);
-        rtcCommitGeometry(solidMeshHandle);
-        rtcAttachGeometryByID(rtcScene, solidMeshHandle, eMeshStandard);
-        rtcReleaseGeometry(solidMeshHandle);
-        scene->rtcGeometries[eMeshStandard] = solidMeshHandle;
-    }
-
-    if(metadata->indexCounts[eMeshAlphaTested] > 0) {
-        RTCGeometry atMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-        SetVertexAttributes(atMeshHandle, scene);
-        rtcSetSharedGeometryBuffer(atMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshAlphaTested], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshAlphaTested] / 3);
-        rtcSetGeometryIntersectFilterFunction(atMeshHandle, IntersectionFilter);
-        rtcCommitGeometry(atMeshHandle);
-        rtcAttachGeometryByID(rtcScene, atMeshHandle, eMeshAlphaTested);
-        rtcReleaseGeometry(atMeshHandle);
-        scene->rtcGeometries[eMeshAlphaTested] = atMeshHandle;
-    }
-
-    if(metadata->indexCounts[eMeshDisplaced] > 0) {
-        #if EnableDisplacement_
-            RTCGeometry dispMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
-        
-            SetVertexAttributes(dispMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices[eMeshDisplaced], 0, sizeof(uint32), metadata->indexCounts[eMeshDisplaced]);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, geometry->faceIndexCounts, 0, sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
-
-            rtcSetGeometryDisplacementFunction(dispMeshHandle, DisplacementFunction);
-            rtcSetGeometryTessellationRate(dispMeshHandle, TessellationRate_);
-            rtcSetGeometrySubdivisionMode(dispMeshHandle, 0, RTC_SUBDIVISION_MODE_PIN_BOUNDARY);
-
-            rtcCommitGeometry(dispMeshHandle);
-            rtcAttachGeometryByID(rtcScene, dispMeshHandle, eMeshDisplaced);
-            rtcReleaseGeometry(dispMeshHandle);
-            scene->rtcGeometries[eMeshDisplaced] = dispMeshHandle;
-        #else
-            RTCGeometry dispMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-            SetVertexAttributes(dispMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshDisplaced], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
-            rtcCommitGeometry(dispMeshHandle);
-            rtcAttachGeometryByID(rtcScene, dispMeshHandle, eMeshDisplaced);
-            rtcReleaseGeometry(dispMeshHandle);
-            scene->rtcGeometries[eMeshDisplaced] = dispMeshHandle;
-        #endif
-    }
-
-    if(metadata->indexCounts[eMeshAlphaTestedDisplaced] > 0) {
-        #if EnableDisplacement_
-            RTCGeometry dispAtMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
-            SetVertexAttributes(dispAtMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices[eMeshAlphaTestedDisplaced], 0, sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced]);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, geometry->faceIndexCounts, 0, sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
-
-            rtcSetGeometryDisplacementFunction(dispAtMeshHandle, DisplacementFunction);
-            rtcSetGeometryIntersectFilterFunction(dispAtMeshHandle, IntersectionFilter);
-            rtcSetGeometryTessellationRate(dispAtMeshHandle, TessellationRate_);
-            rtcSetGeometrySubdivisionMode(dispAtMeshHandle, 0, RTC_SUBDIVISION_MODE_PIN_BOUNDARY);
-            rtcCommitGeometry(dispAtMeshHandle);
-            rtcAttachGeometryByID(rtcScene, dispAtMeshHandle, eMeshAlphaTestedDisplaced);
-            rtcReleaseGeometry(dispAtMeshHandle);
-            scene->rtcGeometries[eMeshAlphaTestedDisplaced] = dispAtMeshHandle;
-        #else
-            RTCGeometry dispAtMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-            SetVertexAttributes(dispAtMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshAlphaTestedDisplaced], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
-            rtcCommitGeometry(dispAtMeshHandle);
-            rtcAttachGeometryByID(rtcScene, dispAtMeshHandle, eMeshAlphaTestedDisplaced);
-            rtcReleaseGeometry(dispAtMeshHandle);
-            scene->rtcGeometries[eMeshAlphaTestedDisplaced] = dispAtMeshHandle;
-        #endif
-    }
-
-    rtcCommitScene(rtcScene);
+    return Success_;
 }
 
 //==============================================================================
@@ -217,62 +77,43 @@ int main(int argc, char *argv[])
 
     Environment_Initialize(ProjectRootName_, argv[0]);
 
-    int retvalue = 0;
-
     TextureFiltering::InitializeEWAFilterWeights();
 
-    RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
-    RTCScene rtcScene = rtcNewScene(rtcDevice);
-
-    auto timer = SystemTime::Now();
+    ExitMainOnError_(ValidateAssetsAreBuilt());
 
     SceneResource sceneResource;
-    //ExitMainOnError_(ReadSceneResource("Scenes~SanMiguel~SanMiguel.fbx", &sceneResource));
-    ExitMainOnError_(ReadSceneResource("Meshes~BusinessCard.fbx", &sceneResource));
-    //ExitMainOnError_(ReadSceneResource("Meshes~plane_with_sphere.fbx", &sceneResource));
-    //ExitMainOnError_(ReadSceneResource("Meshes~DisplacementTest.fbx", &sceneResource));
-    ExitMainOnError_(InitializeSceneResource(&sceneResource));
-
     ImageBasedLightResource iblResouce;
-    ExitMainOnError_(ReadImageBasedLightResource("HDR~simons_town_rocks_4k_upper.hdr", &iblResouce));
 
+    auto timer = SystemTime::Now();
+    ExitMainOnError_(ReadImageBasedLightResource(iblName, &iblResouce));
+
+    ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
+    ExitMainOnError_(InitializeSceneResource(&sceneResource));
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     timer = SystemTime::Now();
-    
-    PopulateEmbreeScene(&sceneResource, rtcDevice, rtcScene);
-    
+    InitializeEmbreeScene(&sceneResource);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
-    WriteDebugInfo_("Scene build time %fms", elapsedMs);
-
-    //sceneResource.data->camera.fov = 0.7f;
-    //uint width = 256;
-    //uint height = 256;
+    WriteDebugInfo_("Embree setup time %fms", elapsedMs);
+    
     Selas::uint width = 1400;
     Selas::uint height = 800;
 
-    float sceneBoundingRadius = sceneResource.data->boundingSphere.w;
-
     SceneContext context;
-    context.rtcScene = rtcScene;
+    context.rtcScene = (RTCScene)sceneResource.rtcScene;
     context.scene = &sceneResource;
     context.ibl = iblResouce.data;
 
     timer = SystemTime::Now();
-
     PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
     //VCM::GenerateImage(context, "vcmTemp", width, height);
-
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
     // -- delete the scene
     ShutdownSceneResource(&sceneResource);
-    SafeFreeAligned_(iblResouce.data);
+    ShutdownImageBasedLightResource(&iblResouce);
 
-    rtcReleaseScene(rtcScene);
-    rtcReleaseDevice(rtcDevice);
-
-    return retvalue;
+    return 0;
 }

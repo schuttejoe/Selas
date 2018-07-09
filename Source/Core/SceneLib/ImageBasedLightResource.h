@@ -31,11 +31,15 @@ namespace Selas
         static const uint64 kDataVersion = 1528783850ul;
 
         ImageBasedLightResourceData* data;
+
+        ImageBasedLightResource();
+        ~ImageBasedLightResource();
     };
 
     //==============================================================================
     // -- reading image based light resource data from disk
     Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource);
+    void ShutdownImageBasedLightResource(ImageBasedLightResource* resource);
 
     //==============================================================================
     // -- functions used in build to set up the conditional and marginal density functions

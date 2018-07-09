@@ -28,6 +28,7 @@ namespace Selas
     }
 
     //==============================================================================
+    // JSTODO - This is just an unnecessary indirection. Clean this up when you clean GIIntegrationContext
     struct SceneContext
     {
         RTCScene rtcScene;

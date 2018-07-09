@@ -123,12 +123,16 @@ namespace Selas
         SceneGeometryData* geometry;
 
         TextureResource* textures;
+        void* rtcDevice;
+        void* rtcScene;
         void* rtcGeometries[eMeshIndexTypeCount];
 
         SceneResource();
+        ~SceneResource();
     };
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
     Error InitializeSceneResource(SceneResource* scene);
+    void InitializeEmbreeScene(SceneResource* scene);
     void ShutdownSceneResource(SceneResource* scene);
 }

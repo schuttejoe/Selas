@@ -10,10 +10,24 @@
 #include "MathLib/Trigonometric.h"
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/MinMax.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
+
+    //==============================================================================
+    ImageBasedLightResource::ImageBasedLightResource()
+        : data(nullptr)
+    {
+
+    }
+
+    //==============================================================================
+    ImageBasedLightResource::~ImageBasedLightResource()
+    {
+        Assert_(data == nullptr);
+    }
 
     //==============================================================================
     Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource)
@@ -37,6 +51,12 @@ namespace Selas
         SerializerEnd(&reader);
 
         return Success_;;
+    }
+
+    //==============================================================================
+    void ShutdownImageBasedLightResource(ImageBasedLightResource* resource)
+    {
+        SafeFreeAligned_(resource->data);
     }
 
     //==============================================================================
