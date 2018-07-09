@@ -226,9 +226,6 @@ namespace Selas
             uint width = integratorContext->width;
             uint height = integratorContext->height;
 
-            float3* imageData = AllocArrayAligned_(float3, width * height, CacheLineSize_);
-            Memory::Zero(imageData, sizeof(float3) * width * height);
-
             GIIntegrationContext context;
             context.sceneData        = integratorContext->sceneData;
             context.camera           = &integratorContext->camera;
