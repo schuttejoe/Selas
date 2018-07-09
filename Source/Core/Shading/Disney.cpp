@@ -65,34 +65,6 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleIblWithDisneyBrdf(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
-    {
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
-
-        float theta;
-        float phi;
-        uint x;
-        uint y;
-        float iblPdf;
-        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, theta, phi, x, y, iblPdf);
-        float3 worldWi = Math::SphericalToCartesian(theta, phi);
-
-        if(Dot(worldWi, surface.geometricNormal) < 0.0f) {
-            return false;
-        }
-
-        float bsdfForwardPdf;
-        float bsdfReversePdf;
-        sample.reflectance = EvaluateDisneyBrdf(surface, v, worldWi, bsdfForwardPdf, bsdfReversePdf) * (1.0f / iblPdf);
-        sample.forwardPdfW = iblPdf;
-        sample.reversePdfW = iblPdf;
-        sample.wi = worldWi;
-
-        return true;
-    }
-
-    //==============================================================================
     bool SampleDisneyBrdf(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));

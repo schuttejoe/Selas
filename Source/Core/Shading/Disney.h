@@ -17,6 +17,5 @@ namespace Selas
     float3 EvaluateDisneyBrdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
-    bool SampleIblWithDisneyBrdf(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
     bool SampleDisneyBrdf(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
 }
