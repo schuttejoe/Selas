@@ -5,7 +5,6 @@
 
 #include "PathTracer.h"
 #include "VCM.h"
-#include "VCMTask.h"
 #include "Shading/IntegratorContexts.h"
 
 #include "Shading/SurfaceParameters.h"
@@ -253,9 +252,6 @@ int main(int argc, char *argv[])
     Selas::uint width = 1400;
     Selas::uint height = 800;
 
-    Framebuffer frame;
-    FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
-
     float sceneBoundingRadius = sceneResource.data->boundingSphere.w;
 
     SceneContext context;
@@ -265,14 +261,11 @@ int main(int argc, char *argv[])
 
     timer = SystemTime::Now();
 
-    PathTracer::GenerateImage(context, &frame);
-    //VCM::GenerateImage(context, &frame);
+    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
+    //VCM::GenerateImage(context, "vcmTemp", width, height);
 
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
-
-    FrameBuffer_Save(&frame, "temp");
-    FrameBuffer_Shutdown(&frame);
 
     // -- delete the scene
     ShutdownSceneResource(&sceneResource);

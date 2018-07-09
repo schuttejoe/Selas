@@ -49,6 +49,7 @@ namespace Selas
     //==============================================================================
     // -- Sampling the ibl directly
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf);
+    float SampleIBlPdf(const ImageBasedLightResourceData* ibl, float3 wi);
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y);
 
     //==============================================================================

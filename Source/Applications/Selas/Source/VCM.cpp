@@ -28,7 +28,7 @@
 #define MaxBounceCount_         10
 
 #define EnableMultiThreading_   1
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     60.0f
 
 #define VcmRadiusFactor_ 0.0025f
 #define VcmRadiusAlpha_ 0.75f
@@ -727,13 +727,13 @@ namespace Selas
         }
 
         //==============================================================================
-        void GenerateImage(SceneContext& context, Framebuffer* frame)
+        void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
             const SceneResource* scene = context.scene;
             SceneMetaData* sceneData = scene->data;
 
-            uint width = frame->width;
-            uint height = frame->height;
+            Framebuffer frame;
+            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);
@@ -752,7 +752,7 @@ namespace Selas
             VCMSharedData sharedData;
             sharedData.sceneData              = &context;
             sharedData.camera                 = camera;
-            sharedData.frame                  = frame;
+            sharedData.frame                  = &frame;
             sharedData.width                  = width;
             sharedData.height                 = height;
             sharedData.maxBounceCount         = MaxBounceCount_;
@@ -788,7 +788,10 @@ namespace Selas
 
             Logging::WriteDebugInfo("Vcm integration performed with %lld iterations", iterationsPerPixel);
 
-            FrameBuffer_Normalize(frame, (1.0f / iterationsPerPixel));
+            FrameBuffer_Normalize(&frame, (1.0f / iterationsPerPixel));
+
+            FrameBuffer_Save(&frame, imageName);
+            FrameBuffer_Shutdown(&frame);
         }
     }
 }

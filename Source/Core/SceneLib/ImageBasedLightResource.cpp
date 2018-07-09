@@ -145,6 +145,43 @@ namespace Selas
     }
 
     //==============================================================================
+    float SampleIBlPdf(const ImageBasedLightResourceData* ibl, float3 wi)
+    {
+        int32 width = (int32)ibl->densityfunctions.width;
+        int32 height = (int32)ibl->densityfunctions.height;
+        float widthf = (float)width;
+        float heightf = (float)height;
+
+        float theta;
+        float phi;
+        Math::NormalizedCartesianToSpherical(wi, theta, phi);
+
+        // -- remap from [-pi, pi] to [0, 2pi]
+        phi += Math::Pi_;
+
+        int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
+        int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
+
+        float mdf;
+        float cdf;
+        if(y > 0)
+            mdf = ibl->densityfunctions.marginalDensityFunction[y] - ibl->densityfunctions.marginalDensityFunction[y - 1];
+        else
+            mdf = ibl->densityfunctions.marginalDensityFunction[y];
+
+        if(x > 0)
+            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x] - (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x - 1];
+        else
+            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x];
+
+        // convert from texture space to spherical with the inverse of the Jacobian
+        float invJacobian = (widthf * heightf) / Math::TwoPi_;
+
+        // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
+        return Math::Sinf(theta) * mdf * cdf * invJacobian;
+    }
+
+    //==============================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y)
     {
         return ibl->hdrData[y * ibl->densityfunctions.width + x];

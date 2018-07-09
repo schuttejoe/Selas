@@ -98,13 +98,13 @@ namespace Selas
             float vmSearchRadius = SearchRadius(baseRadius, radiusAlpha, iterationIndex);
 
             VCMIterationConstants constants;
-            constants.vmCount = vmCount;
-            constants.vcCount = vcCount;            
-            constants.vmSearchRadius = vmSearchRadius;
+            constants.vmCount           = vmCount;
+            constants.vcCount           = vcCount;            
+            constants.vmSearchRadius    = vmSearchRadius;
             constants.vmSearchRadiusSqr = vmSearchRadius * vmSearchRadius;
-            constants.vmNormalization = 1.0f / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
-            constants.vmWeight = Math::Pi_ * constants.vmSearchRadiusSqr * vmCount / vcCount;
-            constants.vcWeight = vcCount / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
+            constants.vmNormalization   = 1.0f / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
+            constants.vmWeight          = Math::Pi_ * constants.vmSearchRadiusSqr * vmCount / vcCount;
+            constants.vcWeight          = vcCount / (Math::Pi_ * constants.vmSearchRadiusSqr * vmCount);
 
             return constants;
         }

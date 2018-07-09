@@ -27,8 +27,8 @@ namespace Selas
         Json::ReadFixedString(document, "MetalnessTexture", material->metalnessTextureName);
 
         Json::ReadFloat(document, "Metalness", material->metalness, 0.1f);
-        Json::ReadFloat(document, "Albedo", material->albedo, 1.0f);
-        Json::ReadFloat(document, "Roughness", material->roughness, 0.6f);
+        Json::ReadFloat(document, "Albedo", material->albedo, 0.4f);
+        Json::ReadFloat(document, "Roughness", material->roughness, 0.4f);
         Json::ReadFloat(document, "Ior", material->ior, 1.0f);
         Json::ReadFloat(document, "DisplacementScale", material->displacementScale, 0.1f);        
 

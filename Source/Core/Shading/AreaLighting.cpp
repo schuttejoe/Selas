@@ -23,7 +23,7 @@
 namespace Selas
 {
     #define MaxBounceCount_  10
-    
+
     //==============================================================================
     bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
     {
@@ -99,7 +99,7 @@ namespace Selas
     {
         float3 eX = light.eX;
         float3 eZ = light.eZ;
-        float3 s  = light.corner;
+        float3 s = light.corner;
 
         RectangleLightSampler sampler;
         InitializeRectangleLightSampler(s, eX, eZ, surface.position, sampler);
@@ -127,7 +127,7 @@ namespace Selas
             if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
                 // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
                 // -- the pdf is constant so that is applied below.
-                Lo +=  dotNL * light.intensity;
+                Lo += dotNL * light.intensity;
             }
         }
 
@@ -150,7 +150,7 @@ namespace Selas
             float r1 = Random::MersenneTwisterFloat(twister);
 
             float theta = Math::Acosf(1 - 2.0f * r0);
-            float phi   = Math::TwoPi_ * r1;
+            float phi = Math::TwoPi_ * r1;
 
             float3 sn = Math::SphericalToCartesian(theta, phi);
             float3 xp = c + r * sn;
@@ -186,10 +186,10 @@ namespace Selas
         float q = Math::Sqrtf(1.0f - (r / distanceToCenter) * (r / distanceToCenter));
 
         float3 v, u;
-        MakeOrthogonalCoordinateSystem(w, &v, &u);        
+        MakeOrthogonalCoordinateSystem(w, &v, &u);
 
         float3x3 toWorld = MakeFloat3x3(u, w, v);
-        
+
         float3 Lo = float3::Zero_;
 
         for(uint scan = 0; scan < lightSampleCount; ++scan) {
@@ -197,7 +197,7 @@ namespace Selas
             float r1 = Random::MersenneTwisterFloat(twister);
 
             float theta = Math::Acosf(1 - r0 + r0 * q);
-            float phi   = Math::TwoPi_ * r1;
+            float phi = Math::TwoPi_ * r1;
 
             float3 nwp = MatrixMultiply(Math::SphericalToCartesian(theta, phi), toWorld);
             float3 wp = -nwp;
@@ -238,6 +238,7 @@ namespace Selas
         uint y;
         float dirPhi;
         float dirTheta;
+
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
         Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
@@ -254,7 +255,7 @@ namespace Selas
         float discPdf = ConcentricDiscPdf();
 
         float3 position = sceneCenter + sceneBoundingRadius * (toIbl + discSample.x * dX + discSample.y * dZ);
-        
+
         float pdfPosition = discPdf * (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
         float pdfDirection = sample.directionPdfA;
 
@@ -288,7 +289,7 @@ namespace Selas
         sample.direction = toIbl;
         sample.radiance = radiance;
         sample.emissionPdfW = sample.directionPdfA * ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius*sceneBoundingRadius));
-        sample.cosThetaLight = 1.0f; // -- not used
+        sample.cosThetaLight = 1.0f; // -- not used for ibl light source
     }
 
     //==============================================================================
@@ -303,5 +304,11 @@ namespace Selas
         directPdfA = iblPdfA;
         emissionPdfW = pdfPosition * iblPdfA;
         return radiance;
+    }
+
+    //==============================================================================
+    float DirectIblLightPdf(GIIntegrationContext* __restrict context, float3 wi)
+    {
+        return SampleIBlPdf(context->sceneData->ibl, wi);
     }
 }

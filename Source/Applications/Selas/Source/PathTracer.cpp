@@ -7,7 +7,7 @@
 #include "Shading/Lighting.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
-
+#include "Shading/AreaLighting.h"
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/TextureFiltering.h"
@@ -32,6 +32,7 @@
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/MinMax.h"
 #include "SystemLib/SystemTime.h"
+#include "SystemLib/Logging.h"
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -65,6 +66,30 @@ namespace Selas
 
             Framebuffer* frame;
         };
+
+        //==============================================================================
+        static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
+        {
+            float3 origin = OffsetRayOrigin(surface, direction, 0.1f);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            Align_(16) RTCRay ray;
+            ray.org_x = origin.x;
+            ray.org_y = origin.y;
+            ray.org_z = origin.z;
+            ray.dir_x = direction.x;
+            ray.dir_y = direction.y;
+            ray.dir_z = direction.z;
+            ray.tnear = surface.error;
+            ray.tfar = distance;
+
+            rtcOccluded1(rtcScene, &context, &ray);
+
+            // -- ray.tfar == -inf when hit occurs
+            return (ray.tfar >= 0.0f);
+        }
 
         //==============================================================================
         static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
@@ -122,15 +147,44 @@ namespace Selas
                         break;
                     }
 
-                    BsdfSample sample;
-                    if(SampleBsdfFunction(context, surface, -ray.direction, sample) == false) {
-                        break;
-                    }
-                    throughput = throughput * sample.reflectance;
+                    // -- choose a light and sample the light source
+                    LightDirectSample lightSample;
+                    DirectIblLightSample(context, lightSample);
 
-                    float3 offsetOrigin = OffsetRayOrigin(surface, sample.wi, 1.0f);
-                    ray = MakeRay(offsetOrigin, sample.wi);
-                    ++bounceCount;
+                    {
+                        float forwardPdfW;
+                        float reversePdfW;
+                        float3 reflectance = EvaluateBsdf(surface, -ray.direction, lightSample.direction, forwardPdfW, reversePdfW);
+                        if(Dot(reflectance, float3::One_) > 0) {
+
+                            if(OcclusionRay(context->sceneData->rtcScene, surface, lightSample.direction, lightSample.distance)) {
+
+                                float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.directionPdfA);
+
+                                // JSTODO - WARNING! We want directionPdfW not directionPdfA here. However, since we're currently only sampling
+                                // IBLs which return the solid angle pdf in directionPdfA we're good for now.
+                                float weight = ImportanceSampling::BalanceHeuristic(1, lightSample.directionPdfA, 1, forwardPdfW);
+                                FramebufferWriter_Write(&context->frameWriter, weight * throughput * sample, (uint32)x, (uint32)y);
+                            }
+                        }
+                    }
+
+                    {
+                        // - sample the bsdf
+                        BsdfSample bsdfSample;
+                        if(SampleBsdfFunction(context, surface, -ray.direction, bsdfSample) == false) {
+                            break;
+                        }
+
+                        float lightPdfW = DirectIblLightPdf(context, bsdfSample.wi);
+                        float weight = ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
+
+                        throughput = weight * throughput * bsdfSample.reflectance;
+
+                        float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
+                        ray = MakeRay(offsetOrigin, bsdfSample.wi);
+                        ++bounceCount;
+                    }
                 }
                 else {
                     float pdf;
@@ -209,13 +263,13 @@ namespace Selas
         }
 
         //==============================================================================
-        void GenerateImage(SceneContext& context, Framebuffer* frame)
+        void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
             const SceneResource* scene = context.scene;
             SceneMetaData* sceneData = scene->data;
 
-            uint32 width = frame->width;
-            uint32 height = frame->height;
+            Framebuffer frame;
+            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);
@@ -225,11 +279,11 @@ namespace Selas
             int64 pathsEvaluatedPerPixel = 0;
 
             #if EnableMultiThreading_ 
-                const uint additionalThreadCount = 7;
+                const uint additionalThreadCount = 6;
             #else
                 const uint additionalThreadCount = 0;
             #endif
-            static_assert(PathsPerPixel_ % (additionalThreadCount + 1) == 0, "Path count not divisible by number of threads");
+            static_assert(IntegrationSeconds_ != 0.0f || PathsPerPixel_ % (additionalThreadCount + 1) == 0, "Path count not divisible by number of threads");
 
             PathTracingKernelData integratorContext;
             integratorContext.sceneData              = &context;
@@ -243,7 +297,7 @@ namespace Selas
             integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
-            integratorContext.frame                  = frame;
+            integratorContext.frame                  = &frame;
 
             #if EnableMultiThreading_
                 ThreadHandle threadHandles[additionalThreadCount];
@@ -266,7 +320,11 @@ namespace Selas
                 }
             #endif
 
-            FrameBuffer_Normalize(frame, (1.0f / pathsEvaluatedPerPixel));
+            Logging::WriteDebugInfo("Unidirectional PT integration performed with %lld iterations", pathsEvaluatedPerPixel);
+            FrameBuffer_Normalize(&frame, (1.0f / pathsEvaluatedPerPixel));
+
+            FrameBuffer_Save(&frame, imageName);
+            FrameBuffer_Shutdown(&frame);
         }
     }
 }

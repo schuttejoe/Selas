@@ -69,4 +69,5 @@ namespace Selas
     void EmitIblLightSample(GIIntegrationContext* context, LightEmissionSample& sample);
     void DirectIblLightSample(GIIntegrationContext* context, LightDirectSample& sample);
     float3 IblCalculateRadiance(GIIntegrationContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
+    float DirectIblLightPdf(GIIntegrationContext* __restrict context, float3 wi);
 }

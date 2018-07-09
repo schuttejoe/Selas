@@ -15,6 +15,6 @@ namespace Selas
 
     namespace VCM
     {
-        void GenerateImage(SceneContext& context, Framebuffer* frame);
+        void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height);
     }
 }

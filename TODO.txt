@@ -3,7 +3,6 @@ Obviously there's an infinite list of things that can be done here. This is just
 
 Short term goals
 ---------------------
-Next event estimation in the path tracer
 Subsurface scattering
 Make a cheesy business card
 
