@@ -20,6 +20,12 @@ namespace Selas
         }
 
         //==============================================================================
+        float Schlick(float r0, float radians)
+        {
+            return Lerp(r0, 1.0f, Fresnel::Schlick(radians));
+        }
+
+        //==============================================================================
         float Schlick(float u)
         {
             float m = Saturate(1.0f - u);
