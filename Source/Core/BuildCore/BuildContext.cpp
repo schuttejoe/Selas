@@ -29,13 +29,13 @@ namespace Selas
     }
 
     //==============================================================================
-    Error BuildProcessorContext::AddProcessDependency(const ContentId& source)
+    Error BuildProcessorContext::AddProcessDependency(const ContentId& sourceid)
     {
         ProcessDependency dep;
-        dep.source = source;
-        dep.id = AssetId(source.type.Ascii(), source.name.Ascii());
+        dep.source = sourceid;
+        dep.id = AssetId(sourceid.type.Ascii(), sourceid.name.Ascii());
 
-         processDependencies.Add(dep);
+        processDependencies.Add(dep);
 
         return Success_;
     }

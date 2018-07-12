@@ -5,48 +5,49 @@
 // domain. The author hereby disclaims copyright to this source code.
 
 #include "UtilityLib/MurmurHash.h"
+#include "SystemLib/BasicTypes.h"
+
+//-----------------------------------------------------------------------------
+// Platform-specific functions and macros
+
+// Microsoft Visual Studio
+
+#if defined(_MSC_VER)
+
+#define FORCE_INLINE	__forceinline
+
+#include <stdlib.h>
+
+#define ROTL32(x,y)	_rotl(x,y)
+#define ROTL64(x,y)	_rotl64(x,y)
+
+#define BIG_CONSTANT(x) (x)
+
+// Other compilers
+
+#else	// defined(_MSC_VER)
+
+#define	FORCE_INLINE inline __attribute__((always_inline))
+
+inline uint32 rotl32(uint32 x, int8 r)
+{
+    return (x << r) | (x >> (32 - r));
+}
+
+inline uint64 rotl64(uint64 x, int8 r)
+{
+    return (x << r) | (x >> (64 - r));
+}
+
+#define	ROTL32(x,y)	rotl32(x,y)
+#define ROTL64(x,y)	rotl64(x,y)
+
+#define BIG_CONSTANT(x) (x##LLU)
+
+#endif // !defined(_MSC_VER)
 
 namespace Selas
 {
-    //-----------------------------------------------------------------------------
-    // Platform-specific functions and macros
-
-    // Microsoft Visual Studio
-
-    #if defined(_MSC_VER)
-
-    #define FORCE_INLINE	__forceinline
-
-    #include <stdlib.h>
-
-    #define ROTL32(x,y)	_rotl(x,y)
-    #define ROTL64(x,y)	_rotl64(x,y)
-
-    #define BIG_CONSTANT(x) (x)
-
-    // Other compilers
-
-    #else	// defined(_MSC_VER)
-
-    #define	FORCE_INLINE inline __attribute__((always_inline))
-
-    inline uint32 rotl32(uint32 x, int8_t r)
-    {
-        return (x << r) | (x >> (32 - r));
-    }
-
-    inline uint64 rotl64(uint64 x, int8_t r)
-    {
-        return (x << r) | (x >> (64 - r));
-    }
-
-    #define	ROTL32(x,y)	rotl32(x,y)
-    #define ROTL64(x,y)	rotl64(x,y)
-
-    #define BIG_CONSTANT(x) (x##LLU)
-
-    #endif // !defined(_MSC_VER)
-
     //-----------------------------------------------------------------------------
     // Block read - if your platform needs to do endian-swapping or can only
     // handle aligned reads, do the conversion here

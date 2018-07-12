@@ -7,9 +7,6 @@
 
 namespace Selas
 {
-    const uint EwaLutSize = 128;
-    static float EWAFilterLut[EwaLutSize];
-
     //==============================================================================
     namespace TextureFiltering
     {

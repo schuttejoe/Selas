@@ -10,8 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if IsWindows_
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace Selas
 {
@@ -106,8 +110,13 @@ namespace Selas
         //==============================================================================
         bool Exists(cpointer filepath)
         {
-            DWORD dwAttrib = GetFileAttributesA(filepath);
-            return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+            #if IsWindows_
+                DWORD dwAttrib = GetFileAttributesA(filepath);
+                return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+            #else
+                int res = access(filepath, R_OK);
+                return res == 0;
+            #endif
         }
     }
 }

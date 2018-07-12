@@ -2,6 +2,8 @@
 // Joe Schutte
 //==============================================================================
 
+#if IsWindows_
+
 #include "IoLib/FileTime.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -44,3 +46,5 @@ namespace Selas
         return (CompareFileTime(&l, &r) == 0);
     }
 }
+
+#endif

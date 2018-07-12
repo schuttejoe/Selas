@@ -15,6 +15,8 @@ namespace Selas
     class CBuildProcessor
     {
     public:
+        virtual ~CBuildProcessor() { }
+
         virtual Error    Setup()                                 = 0;
         virtual cpointer Type()                                  = 0;
         virtual uint64   Version()                               = 0;

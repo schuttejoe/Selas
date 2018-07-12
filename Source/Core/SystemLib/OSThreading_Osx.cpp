@@ -10,6 +10,7 @@
 
 #include <pthread.h>
 #include <dispatch/dispatch.h>
+#include <unistd.h>
 
 namespace Selas
 {
@@ -110,7 +111,7 @@ namespace Selas
     //==============================================================================
     bool TryEnterSpinLock(void* spinlock)
     {
-        volatile LONG64* atom = reinterpret_cast<volatile LONG64*>(spinlock);
+        volatile int64* atom = reinterpret_cast<volatile int64*>(spinlock);
         return __sync_val_compare_and_swap(atom, 1, 0) == 1;
     }
 
@@ -131,7 +132,7 @@ namespace Selas
     //==============================================================================
     void Sleep(uint sleepTimeMs)
     {
-        static_assert(false); // NYI
+        usleep(sleepTimeMs * 1000);
     }
 }
 

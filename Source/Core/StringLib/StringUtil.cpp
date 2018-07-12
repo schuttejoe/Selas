@@ -10,9 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #if IsWindows_
-#define WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
 #endif
 
@@ -229,7 +230,11 @@ namespace Selas
             va_list varg;
             va_start(varg, message);
 
-            vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+            #if IsWindows_
+                vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+            #else
+                vsnprintf(dst, dstSize, message, varg);
+            #endif
 
             va_end(varg);
         }
@@ -240,7 +245,11 @@ namespace Selas
             va_list varg;
             va_start(varg, message);
 
-            vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+            #if IsWindows_
+                vsnprintf_s(dst, dstSize, _TRUNCATE, message, varg);
+            #else
+                vsnprintf(dst, dstSize, message, varg);
+            #endif
 
             va_end(varg);
         }
