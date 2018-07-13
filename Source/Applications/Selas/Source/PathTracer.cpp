@@ -37,7 +37,7 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-#define MaxBounceCount_         10
+#define MaxBounceCount_         100
 
 #define EnableMultiThreading_   1
 #define PathsPerPixel_          8
@@ -185,6 +185,13 @@ namespace Selas
                         ray = MakeRay(offsetOrigin, bsdfSample.wi);
                         ++bounceCount;
                     }
+
+                    // -- Russian roulette path termination
+                    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
+                    if(Random::MersenneTwisterFloat(context->twister) > continuationProb) {
+                        break;
+                    }
+                    throughput = throughput * (1.0f / continuationProb);
                 }
                 else {
                     float pdf;
