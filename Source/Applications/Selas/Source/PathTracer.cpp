@@ -172,7 +172,7 @@ namespace Selas
                     {
                         // - sample the bsdf
                         BsdfSample bsdfSample;
-                        if(SampleBsdfFunction(context, surface, -ray.direction, bsdfSample) == false) {
+                        if(SampleBsdfFunction(&context->sampler, surface, -ray.direction, bsdfSample) == false) {
                             break;
                         }
 
@@ -188,7 +188,7 @@ namespace Selas
 
                     // -- Russian roulette path termination
                     float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
-                    if(Random::MersenneTwisterFloat(context->twister) > continuationProb) {
+                    if(context->sampler.UniformFloat() > continuationProb) {
                         break;
                     }
                     throughput = throughput * (1.0f / continuationProb);
@@ -205,7 +205,7 @@ namespace Selas
         //==============================================================================
         static void CreatePrimaryRay(GIIntegrationContext* context, uint pixelIndex, uint x, uint y)
         {
-            Ray ray = JitteredCameraRay(context->camera, context->twister, (float)x, (float)y);
+            Ray ray = JitteredCameraRay(context->camera, &context->sampler, (float)x, (float)y);
             EvaluateRayBatch(context, ray, x, y);
         }
 
@@ -227,16 +227,13 @@ namespace Selas
             PathTracingKernelData* integratorContext = static_cast<PathTracingKernelData*>(userData);
             int64 kernelIndex = Atomic::Increment64(integratorContext->kernelIndices);
 
-            Random::MersenneTwister twister;
-            Random::MersenneTwisterInitialize(&twister, (uint32)kernelIndex);
-
             uint width = integratorContext->width;
             uint height = integratorContext->height;
 
             GIIntegrationContext context;
             context.sceneData        = integratorContext->sceneData;
             context.camera           = &integratorContext->camera;
-            context.twister          = &twister;
+            context.sampler.Initialize((uint32)kernelIndex);
             context.maxPathLength    = integratorContext->maxBounceCount;
             FramebufferWriter_Initialize(&context.frameWriter, integratorContext->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
@@ -260,7 +257,7 @@ namespace Selas
                 Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, integratorContext->pathsPerPixel);
             }
 
-            Random::MersenneTwisterShutdown(&twister);
+            context.sampler.Shutdown();
 
             FramebufferWriter_Shutdown(&context.frameWriter);
             Atomic::Increment64(integratorContext->completedThreads);

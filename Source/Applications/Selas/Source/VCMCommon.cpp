@@ -66,7 +66,7 @@ namespace Selas
         {
             const RayCastCameraSettings* __restrict camera = context->camera;
 
-            Ray cameraRay = JitteredCameraRay(camera, context->twister, (float)x, (float)y);
+            Ray cameraRay = JitteredCameraRay(camera, &context->sampler, (float)x, (float)y);
 
             float cosThetaCamera = Dot(camera->forward, cameraRay.direction);
             float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;

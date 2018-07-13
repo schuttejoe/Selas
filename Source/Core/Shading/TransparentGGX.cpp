@@ -48,7 +48,7 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleTransparentGgx(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleTransparentGgx(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v,  surface.worldToTangent));
         float3x3 tangentToWorld = MatrixTranspose(surface.worldToTangent);
@@ -56,12 +56,12 @@ namespace Selas
         float a = surface.roughness;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
+        float r0 = sampler->UniformFloat();
+        float r1 = sampler->UniformFloat();
         float3 wm = Bsdf::GgxVndf(wo, surface.roughness, r0, r1);
 
         float3 wi;
-        float t = Random::MersenneTwisterFloat(context->twister);
+        float t = sampler->UniformFloat();
         float F = Fresnel::SchlickDialectic(Math::Absf(Dot(wm, wo)), surface.currentIor, surface.exitIor);
         float scatterPdf = 1.0f - F;
         if(t < F || !Transmit(wm, wo, surface.currentIor, surface.exitIor, wi)) {

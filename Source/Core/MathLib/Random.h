@@ -6,6 +6,7 @@
 
 #include "MathLib/FloatStructs.h"
 #include "SystemLib/BasicTypes.h"
+#include "SystemLib/JsAssert.h"
 
 namespace Selas
 {
@@ -14,6 +15,9 @@ namespace Selas
         struct MersenneTwisterData;
         struct MersenneTwister
         {
+            MersenneTwister() : data(nullptr) { }
+            ~MersenneTwister() { Assert_(data == nullptr); }
+
             // this uses a pimpl implementation since it is backed by mt19937 from std
             MersenneTwisterData* data;
         };

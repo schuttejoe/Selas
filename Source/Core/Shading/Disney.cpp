@@ -95,15 +95,15 @@ namespace Selas
     }
 
     //==============================================================================
-    static bool SampleDisneyClearcoat(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, const float3& v, BsdfSample& sample)
+    static bool SampleDisneyClearcoat(CSampler* sampler, const SurfaceParameters& surface, const float3& v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
         float a = 0.25f;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
+        float r0 = sampler->UniformFloat();
+        float r1 = sampler->UniformFloat();
         float cosTheta = Math::Sqrtf(Max<float>(0, (1.0f - Math::Powf(a2, 1.0f - r0)) / (1.0f - a2)));
         float sinTheta = Math::Sqrtf(Max<float>(0, 1.0f - cosTheta * cosTheta));
         float phi = Math::TwoPi_ * r1;
@@ -183,15 +183,15 @@ namespace Selas
     }
 
     //==============================================================================
-    bool SampleDisneyBrdf(GIIntegrationContext* __restrict context, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleDisneyBrdf(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
         float a = surface.roughness;
         float a2 = a * a;
 
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
+        float r0 = sampler->UniformFloat();
+        float r1 = sampler->UniformFloat();
         float3 wm = Bsdf::GgxVndf(wo, surface.roughness, r0, r1);
 
         float3 wi = Reflect(wm, wo);

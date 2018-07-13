@@ -53,7 +53,7 @@ namespace Selas
     }
 
     //==============================================================================
-    float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
     {
         float3 eX = light.eX;
         float3 eZ = light.eZ;
@@ -73,8 +73,8 @@ namespace Selas
         float pdf = 1.0f / (eXLength * eZLength);
 
         for(uint scan = 0; scan < sampleCount; ++scan) {
-            float u = Random::MersenneTwisterFloat(twister);
-            float v = Random::MersenneTwisterFloat(twister);
+            float u = sampler->UniformFloat();
+            float v = sampler->UniformFloat();
 
             float3 position = s + u * eX + v * eZ;
 
@@ -95,26 +95,26 @@ namespace Selas
     }
 
     //==============================================================================
-    float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
     {
         float3 eX = light.eX;
         float3 eZ = light.eZ;
         float3 s = light.corner;
 
-        RectangleLightSampler sampler;
-        InitializeRectangleLightSampler(s, eX, eZ, surface.position, sampler);
+        RectangleLightSampler quadsampler;
+        InitializeRectangleLightSampler(s, eX, eZ, surface.position, quadsampler);
 
-        float3 lightFacing = sampler.z;
+        float3 lightFacing = quadsampler.z;
 
         float3 Lo = float3::Zero_;
 
-        float pdf = 1.0f / sampler.S;
+        float pdf = 1.0f / quadsampler.S;
 
         for(uint scan = 0; scan < sampleCount; ++scan) {
-            float u = Random::MersenneTwisterFloat(twister);
-            float v = Random::MersenneTwisterFloat(twister);
+            float u = sampler->UniformFloat();
+            float v = sampler->UniformFloat();
 
-            float3 position = SampleRectangleLight(sampler, u, v);
+            float3 position = SampleRectangleLight(quadsampler, u, v);
 
             float3 ul = position - surface.position;
             float distSquared = LengthSquared(ul);
@@ -135,7 +135,7 @@ namespace Selas
     }
 
     //==============================================================================
-    float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
+    float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -146,8 +146,8 @@ namespace Selas
         float pdf = 1.0f / (4.0f * Math::Pi_ * r * r);
 
         for(uint scan = 0; scan < lightSampleCount; ++scan) {
-            float r0 = Random::MersenneTwisterFloat(twister);
-            float r1 = Random::MersenneTwisterFloat(twister);
+            float r0 = sampler->UniformFloat();
+            float r1 = sampler->UniformFloat();
 
             float theta = Math::Acosf(1 - 2.0f * r0);
             float phi = Math::TwoPi_ * r1;
@@ -173,7 +173,7 @@ namespace Selas
     }
 
     //==============================================================================
-    float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, Random::MersenneTwister* twister, const SurfaceParameters& surface, float3 view, SphericalAreaLight light, uint lightSampleCount)
+    float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, float3 view, SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -193,8 +193,8 @@ namespace Selas
         float3 Lo = float3::Zero_;
 
         for(uint scan = 0; scan < lightSampleCount; ++scan) {
-            float r0 = Random::MersenneTwisterFloat(twister);
-            float r1 = Random::MersenneTwisterFloat(twister);
+            float r0 = sampler->UniformFloat();
+            float r1 = sampler->UniformFloat();
 
             float theta = Math::Acosf(1 - r0 + r0 * q);
             float phi = Math::TwoPi_ * r1;
@@ -229,10 +229,10 @@ namespace Selas
         // -- see section 5.1 of ^ to understand the position and emission pdf calculation
 
         // -- choose direction to sample the ibl
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
-        float r2 = Random::MersenneTwisterFloat(context->twister);
-        float r3 = Random::MersenneTwisterFloat(context->twister);
+        float r0 = context->sampler.UniformFloat();
+        float r1 = context->sampler.UniformFloat();
+        float r2 = context->sampler.UniformFloat();
+        float r3 = context->sampler.UniformFloat();
 
         uint x;
         uint y;
@@ -270,8 +270,8 @@ namespace Selas
     void DirectIblLightSample(GIIntegrationContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
-        float r0 = Random::MersenneTwisterFloat(context->twister);
-        float r1 = Random::MersenneTwisterFloat(context->twister);
+        float r0 = context->sampler.UniformFloat();
+        float r1 = context->sampler.UniformFloat();
 
         uint x;
         uint y;

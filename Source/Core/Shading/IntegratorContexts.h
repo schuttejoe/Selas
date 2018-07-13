@@ -9,7 +9,7 @@
 #include "TextureLib/Framebuffer.h"
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
-#include "MathLib/Random.h"
+#include "MathLib/Sampler.h"
 #include "SystemLib/BasicTypes.h"
 
 struct RTCSceneTy;
@@ -21,11 +21,6 @@ namespace Selas
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
     struct SurfaceParameters;
-
-    namespace Random
-    {
-        struct MersenneTwister;
-    }
 
     //==============================================================================
     // JSTODO - This is just an unnecessary indirection. Clean this up when you clean GIIntegrationContext
@@ -41,7 +36,7 @@ namespace Selas
     {
         const RayCastCameraSettings* __restrict camera;
         SceneContext*                __restrict sceneData;
-        Random::MersenneTwister*     __restrict twister;
+        CSampler                                sampler;
         FramebufferWriter                       frameWriter;
         uint                                    imageWidth;
         uint                                    imageHeight;

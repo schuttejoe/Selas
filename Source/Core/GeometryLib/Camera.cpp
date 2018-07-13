@@ -5,7 +5,7 @@
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
 #include "MathLib/FloatFuncs.h"
-#include "MathLib/Random.h"
+#include "MathLib/Sampler.h"
 
 namespace Selas
 {
@@ -28,11 +28,11 @@ namespace Selas
     }
 
     //==============================================================================
-    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, Random::MersenneTwister* twister, float viewX, float viewY)
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, CSampler* sampler, float viewX, float viewY)
     {
         // JSTODO - Blue noise probably ideal here. Maybe this: http://liris.cnrs.fr/david.coeurjolly/publications/perrier18eg.html ?
-        float vx = viewX + MersenneTwisterFloat(twister);
-        float vy = viewY + MersenneTwisterFloat(twister);
+        float vx = viewX + sampler->UniformFloat();
+        float vy = viewY + sampler->UniformFloat();
 
         float3 p  = ImageToWorld(camera, vx, vy);
         float3 d  = Normalize(p  - camera->position);

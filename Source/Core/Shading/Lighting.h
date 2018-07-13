@@ -12,17 +12,13 @@ typedef struct RTCSceneTy* RTCScene;
 namespace Selas
 {
     // -- forward declarations
-    struct GIIntegrationContext;
+    class CSampler;
     struct HitParameters;
     struct Ray;
     struct Material;
     struct ImageBasedLightResourceData;
     struct SurfaceParameters;
     struct SceneResource;
-    namespace Random
-    {
-        struct MersenneTwister;
-    }
 
     // -- BSDF sample output
     struct BsdfSample
@@ -33,9 +29,7 @@ namespace Selas
         float reversePdfW  = 0.0f;
     };
 
-    // JSTODO - GIIntegrationContext is bad to pass in here since it gives the shaders access to data they shouldn't have. Need to break it into more nuanced pieces.
-
     // -- Bsdf evaluation
-    bool SampleBsdfFunction(GIIntegrationContext* context, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleBsdfFunction(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
     float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
 }

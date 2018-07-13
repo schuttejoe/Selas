@@ -394,12 +394,12 @@ namespace Selas
         }
 
         //==============================================================================
-        static bool SampleBsdfScattering(GIIntegrationContext* context, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState)
+        static bool SampleBsdfScattering(CSampler* sampler, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState)
         {
             ProfileEventMarker_(0x88FFFFFF, "SampleBsdfScattering");
 
             BsdfSample sample;
-            if(SampleBsdfFunction(context, surface, -pathState.direction, sample) == false) {
+            if(SampleBsdfFunction(sampler, surface, -pathState.direction, sample) == false) {
                 return false;
             }
             if(sample.reflectance.x == 0.0f && sample.reflectance.y == 0.0f && sample.reflectance.z == 0.0f) {
@@ -407,7 +407,7 @@ namespace Selas
             }
 
             float contProb = ContinuationProbability(surface);
-            float russianRouletteSample = Random::MersenneTwisterFloat(context->twister);
+            float russianRouletteSample = sampler->UniformFloat();
             if(russianRouletteSample > contProb) {
                 return false;
             }
@@ -464,7 +464,7 @@ namespace Selas
             ConnectLightPathToCamera(context, state, surface, constants.vmWeight, (float)constants.vmCount);
 
             // -- bsdf scattering to advance the path
-            if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, state) == false) {
+            if(SampleBsdfScattering(&context->sampler, surface, constants.vmWeight, constants.vcWeight, state) == false) {
                 return false;
             }
 
@@ -533,7 +533,7 @@ namespace Selas
                     ConnectLightPathToCamera(context, state, surface, constants.vmWeight, (float)constants.vmCount);
 
                     // -- bsdf scattering to advance the path
-                    if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, state) == false) {
+                    if(SampleBsdfScattering(&context->sampler, surface, constants.vmWeight, constants.vcWeight, state) == false) {
                         break;
                     }
                 }
@@ -634,7 +634,7 @@ namespace Selas
                     }
 
                     // -- bsdf scattering to advance the path
-                    if(SampleBsdfScattering(context, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
+                    if(SampleBsdfScattering(&context->sampler, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
                         break;
                     }
                 }
@@ -677,9 +677,6 @@ namespace Selas
             VCMSharedData* sharedData = static_cast<VCMSharedData*>(userData);
             int64 kernelIndex = Atomic::Increment64(sharedData->kernelIndices);
 
-            Random::MersenneTwister twister;
-            Random::MersenneTwisterInitialize(&twister, (uint32)kernelIndex);
-
             uint width = sharedData->width;
             uint height = sharedData->height;
 
@@ -688,7 +685,7 @@ namespace Selas
             context.camera = &sharedData->camera;
             context.imageWidth = width;
             context.imageHeight = height;
-            context.twister = &twister;
+            context.sampler.Initialize((uint32)kernelIndex);
             context.maxPathLength = sharedData->maxBounceCount;
             FramebufferWriter_Initialize(&context.frameWriter, sharedData->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
@@ -720,7 +717,7 @@ namespace Selas
 
             Atomic::Add64(sharedData->iterationsPerPixel, iterationCount);
 
-            Random::MersenneTwisterShutdown(&twister);
+            context.sampler.Shutdown();
 
             FramebufferWriter_Shutdown(&context.frameWriter);
             Atomic::Increment64(sharedData->completedThreads);
