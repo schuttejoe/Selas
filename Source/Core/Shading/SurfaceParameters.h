@@ -23,7 +23,6 @@ namespace Selas
         float error;
 
         float3 view;
-
         float3x3 worldToTangent;
 
         // -- material layer info
@@ -33,6 +32,7 @@ namespace Selas
         float  metalness;
         float3 specularColor;
         float  roughness;
+        float  subsurface;
 
         float currentIor;
         float exitIor; // -- only valid if total internal reflection doesn't occur

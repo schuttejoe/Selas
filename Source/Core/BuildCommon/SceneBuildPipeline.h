@@ -29,6 +29,7 @@ namespace Selas
 
         float roughness;
         float albedo;
+        float subsurface;
         float metalness;
         float ior;
         float displacementScale;

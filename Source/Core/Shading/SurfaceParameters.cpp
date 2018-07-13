@@ -192,7 +192,8 @@ namespace Selas
         surface.position        = hit->position;
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
-       
+        surface.subsurface      = material->subsurface;
+
         surface.albedo        = material->albedo * SampleTextureFloat3(scene, uvs, material->albedoTextureIndex, false, 1.0f);
         surface.specularColor = SampleTextureFloat3(scene, uvs, material->specularTextureIndex, false, 0.1f);
         surface.roughness     = material->roughness * SampleTextureFloat(scene, uvs, material->roughnessTextureIndex, false, 1.0f);

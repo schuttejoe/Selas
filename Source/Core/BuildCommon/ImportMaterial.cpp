@@ -34,6 +34,8 @@ namespace Selas
 
         Json::ReadBool(document, "AlphaTesting", material->alphaTested, false);
         Json::ReadBool(document, "InvertDisplacement", material->invertDisplacement, false);
+        
+        Json::ReadFloat(document, "Subsurface", material->subsurface, 0.0f);
 
         return Success_;
     }

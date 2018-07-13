@@ -198,6 +198,7 @@ namespace Selas
             material.albedo            = importedMaterialData.albedo;
             material.ior               = importedMaterialData.ior;
             material.displacementScale = importedMaterialData.displacementScale;
+            material.subsurface        = importedMaterialData.subsurface;
 
             if(StringUtil::Length(importedMaterialData.albedoTextureName.Ascii())) {
                 material.flags |= eHasTextures;
