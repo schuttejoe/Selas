@@ -191,38 +191,26 @@ namespace Selas
 
             uint32 shaderFlags = 0;
             DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
-
             material.flags |= shaderFlags;
-            material.metalness         = importedMaterialData.metalness;
-            material.roughness         = importedMaterialData.roughness;
-            material.albedo            = importedMaterialData.albedo;
-            material.ior               = importedMaterialData.ior;
-            material.displacementScale = importedMaterialData.displacementScale;
-            material.subsurface        = importedMaterialData.subsurface;
 
-            if(StringUtil::Length(importedMaterialData.albedoTextureName.Ascii())) {
-                material.flags |= eHasTextures;
-                material.albedoTextureIndex = AddTexture(built, importedMaterialData.albedoTextureName);
+            if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
+                material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
             }
-            if(StringUtil::Length(importedMaterialData.displacementTextureName.Ascii())) {
-                material.flags |= eHasTextures | eDisplacement;
-                material.displacementTextureIndex = AddTexture(built, importedMaterialData.displacementTextureName);
+            if(StringUtil::Length(importedMaterialData.normalTexture.Ascii())) {
+                material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTexture);
             }
-            if(StringUtil::Length(importedMaterialData.roughnessTextureName.Ascii())) {
-                material.flags |= eHasTextures;
-                material.roughnessTextureIndex = AddTexture(built, importedMaterialData.roughnessTextureName);
+
+            for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
+                material.scalarAttributeValues[scan] = importedMaterialData.scalarAttributes[scan];
+                
+                const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[scan];
+                if(StringUtil::Length(textureName.Ascii())) {
+                    material.scalarAttributeTextureIndices[scan] = AddTexture(built, textureName);
+                }
             }
-            if(StringUtil::Length(importedMaterialData.normalTextureName.Ascii())) {
-                material.flags |= eHasTextures;
-                material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTextureName);
-            }
-            if(StringUtil::Length(importedMaterialData.specularTextureName.Ascii())) {
-                material.flags |= eHasTextures | ePreserveRayDifferentials;
-                material.specularTextureIndex = AddTexture(built, importedMaterialData.specularTextureName);
-            }
-            if(StringUtil::Length(importedMaterialData.metalnessTextureName.Ascii())) {
-                material.flags |= eHasTextures | ePreserveRayDifferentials;
-                material.metalnessTextureIndex = AddTexture(built, importedMaterialData.metalnessTextureName);
+
+            if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
+                material.flags |= eDisplacementEnabled;
             }
         }
 

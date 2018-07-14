@@ -79,7 +79,7 @@ namespace Selas
         float G1 = Bsdf::SmithGGXMasking(absDotNV, a2);
         float G2 = Bsdf::SmithGGXMaskingShading(absDotNL, absDotNV, a2);
 
-        sample.reflectance = surface.albedo * (G2 / G1);
+        sample.reflectance = surface.baseColor * (G2 / G1);
         sample.wi = Normalize(MatrixMultiply(wi, tangentToWorld));
         sample.forwardPdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHV, absDotNL, absDotNV, absDotNH, a2);
         sample.reversePdfW = scatterPdf * Bsdf::GgxVndfPdf(absDotHL, absDotNV, absDotNL, absDotNH, a2);

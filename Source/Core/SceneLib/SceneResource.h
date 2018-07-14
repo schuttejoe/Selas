@@ -28,12 +28,10 @@ namespace Selas
 
     enum eMaterialFlags
     {
-        ePreserveRayDifferentials = 1 << 0,
-        eHasTextures              = 1 << 1,
-        eTransparent              = 1 << 2,
-        eAlphaTested              = 1 << 3,
-        eDisplacement             = 1 << 4,
-        eInvertDisplacement       = 1 << 5
+        eTransparent              = 1 << 0,
+        eAlphaTested              = 1 << 1,
+        eDisplacementEnabled      = 1 << 2,
+        eInvertDisplacement       = 1 << 3
     };
 
     enum MeshIndexTypes
@@ -46,37 +44,49 @@ namespace Selas
         eMeshIndexTypeCount
     };
 
+    enum ScalarMaterialProperties
+    {
+        // -- Disney BSDF parameters
+        eSubsurface,
+        eMetallic,
+        eSpecular,
+        eSpecularTint,
+        eRoughness,
+        eAnisotropic,
+        eSheen,
+        eSheenTint,
+        eClearcoat,
+        eClearcoatGloss,
+        eSpecTrans,
+        eIor,
+
+        // -- other properties
+        eDisplacement,
+
+        eMaterialPropertyCount
+    };
+
     struct Material
     {
         Material()
-            : albedoTextureIndex(InvalidIndex32)
-            , roughnessTextureIndex(InvalidIndex32)
-            , displacementTextureIndex(InvalidIndex32)
+            : baseColorTextureIndex(InvalidIndex32)
             , normalTextureIndex(InvalidIndex32)
-            , specularTextureIndex(InvalidIndex32)
-            , metalnessTextureIndex(InvalidIndex32)
-            , roughness(0.0f)
-            , albedo(0.0f)
-            , metalness(0.0f)
             , flags(0)
             , shader(eDisney)
         {
+            for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
+                scalarAttributeValues[scan] = 0.0f;
+                scalarAttributeTextureIndices[scan] = InvalidIndex32;
+            }
         }
 
-        uint32 albedoTextureIndex;
-        uint32 roughnessTextureIndex;
-        uint32 displacementTextureIndex;
-        uint32 normalTextureIndex;
-        uint32 specularTextureIndex;
-        uint32 metalnessTextureIndex;
-        float  roughness;
-        float  albedo;
-        float  subsurface;
-        float  metalness;
-        float  ior;
-        float  displacementScale;
-        uint32 flags;
         eMaterialShader shader;
+        uint32 baseColorTextureIndex;
+        uint32 normalTextureIndex;
+        uint32 flags;
+        
+        float scalarAttributeValues[eMaterialPropertyCount];
+        uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];
     };
 
     struct SceneMetaData

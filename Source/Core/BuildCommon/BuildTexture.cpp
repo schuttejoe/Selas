@@ -258,7 +258,7 @@ namespace Selas
         }
         else if (channels == 3) {
 
-            bool isSrcSrgb = IsNormalMapTexture(filepath) == false;
+            bool isSrcSrgb = false;
 
             float3* linear = nullptr;
             ReturnError_(ConvertToLinearFloat3Data(rawData, width, height, floatData, isSrcSrgb, linear));
@@ -273,7 +273,7 @@ namespace Selas
         }
         else if(channels == 4) {
 
-            bool isSrcSrgb = true;
+            bool isSrcSrgb = false;
 
             float4* linear = nullptr;
             ReturnError_(ConvertToLinearFloat4Data(rawData, width, height, floatData, isSrcSrgb, linear));

@@ -158,7 +158,7 @@ namespace Selas
         float dotNH = Dot(surface.perturbedNormal, wm);
         float dotLH = Dot(wi, wm);
 
-        float3 F = Fresnel::Schlick(surface.specularColor, dotLH);
+        float3 F = Fresnel::Schlick(surface.baseColor, dotLH);
 
         float G1 = Bsdf::SmithGGXMasking(dotNV, a2);
         float G2 = Bsdf::SmithGGXMaskingShading(dotNL, dotNV, a2);
@@ -172,7 +172,7 @@ namespace Selas
         float fl = Fresnel::Schlick(dotNL);
         float fv = Fresnel::Schlick(dotNV);
 
-        float3 fLambert = Math::OOPi_ * surface.albedo;
+        float3 fLambert = Math::OOPi_ * surface.baseColor;
         float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
         float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 
@@ -204,7 +204,7 @@ namespace Selas
             
             float dotLH = Dot(wi, wm);
 
-            float3 F = Fresnel::Schlick(surface.specularColor, Dot(wi, wm));
+            float3 F = Fresnel::Schlick(surface.baseColor, Dot(wi, wm));
             float G1 = Bsdf::SmithGGXMasking(dotNV, a2);
             float G2 = Bsdf::SmithGGXMaskingShading(dotNL, dotNV, a2);
 
@@ -215,7 +215,7 @@ namespace Selas
             float fl = Fresnel::Schlick(dotNL);
             float fv = Fresnel::Schlick(dotNV);
 
-            float3 fLambert = Math::OOPi_ * surface.albedo;
+            float3 fLambert = Math::OOPi_ * surface.baseColor;
             float3 fRetro = fLambert * rr * (fl + fv + fl * fv * (rr - 1.0f));
             float3 diffuse = fLambert * (1.0f - 0.5f * fl)*(1.0f - 0.5f * fv) + fRetro;
 

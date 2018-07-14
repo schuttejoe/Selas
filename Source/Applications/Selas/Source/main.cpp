@@ -33,7 +33,7 @@
 
 using namespace Selas;
 
-static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
+static cpointer sceneName = "Meshes~PlaneWithSphere.fbx";
 static cpointer iblName = "HDR~simons_town_rocks_4k_upper.hdr";
 
 //==============================================================================
@@ -106,8 +106,8 @@ int main(int argc, char *argv[])
     context.ibl = iblResouce.data;
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
-    //VCM::GenerateImage(context, "vcmTemp", width, height);
+    //PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
+    VCM::GenerateImage(context, "vcmTemp", width, height);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 

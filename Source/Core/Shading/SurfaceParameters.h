@@ -25,12 +25,12 @@ namespace Selas
         float3 view;
         float3x3 worldToTangent;
 
+        float3 baseColor;
+
         // -- material layer info
         eMaterialShader shader;
         uint32 materialFlags;
-        float3 albedo;
         float  metalness;
-        float3 specularColor;
         float  roughness;
         float  subsurface;
 

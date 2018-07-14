@@ -192,17 +192,21 @@ namespace Selas
         surface.position        = hit->position;
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
-        surface.subsurface      = material->subsurface;
 
-        surface.albedo        = material->albedo * SampleTextureFloat3(scene, uvs, material->albedoTextureIndex, false, 1.0f);
-        surface.specularColor = SampleTextureFloat3(scene, uvs, material->specularTextureIndex, false, 0.1f);
-        surface.roughness     = material->roughness * SampleTextureFloat(scene, uvs, material->roughnessTextureIndex, false, 1.0f);
-        surface.metalness     = material->metalness * SampleTextureFloat(scene, uvs, material->metalnessTextureIndex, false, 1.0f);
+
+        //surface.subsurface      = material->subsurface;
+
+        surface.baseColor     = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, 1.0f);
+
+        surface.roughness     = material->scalarAttributeValues[eRoughness] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eRoughness], false, 1.0f);
+        surface.metalness     = material->scalarAttributeValues[eMetallic] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 0.4f);
+
+        float ior = material->scalarAttributeValues[eIor] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eIor], false, 1.0f);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;
-        surface.currentIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? material->ior : 1.0f;
-        surface.exitIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? 1.0f : material->ior;
+        surface.currentIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? ior : 1.0f;
+        surface.exitIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? 1.0f : ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(scene, uvs, material->normalTextureIndex);
@@ -220,19 +224,19 @@ namespace Selas
         rtcInterpolate0((RTCGeometry)scene->rtcGeometries[geomId], primId, baryCoords.x, baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
         static const float kAlphaTestCutoff = 0.5f;
-        return SampleTextureOpacity(scene, uvs, material->albedoTextureIndex) > kAlphaTestCutoff;
+        return SampleTextureOpacity(scene, uvs, material->baseColorTextureIndex) > kAlphaTestCutoff;
     }
 
     //==============================================================================
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
     {
         Material* material = GetSurfaceMaterial(scene, geomId, primId);
-        float displacement = SampleTextureFloat(scene, uvs, material->displacementTextureIndex, false, 0.0f);
+        float displacement = SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eDisplacement], false, 0.0f);
         if(material->flags & eInvertDisplacement) {
             displacement = 1.0f - displacement;
         }
 
-        return material->displacementScale * displacement;
+        return material->scalarAttributeValues[eDisplacement] * displacement;
     }
 
     //==============================================================================
@@ -255,7 +259,7 @@ namespace Selas
     //==============================================================================
     float ContinuationProbability(const SurfaceParameters& surface)
     {
-        float3 value = (1.0f - surface.metalness) * surface.albedo + surface.metalness * surface.specularColor;
+        float3 value = surface.baseColor;
         return Saturate(Max(Max(value.x, value.y), value.z));
     }
 }

@@ -19,20 +19,11 @@ namespace Selas
     struct ImportedMaterialData
     {
         FixedString256 shaderName;
-
-        FilePathString albedoTextureName;
-        FilePathString displacementTextureName;
-        FilePathString normalTextureName;
-        FilePathString roughnessTextureName;
-        FilePathString specularTextureName;
-        FilePathString metalnessTextureName;
-
-        float roughness;
-        float albedo;
-        float subsurface;
-        float metalness;
-        float ior;
-        float displacementScale;
+        FilePathString normalTexture;
+        FilePathString baseColorTexture;
+        FilePathString scalarAttributeTextures[eMaterialPropertyCount];
+        float scalarAttributes[eMaterialPropertyCount];
+        
         bool alphaTested;
         bool invertDisplacement;
     };
