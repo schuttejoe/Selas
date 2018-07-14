@@ -103,6 +103,12 @@ namespace Selas
                     mesh->normals[scan].x = aimesh->mNormals[scan].x;
                     mesh->normals[scan].y = aimesh->mNormals[scan].y;
                     mesh->normals[scan].z = aimesh->mNormals[scan].z;
+                    if(Math::IsNaN(mesh->normals[scan].x) || Math::IsNaN(mesh->normals[scan].y) || Math::IsNaN(mesh->normals[scan].z)) {
+                        hasNans = true;
+                        mesh->normals[scan] = float3::YAxis_;
+                    }
+                    
+                    Assert_(Length(mesh->normals[scan]) > 0.0f);
                 }
             }
 

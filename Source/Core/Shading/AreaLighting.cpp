@@ -245,11 +245,11 @@ namespace Selas
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
         float3 radiance = SampleIbl(context->sceneData->ibl, x, y);
 
-        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
-        float3 sceneCenter = context->sceneData->scene->data->boundingSphere.XYZ();
-
         float3 dX, dZ;
         MakeOrthogonalCoordinateSystem(toIbl, &dX, &dZ);
+
+        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+        float3 sceneCenter = context->sceneData->scene->data->boundingSphere.XYZ();
 
         float2 discSample = SampleConcentricDisc(r2, r3);
         float discPdf = ConcentricDiscPdf();

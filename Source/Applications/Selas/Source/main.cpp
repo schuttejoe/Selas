@@ -33,7 +33,7 @@
 
 using namespace Selas;
 
-static cpointer sceneName = "Meshes~PlaneWithSphere.fbx";
+static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
 static cpointer iblName = "HDR~simons_town_rocks_4k_upper.hdr";
 
 //==============================================================================
