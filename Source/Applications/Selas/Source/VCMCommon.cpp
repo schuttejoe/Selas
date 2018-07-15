@@ -1,7 +1,7 @@
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "VCMCommon.h"
 
@@ -33,7 +33,7 @@ namespace Selas
 {
     namespace VCMCommon
     {
-        //==============================================================================
+        //=========================================================================================================================
         void GenerateLightSample(GIIntegrationContext* context, float vcWeight, uint index, PathState& state)
         {
             Assert_(index < (1 << PathStateIndexBitCount_));
@@ -57,11 +57,12 @@ namespace Selas
             state.dVC             = sample.cosThetaLight / sample.emissionPdfW;
             state.dVM             = sample.cosThetaLight / sample.emissionPdfW * vcWeight;
             state.pathLength      = 1;
-            state.isAreaMeasure   = 0; // -- this would be true for any non infinite light source. false here since we only sample the ibl.
+            state.isAreaMeasure   = 0; // -- this would be true for any non infinite light source.
+                                       // -- false here since we only sample the ibl.
             state.index           = index;
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state)
         {
             const RayCastCameraSettings* __restrict camera = context->camera;
@@ -86,14 +87,15 @@ namespace Selas
             Assert_(state.index < (1 << PathStateIndexBitCount_));
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex)
         {
             return baseRadius / Math::Powf(iterationIndex, 0.5f * (1.0f - radiusAlpha));
         }
 
-        //==============================================================================
-        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha, float iterationIndex)
+        //=========================================================================================================================
+        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha,
+                                                          float iterationIndex)
         {
             float vmSearchRadius = SearchRadius(baseRadius, radiusAlpha, iterationIndex);
 

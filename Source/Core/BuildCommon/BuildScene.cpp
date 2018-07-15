@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCommon/BuildScene.h"
 #include "BuildCommon/SceneBuildPipeline.h"
@@ -17,7 +17,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader, uint32& shaderFlags)
     {
         static const char* shaderNames[] = {
@@ -39,7 +39,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void AppendAndOffsetIndices(const CArray<uint32>& addend, uint32 offset, CArray <uint32>& indices)
     {
         uint addendCount = addend.Length();
@@ -48,7 +48,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
     {
         uint32 totalVertexCount = 0;
@@ -132,7 +132,8 @@ namespace Selas
             vertexOffset += meshData.vertexCount;
         }
 
-        uint32 maxFaceIndices = Max(built->indices[eMeshDisplaced].Length() / 3, built->indices[eMeshAlphaTestedDisplaced].Length() / 3);
+        uint32 maxFaceIndices = Max(built->indices[eMeshDisplaced].Length() / 3,
+                                    built->indices[eMeshAlphaTestedDisplaced].Length() / 3);
         built->faceIndexCounts.Resize(maxFaceIndices);
         for(uint scan = 0; scan < maxFaceIndices; ++scan) {
             built->faceIndexCounts[scan] = 3;
@@ -148,7 +149,7 @@ namespace Selas
         built->boundingSphere = float4(center, radius);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static uint32 AddTexture(BuiltScene* builtScene, const FilePathString& path)
     {
         // JSTODO - Implement a hash set
@@ -162,7 +163,7 @@ namespace Selas
         return (uint32)builtScene->textures.Length() - 1;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltScene* built)
     {
         built->materials.Resize(imported->materials.Length());
@@ -217,7 +218,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltScene* built)
     {
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));

@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "TextureLib/TextureResource.h"
 #include "TextureLib/StbImage.h"
@@ -18,7 +18,7 @@ namespace Selas
 {
     cpointer TextureResource::kDataType = "Textures";
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ReadTextureResource(cpointer textureName, TextureResource* texture)
     {
         FilePathString filepath;
@@ -38,13 +38,13 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownTextureResource(TextureResource* texture)
     {
         SafeFreeAligned_(texture->data);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void DebugWriteTextureMip(TextureResource* texture, uint level, cpointer filepath)
     {
         uint channels = (uint)texture->data->format + 1;
@@ -56,7 +56,7 @@ namespace Selas
         StbImageWrite(filepath, mipWidth, mipHeight, channels, HDR, (void*)mip);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void DebugWriteTextureMips(TextureResource* texture, cpointer folder, cpointer name)
     {
         for(uint scan = 0, count = texture->data->mipCount; scan < count; ++scan) {

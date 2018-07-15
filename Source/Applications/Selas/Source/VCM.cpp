@@ -1,7 +1,7 @@
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "VCM.h"
 #include "VCMCommon.h"
@@ -37,7 +37,7 @@ namespace Selas
 {
     namespace VCM
     {
-        //==============================================================================
+        //=========================================================================================================================
         struct VCMSharedData
         {
             SceneContext* sceneData;
@@ -66,7 +66,7 @@ namespace Selas
             CArray<uint32> pathEnds;
         };
 
-        //==============================================================================
+        //=========================================================================================================================
         static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
         {
             ProfileEventMarker_(0x88FFFFFF, "OcclusionRay");
@@ -92,7 +92,7 @@ namespace Selas
             return (ray.tfar >= 0.0f);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static bool VcOcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
         {
             ProfileEventMarker_(0x88FFFFFF, "VcOcclusionRay");
@@ -119,7 +119,7 @@ namespace Selas
             return (ray.tfar >= 0.0f);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
         {
             ProfileEventMarker_(0x88FFFFFF, "RayPick");
@@ -154,12 +154,13 @@ namespace Selas
             hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
-            hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
+            hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)),
+                                   Max(Math::Absf(hit.position.z), rayhit.ray.tfar));
 
             return true;
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static float3 ConnectToSkyLight(GIIntegrationContext* context, PathState& state)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectToSkyLight");
@@ -178,8 +179,9 @@ namespace Selas
             return misWeight * radiance;
         }
 
-        //==============================================================================
-        static void ConnectLightPathToCamera(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight, float lightPathCount)
+        //=========================================================================================================================
+        static void ConnectLightPathToCamera(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface,
+                                             float vmWeight, float lightPathCount)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectLightPathToCamera");
 
@@ -191,7 +193,8 @@ namespace Selas
             }
 
             int2 imagePosition = WorldToImage(camera, surface.position);
-            if(imagePosition.x < 0 || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0 || imagePosition.y >= camera->viewportHeight) {
+            if(imagePosition.x < 0 || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0 
+               || imagePosition.y >= camera->viewportHeight) {
                 return;
             }
 
@@ -232,8 +235,9 @@ namespace Selas
             }
         }
 
-        //==============================================================================
-        static float3 ConnectCameraPathToLight(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface, float vmWeight)
+        //=========================================================================================================================
+        static float3 ConnectCameraPathToLight(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface,
+                                               float vmWeight)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectCameraPathToLight");
 
@@ -263,7 +267,8 @@ namespace Selas
             float cosThetaSurface = Math::Absf(Dot(surface.perturbedNormal, sample.direction));
 
             float lightWeight = bsdfForwardPdfW / sample.directionPdfA;
-            float cameraWeight = (sample.emissionPdfW * cosThetaSurface / (sample.directionPdfA * sample.cosThetaLight)) * (vmWeight + state.dVCM + state.dVC * bsdfReversePdfW);
+            float cameraWeight = (sample.emissionPdfW * cosThetaSurface / (sample.directionPdfA * sample.cosThetaLight))
+                               * (vmWeight + state.dVCM + state.dVC * bsdfReversePdfW);
             float misWeight = 1.0f / (lightWeight + 1 + cameraWeight);
 
             float3 pathContribution = (misWeight * cosThetaSurface / sample.directionPdfA) * sample.radiance * bsdf;
@@ -278,8 +283,9 @@ namespace Selas
             return float3::Zero_;
         }
 
-        //==============================================================================
-        static float3 ConnectPathVertices(GIIntegrationContext* context, const SurfaceParameters& surface, const PathState& cameraState, const VCMVertex& lightVertex, float vmWeight)
+        //=========================================================================================================================
+        static float3 ConnectPathVertices(GIIntegrationContext* context, const SurfaceParameters& surface,
+                                          const PathState& cameraState, const VCMVertex& lightVertex, float vmWeight)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectPathVertices");
 
@@ -290,7 +296,8 @@ namespace Selas
 
             float cameraBsdfForwardPdfW;
             float cameraBsdfReversePdfW;
-            float3 cameraBsdf = EvaluateBsdf(surface, -cameraState.direction, direction, cameraBsdfForwardPdfW, cameraBsdfReversePdfW);
+            float3 cameraBsdf = EvaluateBsdf(surface, -cameraState.direction, direction, cameraBsdfForwardPdfW,
+                                             cameraBsdfReversePdfW);
             if(cameraBsdf.x == 0 && cameraBsdf.y == 0 && cameraBsdf.z == 0) {
                 return float3::Zero_;
             }
@@ -302,7 +309,8 @@ namespace Selas
 
             float lightBsdfForwardPdfW;
             float lightBsdfReversePdfW;
-            float3 lightBsdf = EvaluateBsdf(lightSurface, -direction, lightSurface.view, lightBsdfForwardPdfW, lightBsdfReversePdfW);
+            float3 lightBsdf = EvaluateBsdf(lightSurface, -direction, lightSurface.view, lightBsdfForwardPdfW,
+                                            lightBsdfReversePdfW);
             if(lightBsdf.x == 0 && lightBsdf.y == 0 && lightBsdf.z == 0) {
                 return float3::Zero_;
             }
@@ -312,7 +320,8 @@ namespace Selas
 
             float geometryTerm = cosThetaLight * cosThetaCamera / distanceSquared;
             if(geometryTerm < 0.0f) {
-                // -- JSTODO - For this to be possible the cosTheta terms would need to be negative. But with transparent surfaces the normal will often be for the other side of the surface.
+                // -- JSTODO - For this to be possible the cosTheta terms would need to be negative. But with transparent
+                // -- surfaces the normal will often be for the other side of the surface.
                 return float3::Zero_;
             }
 
@@ -343,7 +352,7 @@ namespace Selas
             return float3::Zero_;
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void MergeVertices(const VCMVertex& lightVertex, void* userData)
         {
             ProfileEventMarker_(0x88FFFFFF, "MergeVertices");
@@ -393,8 +402,9 @@ namespace Selas
             vmData->result += misWeight * bsdf * lightVertex.throughput;
         }
 
-        //==============================================================================
-        static bool SampleBsdfScattering(CSampler* sampler, const SurfaceParameters& surface, float vmWeight, float vcWeight, PathState& pathState)
+        //=========================================================================================================================
+        static bool SampleBsdfScattering(CSampler* sampler, const SurfaceParameters& surface, float vmWeight, float vcWeight,
+                                         PathState& pathState)
         {
             ProfileEventMarker_(0x88FFFFFF, "SampleBsdfScattering");
 
@@ -418,8 +428,10 @@ namespace Selas
 
             pathState.position = surface.position;
             pathState.throughput = pathState.throughput * sample.reflectance;
-            pathState.dVC = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVC * sample.reversePdfW + pathState.dVCM + vmWeight);
-            pathState.dVM = (cosThetaBsdf / sample.forwardPdfW) * (pathState.dVM * sample.reversePdfW + pathState.dVCM * vcWeight + 1.0f);
+            pathState.dVC = (cosThetaBsdf / sample.forwardPdfW) 
+                          * (pathState.dVC * sample.reversePdfW + pathState.dVCM + vmWeight);
+            pathState.dVM = (cosThetaBsdf / sample.forwardPdfW) 
+                          * (pathState.dVM * sample.reversePdfW + pathState.dVCM * vcWeight + 1.0f);
             pathState.dVCM = 1.0f / sample.forwardPdfW;
             pathState.direction = sample.wi;
             ++pathState.pathLength;
@@ -427,7 +439,7 @@ namespace Selas
             return true;
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static bool EvaluateLightPathHit(const VCMIterationConstants& constants, GIIntegrationContext* context,
                                          PathState& state, HitParameters& hit, LightPathSet* lightPathSet)
         {
@@ -471,7 +483,7 @@ namespace Selas
             return true;
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void GenerateLightSamples(const VCMIterationConstants& constants, GIIntegrationContext* context,
                                          uint start, uint end, PathState* results)
         {
@@ -480,7 +492,7 @@ namespace Selas
             }
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void EvaluateLightPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
                                        uint start, uint end, PathState* pathVertices, LightPathSet* lightPathSet)
         {
@@ -542,7 +554,7 @@ namespace Selas
             }
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void GenerateCameraPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
                                         uint start, uint end, PathState* results)
         {
@@ -554,7 +566,7 @@ namespace Selas
             }
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void EvaluateCameraPaths(const VCMIterationConstants& constants, const LightPathSet* lightPathSet,
                                         GIIntegrationContext* context, uint start, uint end, PathState* pathVertices)
         {
@@ -587,8 +599,8 @@ namespace Selas
                     float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
                     float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
 
-                    // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done at the previous vertex to 
-                    // -- convert the solid angle pdf to the area pdf of the outermost term.
+                    // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done
+                    // -- at the previous vertex to convert the solid angle pdf to the area pdf of the outermost term.
                     cameraPathState.dVCM *= connectionLengthSqr;
                     cameraPathState.dVCM /= absDotNL;
                     cameraPathState.dVC /= absDotNL;
@@ -596,7 +608,8 @@ namespace Selas
 
                     // -- Vertex connection to a light source
                     if(cameraPathState.pathLength + 1 < context->maxPathLength) {
-                        float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface, constants.vmWeight);
+                        float3 sample = cameraPathState.throughput * ConnectCameraPathToLight(context, cameraPathState, surface,
+                                                                                              constants.vmWeight);
                         color += sample;
                     }
 
@@ -614,7 +627,8 @@ namespace Selas
                                     break;
                                 }
 
-                                color += cameraPathState.throughput * lightVertex.throughput * ConnectPathVertices(context, surface, cameraPathState, lightVertex, constants.vmWeight);
+                                color += cameraPathState.throughput * lightVertex.throughput
+                                      * ConnectPathVertices(context, surface, cameraPathState, lightVertex, constants.vmWeight);
                             }
                         }
                     }
@@ -628,13 +642,15 @@ namespace Selas
                         callbackData.cameraState = &cameraPathState;
                         callbackData.vcWeight = constants.vcWeight;
                         callbackData.result = float3::Zero_;
-                        SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->lightVertices, surface.position, &callbackData, MergeVertices);
+                        SearchHashGrid(&lightPathSet->hashGrid, lightPathSet->lightVertices, surface.position, &callbackData,
+                                       MergeVertices);
 
                         color += cameraPathState.throughput * constants.vmNormalization * callbackData.result;
                     }
 
                     // -- bsdf scattering to advance the path
-                    if(SampleBsdfScattering(&context->sampler, surface, constants.vmWeight, constants.vcWeight, cameraPathState) == false) {
+                    if(SampleBsdfScattering(&context->sampler, surface, constants.vmWeight, constants.vcWeight,
+                                            cameraPathState) == false) {
                         break;
                     }
                 }
@@ -643,9 +659,10 @@ namespace Selas
             }
         }
 
-        //==============================================================================
-        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegrationContext* context, LightPathSet* lightPathSet,
-                                               const VCMIterationConstants& constants, uint width, uint height)
+        //=========================================================================================================================
+        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegrationContext* context,
+                                               LightPathSet* lightPathSet, const VCMIterationConstants& constants,
+                                               uint width, uint height)
         {
             ProfileEventMarker_(0, "VertexConnectionAndMerging");
 
@@ -671,7 +688,7 @@ namespace Selas
             }
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         static void VCMKernel(void* userData)
         {
             VCMSharedData* sharedData = static_cast<VCMSharedData*>(userData);
@@ -703,7 +720,9 @@ namespace Selas
                 uint vmCount = 1 * width * height;
                 uint vcCount = 1;
 
-                VCMIterationConstants constants = VCMCommon::CalculateIterationConstants(vmCount, vcCount, sharedData->vcmRadius, sharedData->vcmRadiusAlpha, iterationIndex);
+                VCMIterationConstants constants = VCMCommon::CalculateIterationConstants(vmCount, vcCount, sharedData->vcmRadius,
+                                                                                         sharedData->vcmRadiusAlpha,
+                                                                                         iterationIndex);
 
                 VertexConnectionAndMerging(pathVertices, &context, &lightPathSet, constants, width, height);
                 ++iterationCount;
@@ -723,7 +742,7 @@ namespace Selas
             Atomic::Increment64(sharedData->completedThreads);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
             const SceneResource* scene = context.scene;

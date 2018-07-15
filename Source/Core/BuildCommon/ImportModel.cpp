@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCommon/ImportModel.h"
 #include "BuildCore/BuildContext.h"
@@ -22,7 +22,7 @@ namespace Selas
 {
     #define AssImpVec3ToFloat3_(v) float3(v.x, v.y, v.z)
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error CountMeshes(const aiScene* aiscene, const aiNode* node, uint& count)
     {
         count += node->mNumMeshes;
@@ -34,7 +34,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void ExtractTriangles(const aiFace* face, CArray<uint32>& indices)
     {
         Assert_(face->mNumIndices == 3);
@@ -43,7 +43,7 @@ namespace Selas
         indices.Add(face->mIndices[2]);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void ExtractQuad(const aiFace* face, CArray<uint32>& indices)
     {
         Assert_(face->mNumIndices == 4);
@@ -57,7 +57,7 @@ namespace Selas
         indices.Add(face->mIndices[3]);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void ExtractMaterials(const aiScene* aiscene, ImportedModel* scene)
     {
         uint32 materialCount = aiscene->mNumMaterials;
@@ -72,7 +72,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* scene, uint& meshIndex)
     {
         for(uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
@@ -103,7 +103,8 @@ namespace Selas
                     mesh->normals[scan].x = aimesh->mNormals[scan].x;
                     mesh->normals[scan].y = aimesh->mNormals[scan].y;
                     mesh->normals[scan].z = aimesh->mNormals[scan].z;
-                    if(Math::IsNaN(mesh->normals[scan].x) || Math::IsNaN(mesh->normals[scan].y) || Math::IsNaN(mesh->normals[scan].z)) {
+                    if(Math::IsNaN(mesh->normals[scan].x) || Math::IsNaN(mesh->normals[scan].y) 
+                        || Math::IsNaN(mesh->normals[scan].z)) {
                         hasNans = true;
                         mesh->normals[scan] = float3::YAxis_;
                     }
@@ -129,11 +130,13 @@ namespace Selas
                     mesh->bitangents[scan] = AssImpVec3ToFloat3_(aimesh->mBitangents[scan]);
 
                     bool hackCoordinateFrame = false;
-                    if(Math::IsNaN(mesh->tangents[scan].x) || Math::IsNaN(mesh->tangents[scan].y) || Math::IsNaN(mesh->tangents[scan].z)) {
+                    if(Math::IsNaN(mesh->tangents[scan].x) || Math::IsNaN(mesh->tangents[scan].y)
+                        || Math::IsNaN(mesh->tangents[scan].z)) {
                         hasNans = true;
                         hackCoordinateFrame = true;
                     }
-                    if(Math::IsNaN(mesh->bitangents[scan].x) || Math::IsNaN(mesh->bitangents[scan].y) || Math::IsNaN(mesh->bitangents[scan].z)) {
+                    if(Math::IsNaN(mesh->bitangents[scan].x) || Math::IsNaN(mesh->bitangents[scan].y) 
+                        || Math::IsNaN(mesh->bitangents[scan].z)) {
                         hasNans = true;
                         hackCoordinateFrame = true;
                     }
@@ -161,7 +164,8 @@ namespace Selas
             }
 
             if(hasNans) {
-                WriteDebugInfo_("Found NaNs in tangent space of mesh '%s'. Replacing with random coordinate frame.", aimesh->mName.C_Str());
+                WriteDebugInfo_("Found NaNs in tangent space of mesh '%s'. Replacing with random coordinate frame.",
+                                aimesh->mName.C_Str());
             }
         }
 
@@ -172,7 +176,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ExtractCamera(const aiScene* aiscene, ImportedModel* scene)
     {
         // -- prepare defaults
@@ -197,7 +201,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ImportModel(BuildProcessorContext* context, ImportedModel* scene)
     {
         FilePathString filepath;
@@ -240,7 +244,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownImportedModel(ImportedModel* scene)
     {
         for(uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {

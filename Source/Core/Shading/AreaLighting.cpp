@@ -1,7 +1,7 @@
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "Shading/AreaLighting.h"
 #include "Shading/SurfaceParameters.h"
@@ -24,7 +24,7 @@ namespace Selas
 {
     #define MaxBounceCount_  10
 
-    //==============================================================================
+    //=============================================================================================================================
     bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
     {
         // // -- Why does this need to be so "large" to avoid artifacts when lighting from a point light?
@@ -52,8 +52,9 @@ namespace Selas
         return true;
     }
 
-    //==============================================================================
-    float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    //=============================================================================================================================
+    float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+                                           RectangularAreaLight light, uint sampleCount)
     {
         float3 eX = light.eX;
         float3 eZ = light.eZ;
@@ -94,8 +95,9 @@ namespace Selas
         return Lo * (1.0f / (pdf * sampleCount));
     }
 
-    //==============================================================================
-    float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, RectangularAreaLight light, uint sampleCount)
+    //=============================================================================================================================
+    float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+                                                 RectangularAreaLight light, uint sampleCount)
     {
         float3 eX = light.eX;
         float3 eZ = light.eZ;
@@ -134,8 +136,9 @@ namespace Selas
         return Lo * (1.0f / (pdf * sampleCount));
     }
 
-    //==============================================================================
-    float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, SphericalAreaLight light, uint lightSampleCount)
+    //=============================================================================================================================
+    float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+                                                SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -172,8 +175,9 @@ namespace Selas
         return Lo * (1.0f / (lightSampleCount * pdf));
     }
 
-    //==============================================================================
-    float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface, float3 view, SphericalAreaLight light, uint lightSampleCount)
+    //=============================================================================================================================
+    float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+                                                      float3 view, SphericalAreaLight light, uint lightSampleCount)
     {
         float3 L = light.intensity;
         float3 c = light.center;
@@ -222,7 +226,7 @@ namespace Selas
         return Lo * (1.0f / lightSampleCount);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void EmitIblLightSample(GIIntegrationContext* __restrict context, LightEmissionSample& sample)
     {
         // -- http://www.iliyan.com/publications/ImplementingVCM/ImplementingVCM_TechRep2012_rev2.pdf
@@ -266,7 +270,7 @@ namespace Selas
         sample.cosThetaLight = 1.0f; // -- not used
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void DirectIblLightSample(GIIntegrationContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
@@ -292,7 +296,7 @@ namespace Selas
         sample.cosThetaLight = 1.0f; // -- not used for ibl light source
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 IblCalculateRadiance(GIIntegrationContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
     {
         float iblPdfA;
@@ -306,7 +310,7 @@ namespace Selas
         return radiance;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float DirectIblLightPdf(GIIntegrationContext* __restrict context, float3 wi)
     {
         return SampleIBlPdf(context->sceneData->ibl, wi);

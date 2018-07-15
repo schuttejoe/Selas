@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCommon/BuildImageBasedLight.h"
 #include "BuildCore/BuildContext.h"
@@ -13,13 +13,13 @@
 namespace Selas
 {
 
-    //==============================================================================
+    //=============================================================================================================================
     static float CieIntensity(float3 rgb)
     {
         return rgb.x * 0.2125f + rgb.y * 0.7154f + rgb.z * 0.0721f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float* CalculateIntensityMap(uint width, uint height, float3* __restrict hdr)
     {
         float* intensities = AllocArray_(float, width * height);
@@ -34,8 +34,9 @@ namespace Selas
         return intensities;
     }
 
-    //==============================================================================
-    static void CalculateStrataDistributionFunctions(uint width, uint height, float* __restrict intensities, IblDensityFunctions* functions)
+    //=============================================================================================================================
+    static void CalculateStrataDistributionFunctions(uint width, uint height, float* __restrict intensities,
+                                                     IblDensityFunctions* functions)
     {
         uint mdfCount = CalculateMarginalDensityFunctionCount(width, height);
         uint cdfCount = CalculateConditionalDensityFunctionsCount(width, height);
@@ -95,7 +96,7 @@ namespace Selas
         functions->marginalDensityFunction[height - 1] = 1.0f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ImportImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* ibl)
     {
         FilePathString filepath;

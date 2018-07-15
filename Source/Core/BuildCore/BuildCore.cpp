@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildProcessor.h"
@@ -24,7 +24,7 @@ namespace Selas
     typedef std::pair<Hash32, CBuildProcessor*> ProcessorKeyValue;
     typedef std::map<Hash32, CBuildProcessor*>::iterator ProcessorIterator;
 
-    //==============================================================================
+    //=============================================================================================================================
     struct BuildCoreData
     {
         ProcessorMap buildProcessors;
@@ -41,7 +41,7 @@ namespace Selas
         JobGroup jobGroup;
     };
 
-    //==============================================================================
+    //=============================================================================================================================
     struct BuildCoreJobData
     {
         CBuildProcessor* processor;
@@ -51,7 +51,7 @@ namespace Selas
         BuildProcessorContext context;
     };
 
-    //==============================================================================
+    //=============================================================================================================================
     static BuildCoreJobData* AllocateJobData(BuildCoreData* coreData)
     {
         BuildCoreJobData* jobData = QueueList_Pop<BuildCoreJobData*>(&coreData->jobDataFreeList);
@@ -62,7 +62,7 @@ namespace Selas
         return New_(BuildCoreJobData);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     CBuildCore::CBuildCore()
         : _jobMgr(nullptr)
         , _coreData(nullptr)
@@ -70,14 +70,14 @@ namespace Selas
 
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     CBuildCore::~CBuildCore()
     {
         AssertMsg_(_jobMgr == nullptr, "Shutdown not called on CBuildCore");
         AssertMsg_(_coreData == nullptr, "Shutdown not called on CBuildCore");
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CBuildCore::Initialize(CJobMgr* jobMgr, CBuildDependencyGraph* depGraph)
     {
         _jobMgr = jobMgr;
@@ -93,7 +93,7 @@ namespace Selas
         QueueList_Initialize(&_coreData->completedQueue, /*maxFreeListSize=*/64);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CBuildCore::Shutdown()
     {
         for(ProcessorIterator it = _coreData->buildProcessors.begin(); it != _coreData->buildProcessors.end(); ++it) {
@@ -117,7 +117,7 @@ namespace Selas
         _jobMgr = nullptr;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CBuildCore::RegisterBuildProcessor(CBuildProcessor* processor)
     {
         processor->Setup();
@@ -129,7 +129,7 @@ namespace Selas
         _coreData->buildProcessors.insert(ProcessorKeyValue(pattern, processor));
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error CBuildCore::BuildAsset(ContentId id)
     {
         Assert_(_coreData != nullptr);
@@ -146,7 +146,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error CBuildCore::Execute()
     {
         #define MainThreadIdleBackoffCount_     10
@@ -182,7 +182,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CBuildCore::EnqueueInternal(ContentId source, AssetId id)
     {
         BuildProcessDependencies* deps = _coreData->depGraph->Find(id);
@@ -195,7 +195,7 @@ namespace Selas
         QueueList_Push(&_coreData->pendingQueue, deps);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CBuildCore::EnqueueDependencies(BuildProcessDependencies* dependencies)
     {
         for(uint scan = 0, count = dependencies->processDependencies.Length(); scan < count; ++scan) {
@@ -207,7 +207,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CBuildCore::IsBuildComplete()
     {
         bool hasPendingJobs = _jobMgr->GroupDone(&_coreData->jobGroup) == false;
@@ -217,7 +217,7 @@ namespace Selas
         return (!hasPendingJobs && !hasPendingWork && !hasCompletedJob);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CBuildCore::HasCompletedProcesses()
     {
         EnterSpinLock(_coreData->mtQueuesSpinlock);
@@ -227,7 +227,7 @@ namespace Selas
         return empty == false;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CBuildCore::ProcessCompletedQueue()
     {
         EnterSpinLock(_coreData->mtQueuesSpinlock);
@@ -259,7 +259,7 @@ namespace Selas
         return true;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void ExecuteBuildJob(void* userData)
     {
         BuildCoreJobData* jobData = (BuildCoreJobData*)userData;
@@ -278,7 +278,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CBuildCore::ProcessPendingQueue()
     {
         BuildProcessDependencies* next = QueueList_Pop<BuildProcessDependencies*>(&_coreData->pendingQueue);

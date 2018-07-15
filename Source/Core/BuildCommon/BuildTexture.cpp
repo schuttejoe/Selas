@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCommon/BuildTexture.h"
 #include "BuildCore/BuildContext.h"
@@ -22,7 +22,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     static void Uint32ToLinearFloat4(bool isLinear, uint width, uint height, uint32* rawData, float4* output)
     {
         uint count = width * height;
@@ -35,7 +35,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void Uint8ToLinearFloat(bool isLinear, uint width, uint height, uint8* rawData, float* output)
     {
         uint count = width * height;
@@ -49,7 +49,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void Uint24ToLinearFloat3(bool isLinear, uint width, uint height, uint8* rawData, float3* output)
     {
         uint count = width * height;
@@ -64,7 +64,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void Float4ToLinearFloat3(bool isLinear, uint width, uint height, float4* rawData, float3* output)
     {
         uint count = width * height;
@@ -78,7 +78,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ConvertToLinearFloatData(void* rawData, uint width, uint height, float*& output)
     {
         uint count = width * height;
@@ -89,7 +89,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ConvertToLinearFloat3Data(void* rawData, uint width, uint height, bool floatData, bool isSrcSrgb, float3*& output)
     {
         uint count = width * height;
@@ -105,7 +105,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ConvertToLinearFloat4Data(void* rawData, uint width, uint height, bool floatData, bool isSrcSrgb, float4*& output)
     {
         uint count = width * height;
@@ -121,7 +121,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     template <typename Type_>
     static void BoxFilterMip(Type_* srcMip, uint srcWidth, uint srcHeight, Type_* dstMip, uint dstWidth, uint dstHeight)
     {
@@ -151,10 +151,11 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     template <typename Type_>
     static bool GenerateMipMaps(TextureMipFilters prefilter, Type_* linear, uint width, uint height,
-                                uint64* mipOffsets, uint32* mipWidths, uint32* mipHeights, Type_*& mipmaps, uint32& mipCount, uint32& dataSize)
+                                uint64* mipOffsets, uint32* mipWidths, uint32* mipHeights, Type_*& mipmaps, uint32& mipCount,
+                                uint32& dataSize)
     {
         AssertMsg_(prefilter == Box, "Only Box filter is currently implemented");
 
@@ -199,7 +200,8 @@ namespace Selas
 
             switch(prefilter) {
             case Box:
-                BoxFilterMip(mipmaps + indexOffset, srcWidth, srcHeight, mipmaps + indexOffset + srcTexelCount, dstWidth, dstHeight);
+                BoxFilterMip(mipmaps + indexOffset, srcWidth, srcHeight, mipmaps + indexOffset + srcTexelCount, dstWidth,
+                             dstHeight);
             };
 
             indexOffset += srcTexelCount;
@@ -211,7 +213,7 @@ namespace Selas
         return true;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool IsNormalMapTexture(const FilePathString& str)
     {
         if(StringUtil::FindSubString(str.Ascii(), "_Normal") != nullptr) {
@@ -225,7 +227,7 @@ namespace Selas
         return false;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ImportTexture(BuildProcessorContext* context, TextureMipFilters prefilter, TextureResourceData* texture)
     {
         FilePathString filepath;
@@ -251,7 +253,8 @@ namespace Selas
             float* textureData;
             texture->dataSize = 0;
             result = GenerateMipMaps<float>(prefilter, linear, width, height,
-                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount,
+                                    texture->dataSize);
             texture->texture = reinterpret_cast<uint8*>(textureData);
             texture->format = TextureResourceData::Float;
             Free_(linear);
@@ -266,7 +269,8 @@ namespace Selas
             float3* textureData;
             texture->dataSize = 0;
             result = GenerateMipMaps<float3>(prefilter, linear, width, height,
-                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+                                     texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount,
+                                     texture->dataSize);
             texture->texture = reinterpret_cast<uint8*>(textureData);
             texture->format = TextureResourceData::Float3;
             Free_(linear);
@@ -281,7 +285,8 @@ namespace Selas
             float4* textureData;
             texture->dataSize = 0;
             result = GenerateMipMaps<float4>(prefilter, linear, width, height,
-                                             texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData, texture->mipCount, texture->dataSize);
+                                             texture->mipOffsets, texture->mipWidths, texture->mipHeights, textureData,
+                                             texture->mipCount, texture->dataSize);
             texture->texture = reinterpret_cast<uint8*>(textureData);
             texture->format = TextureResourceData::Float4;
             Free_(linear);

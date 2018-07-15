@@ -1,8 +1,8 @@
 #pragma once
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "TextureLib/TextureResource.h"
 #include "MathLib/FloatFuncs.h"
@@ -30,7 +30,7 @@ namespace Selas
 
         void InitializeEWAFilterWeights();
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         static Type_ Sample(Type_* mip, WrapMode wrapMode, uint32 w, uint32 h, int32 s, int32 t)
         {
@@ -50,7 +50,7 @@ namespace Selas
             return mip[t * w + s];
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         static void Point(TextureResourceData* texture, float2 st, Type_& result)
         {
@@ -72,7 +72,7 @@ namespace Selas
             result = Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0, t0);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         void Triangle(TextureResourceData* texture, int32 level, float2 st, Type_& result)
         {
@@ -99,7 +99,7 @@ namespace Selas
                 ds * dt  * Sample<Type_>(mip, wrapMode, mipWidth, mipHeight, s0 + 1, t0 + 1);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         static void EWA(TextureResourceData* texture, int32 reqLevel, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
@@ -168,7 +168,7 @@ namespace Selas
             result = sum * (1.0f / sumWts);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         static void Trilinear(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
         {
@@ -192,7 +192,7 @@ namespace Selas
             result = Lerp(r0, r1, lod - ilod);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         template <typename Type_>
         static void EWA(TextureResourceData* texture, float2 st, float2 dst0, float2 dst1, Type_& result)
         {

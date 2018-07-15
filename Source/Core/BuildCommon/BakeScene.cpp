@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCommon/BakeScene.h"
 #include "BuildCore/BuildContext.h"
@@ -8,7 +8,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
     {
         uint32 materialCount = sceneData.materials.Length();
@@ -25,7 +25,7 @@ namespace Selas
     }
 
 
-    //==============================================================================
+    //=============================================================================================================================
     static void SerializeBufferAligned(BinaryWriter* writer, void* data, uint32 dataSize, uint32 pw2alignment)
     {
         SerializerWritePointerOffsetX64(writer);
@@ -38,22 +38,29 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void SerializeGeometry(BinaryWriter* writer, const BuiltScene& sceneData)
     {  
         for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-            SerializeBufferAligned(writer, (void*)sceneData.indices[scan].GetData(), sceneData.indices[scan].DataSize(), SceneResource::kSceneDataAlignment);
+            SerializeBufferAligned(writer, (void*)sceneData.indices[scan].GetData(), sceneData.indices[scan].DataSize(), 
+                                   SceneResource::kSceneDataAlignment);
         }
-        SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.GetData(), sceneData.faceIndexCounts.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.GetData(), sceneData.faceIndexCounts.DataSize(),
+                               SceneResource::kSceneDataAlignment);
 
-        SerializeBufferAligned(writer, (void*)sceneData.positions.GetData(), sceneData.positions.DataSize(), SceneResource::kSceneDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.normals.GetData(), sceneData.normals.DataSize(), SceneResource::kSceneDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.tangents.GetData(), sceneData.tangents.DataSize(), SceneResource::kSceneDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.uvs.GetData(), sceneData.uvs.DataSize(), SceneResource::kSceneDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize(), SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.positions.GetData(), sceneData.positions.DataSize(),
+                               SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.normals.GetData(), sceneData.normals.DataSize(),
+                               SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.tangents.GetData(), sceneData.tangents.DataSize(),
+                               SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.uvs.GetData(), sceneData.uvs.DataSize(),
+                               SceneResource::kSceneDataAlignment);
+        SerializeBufferAligned(writer, (void*)sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize(),
+                               SceneResource::kSceneDataAlignment);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error BakeSceneMetaData(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
         uint32 presize = sceneData.textures.DataSize() + sceneData.materials.DataSize();
@@ -83,14 +90,15 @@ namespace Selas
         uint32 assetSize;
         ReturnError_(SerializerEnd(&writer, assetData, assetSize));
 
-        ReturnError_(context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), assetData, assetSize));
+        ReturnError_(context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(),
+                                           assetData, assetSize));
 
         Free_(assetData);
 
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error BakeSceneGeometryData(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
         uint32 indexSize = 0;
@@ -115,14 +123,15 @@ namespace Selas
         uint32 assetSize;
         ReturnError_(SerializerEnd(&writer, assetData, assetSize));
 
-        ReturnError_(context->CreateOutput(SceneResource::kGeometryDataType, SceneResource::kDataVersion, context->source.name.Ascii(), assetData, assetSize));
+        ReturnError_(context->CreateOutput(SceneResource::kGeometryDataType, SceneResource::kDataVersion,
+                                           context->source.name.Ascii(), assetData, assetSize));
 
         Free_(assetData);
 
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error BakeScene(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
         ReturnError_(BakeSceneMetaData(context, sceneData));

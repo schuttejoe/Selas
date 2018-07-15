@@ -9,6 +9,12 @@
 		},
 		{
 			"path": "Scripts"
+		},
+		{
+			"path": "Source\\Applications"
+		},
+		{
+			"path": "Source\\Core"
 		}
 	]
 }

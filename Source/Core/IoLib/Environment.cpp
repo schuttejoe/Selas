@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "IoLib/Environment.h"
 #include "StringLib/StringUtil.h"
@@ -11,7 +11,7 @@ namespace Selas
 {
     static FixedString128 rootDirectory;
 
-    //==============================================================================
+    //=============================================================================================================================
     void Environment_Initialize(cpointer projectName, cpointer exeDir)
     {
         FixedString256 sanitized;
@@ -33,14 +33,15 @@ namespace Selas
             uint32 toProjectDirSize = (uint32)(root - sanitized.Ascii());
             uint32 projectNameSize = StringUtil::Length(projectName);
 
-            StringUtil::CopyN(rootDirectory.Ascii(), (int32)rootDirectory.Capacity(), sanitized.Ascii(), (int32)(toProjectDirSize + projectNameSize + 1));
+            StringUtil::CopyN(rootDirectory.Ascii(), (int32)rootDirectory.Capacity(), sanitized.Ascii(),
+                              (int32)(toProjectDirSize + projectNameSize + 1));
         }
         else {
             StringUtil::GetFolderPath(sanitized.Ascii(), rootDirectory.Ascii(), (uint32)rootDirectory.Capacity());
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     FixedString128 Environment_Root()
     {
         return rootDirectory;

@@ -1,7 +1,7 @@
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "Shading/Disney.h"
 #include "Shading/Lighting.h"
@@ -26,13 +26,13 @@ namespace Selas
     // Disney BRDF explorer
     // https://github.com/wdas/brdf
 
-    //==============================================================================
+    //=============================================================================================================================
     static float BsdfNDot(float3 x)
     {
         return x.y;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 DisneyDiffuse(const float3& baseColor, float absDotNL, float absDotNV, float dotIH)
     {
         float fl = Fresnel::Schlick(absDotNL);
@@ -41,7 +41,7 @@ namespace Selas
         return baseColor * Math::OOPi_ * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 HanrahanKrueger(const float3& baseColor, float roughness, float absDotNL, float absDotNV, float dotHL)
     {
         float fss90 = dotHL * dotHL * roughness;
@@ -54,7 +54,7 @@ namespace Selas
         return baseColor * Math::OOPi_ * ss;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 DisneyRetro(const float3& baseColor, float roughness, float absDotNL, float absDotNV, float dotHL)
     {
         float fl = Fresnel::Schlick(absDotNL);
@@ -64,27 +64,27 @@ namespace Selas
         return baseColor * Math::OOPi_ * retro * (fl + fv + fl * fv * (retro - 1.0f));
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 DisneySheen(const float3& baseColor, float dotHL)
     {
         return baseColor * Fresnel::Schlick(dotHL);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     // -- "generalized" Trowbridge-Reitz curve ungeneralized with a hard-coded exponent of 1
     static float GTR1(float absDotHL, float a2)
     {
         return (a2 - 1.0f) / (Math::Pi_ * Math::Log2(a2) * (1.0f + (a2 - 1.0f) * absDotHL * absDotHL));
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float CorrelatedSmithMasking(float cosTheta, float a2)
     {
         float cosTheta2 = cosTheta * cosTheta;
         return 1.0f / (cosTheta + Math::Sqrtf(a2 + cosTheta2 - a2 * cosTheta2));
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 DisneyClearcoat(float weight, float gloss, float absDotNL, float absDotNV, float dotNH, float dotHL)
     {
         float d = GTR1(Math::Absf(dotNH), Lerp(0.1f, 0.001f, gloss));
@@ -94,7 +94,7 @@ namespace Selas
         return 0.25f * weight * d * f * g;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static bool SampleDisneyClearcoat(CSampler* sampler, const SurfaceParameters& surface, const float3& v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
@@ -140,7 +140,7 @@ namespace Selas
         return true;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 EvaluateDisneyBrdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
     {
         // JSTODO - validate me
@@ -182,7 +182,7 @@ namespace Selas
         return surface.metalness * F * (G2 / G1) * D + (1.0f - surface.metalness) * diffuse;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool SampleDisneyBrdf(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));

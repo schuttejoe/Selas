@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
@@ -9,7 +9,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world)
     {
         float4 clip = MatrixMultiplyFloat4(float4(world, 1.0f), camera->worldToClip);
@@ -20,14 +20,14 @@ namespace Selas
         return image;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y)
     {
         float4 un = MatrixMultiplyFloat4(float4(x, y, 0.0f, 1.0f), camera->imageToWorld);
         return (1.0f / un.w) * float3(un.x, un.y, un.z);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, CSampler* sampler, float viewX, float viewY)
     {
         // JSTODO - Blue noise probably ideal here. Maybe this: http://liris.cnrs.fr/david.coeurjolly/publications/perrier18eg.html ?
@@ -44,7 +44,7 @@ namespace Selas
         return result;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void InitializeRayCastCamera(const CameraSettings& settings, uint width, uint height, RayCastCameraSettings& camera)
     {
         float aspect = (float)width / height;

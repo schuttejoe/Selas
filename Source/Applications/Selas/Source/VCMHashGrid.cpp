@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "VCMHashGrid.h"
 #include "VCMCommon.h"
@@ -11,7 +11,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     static uint CalculateCellIndex(int3 xyz, uint cellCount)
     {
         uint x = uint(xyz.x);
@@ -21,7 +21,7 @@ namespace Selas
         return int(((x * 73856093) ^ (y * 19349663) ^ (z * 83492791)) % cellCount);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static uint CalculateCellIndex(const VCMHashGrid* __restrict hashGrid, float3 point)
     {
         float3 fromCorner = point - hashGrid->aaBox.min;
@@ -34,7 +34,7 @@ namespace Selas
         return CalculateCellIndex(xyz, hashGrid->cellCount);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static int2 GetCellRange(const VCMHashGrid* __restrict hashGrid, uint cellIndex)
     {
         if(cellIndex == 0) {
@@ -44,7 +44,7 @@ namespace Selas
         return int2(hashGrid->cellRangeEnds[cellIndex - 1], hashGrid->cellRangeEnds[cellIndex]);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void BuildHashGrid(VCMHashGrid* __restrict hashGrid, uint cellCount, float radius, const CArray<VCMVertex>& points)
     {
         float radiusSquare    = radius * radius;
@@ -86,7 +86,8 @@ namespace Selas
             sum += rangeCount;
         }
 
-        // -- Assign each point to an index. This sums up each cell such that each cellRangeEnds[x] will now be the exclusive end index of that cell's range
+        // -- Assign each point to an index. This sums up each cell such that each cellRangeEnds[x] will now
+        // -- be the exclusive end index of that cell's range
         for(uint scan = 0; scan < pointCount; ++scan) {
             uint cellIndex = CalculateCellIndex(hashGrid, points[scan].hit.position);
 
@@ -95,15 +96,16 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownHashGrid(VCMHashGrid* hashGrid)
     {
         hashGrid->cellIndices.Close();
         hashGrid->cellRangeEnds.Close();
     }
 
-    //==============================================================================
-    void SearchHashGrid(const VCMHashGrid* __restrict hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData, HashGridCallbackFunction callback)
+    //=============================================================================================================================
+    void SearchHashGrid(const VCMHashGrid* __restrict hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData,
+                        HashGridCallbackFunction callback)
     {
         // -- Verify the given position is within the range
         float3 deltaMin = position - hashGrid->aaBox.min;

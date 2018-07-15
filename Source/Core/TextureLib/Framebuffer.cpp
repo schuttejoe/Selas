@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "TextureLib/Framebuffer.h"
 #include "TextureLib/StbImage.h"
@@ -14,7 +14,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     void FrameBuffer_Initialize(Framebuffer* frame, uint32 width, uint32 height)
     {
         frame->width = width;
@@ -25,13 +25,13 @@ namespace Selas
         Memory::Zero(frame->buffer, sizeof(float3) * width * height);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FrameBuffer_Shutdown(Framebuffer* frame)
     {
         FreeAligned_(frame->buffer);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FrameBuffer_Save(Framebuffer* frame, cpointer name)
     {
         FixedString128 root = Environment_Root();
@@ -48,7 +48,7 @@ namespace Selas
         StbImageWrite(filepath.Ascii(), frame->width, frame->height, 3, HDR, frame->buffer);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FrameBuffer_Normalize(Framebuffer* __restrict frame, float term)
     {
         uint indexcount = frame->width * frame->height;
@@ -57,7 +57,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FramebufferWriter_Initialize(FramebufferWriter* writer, Framebuffer* frame, uint32 capacity, uint32 softCapacity)
     {
         writer->count = 0;
@@ -68,7 +68,7 @@ namespace Selas
         writer->samples = AllocArrayAligned_(FramebufferSample, capacity, 16);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void FlushInternal(FramebufferWriter* __restrict writer)
     {
         Assert_(*writer->framebuffer->spinlock == 1);
@@ -83,14 +83,14 @@ namespace Selas
         writer->count = 0;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FramebufferWriter_Write(FramebufferWriter* __restrict writer, float3 sample, uint32 x, uint32 y)
     {
         uint32 index = writer->framebuffer->width * y + x;
         FramebufferWriter_Write(writer, sample, index);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FramebufferWriter_Write(FramebufferWriter* writer, float3 sample, uint32 index)
     {
         if(writer->count == writer->capacity) {
@@ -112,7 +112,7 @@ namespace Selas
         }
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FramebufferWriter_Flush(FramebufferWriter* writer)
     {
         EnterSpinLock(writer->framebuffer->spinlock);
@@ -120,7 +120,7 @@ namespace Selas
         LeaveSpinLock(writer->framebuffer->spinlock);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void FramebufferWriter_Shutdown(FramebufferWriter* writer)
     {
         FramebufferWriter_Flush(writer);

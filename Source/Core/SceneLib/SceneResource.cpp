@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "SceneLib/SceneResource.h"
 #include "TextureLib/TextureResource.h"
@@ -27,11 +27,11 @@ namespace Selas
     const uint32 SceneResource::kSceneDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kSceneDataAlignment == 0, "SceneGeometryData must be aligned");
 
-    //==============================================================================
+    //=============================================================================================================================
     // Embree Setup
-    //==============================================================================
+    //=============================================================================================================================
 
-    //==============================================================================
+    //=============================================================================================================================
     static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
     {
         int* valid = args->valid;
@@ -48,7 +48,7 @@ namespace Selas
     }
 
     #if EnableDisplacement_
-    //==============================================================================
+    //=============================================================================================================================
     static void DisplacementFunction(const RTCDisplacementFunctionNArguments* args)
     {
         const float* nx = args->Ng_x;
@@ -94,7 +94,7 @@ namespace Selas
     }
     #endif
 
-    //==============================================================================
+    //=============================================================================================================================
     static void SetVertexAttributes(RTCGeometry geom, SceneResource* scene)
     {
         SceneMetaData* metadata = scene->data;
@@ -105,17 +105,21 @@ namespace Selas
         Assert_(((uint)geometry->tangents & (SceneResource::kSceneDataAlignment - 1)) == 0);
         Assert_(((uint)geometry->uvs & (SceneResource::kSceneDataAlignment - 1)) == 0);
 
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), metadata->totalVertexCount);
+        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), 
+                                   metadata->totalVertexCount);
 
         rtcSetGeometryVertexAttributeCount(geom, 3);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0, sizeof(float3), metadata->totalVertexCount);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0, sizeof(float4), metadata->totalVertexCount);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0, sizeof(float2), metadata->totalVertexCount);
+        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0, 
+                                   sizeof(float3), metadata->totalVertexCount);
+        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0, 
+                                   sizeof(float4), metadata->totalVertexCount);
+        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
+                                   sizeof(float2), metadata->totalVertexCount);
 
         rtcSetGeometryUserData(geom, scene);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void PopulateEmbreeScene(SceneResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
     {
         SceneMetaData* metadata = scene->data;
@@ -129,7 +133,9 @@ namespace Selas
         if(metadata->indexCounts[eMeshStandard] > 0) {
             RTCGeometry solidMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
             SetVertexAttributes(solidMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(solidMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshStandard], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshStandard] / 3);
+            rtcSetSharedGeometryBuffer(solidMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 
+                                       geometry->indices[eMeshStandard], 0, 
+                                       3 * sizeof(uint32), metadata->indexCounts[eMeshStandard] / 3);
             rtcCommitGeometry(solidMeshHandle);
             rtcAttachGeometryByID(rtcScene, solidMeshHandle, eMeshStandard);
             rtcReleaseGeometry(solidMeshHandle);
@@ -139,7 +145,9 @@ namespace Selas
         if(metadata->indexCounts[eMeshAlphaTested] > 0) {
             RTCGeometry atMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
             SetVertexAttributes(atMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(atMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshAlphaTested], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshAlphaTested] / 3);
+            rtcSetSharedGeometryBuffer(atMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 
+                                       geometry->indices[eMeshAlphaTested], 0, 
+                                       3 * sizeof(uint32), metadata->indexCounts[eMeshAlphaTested] / 3);
             rtcSetGeometryIntersectFilterFunction(atMeshHandle, IntersectionFilter);
             rtcCommitGeometry(atMeshHandle);
             rtcAttachGeometryByID(rtcScene, atMeshHandle, eMeshAlphaTested);
@@ -152,8 +160,11 @@ namespace Selas
             RTCGeometry dispMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
 
             SetVertexAttributes(dispMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices[eMeshDisplaced], 0, sizeof(uint32), metadata->indexCounts[eMeshDisplaced]);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, geometry->faceIndexCounts, 0, sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
+            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, 
+                                       geometry->indices[eMeshDisplaced], 0, 
+                                       sizeof(uint32), metadata->indexCounts[eMeshDisplaced]);
+            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, geometry->faceIndexCounts, 0, 
+                                       sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
 
             rtcSetGeometryDisplacementFunction(dispMeshHandle, DisplacementFunction);
             rtcSetGeometryTessellationRate(dispMeshHandle, TessellationRate_);
@@ -166,7 +177,9 @@ namespace Selas
             #else
             RTCGeometry dispMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
             SetVertexAttributes(dispMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshDisplaced], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
+            rtcSetSharedGeometryBuffer(dispMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 
+                                       geometry->indices[eMeshDisplaced], 0, 
+                                       3 * sizeof(uint32), metadata->indexCounts[eMeshDisplaced] / 3);
             rtcCommitGeometry(dispMeshHandle);
             rtcAttachGeometryByID(rtcScene, dispMeshHandle, eMeshDisplaced);
             rtcReleaseGeometry(dispMeshHandle);
@@ -178,8 +191,12 @@ namespace Selas
             #if EnableDisplacement_
             RTCGeometry dispAtMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
             SetVertexAttributes(dispAtMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices[eMeshAlphaTestedDisplaced], 0, sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced]);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, geometry->faceIndexCounts, 0, sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
+            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, 
+                                       geometry->indices[eMeshAlphaTestedDisplaced], 0, sizeof(uint32), 
+                                       metadata->indexCounts[eMeshAlphaTestedDisplaced]);
+            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_FACE, 0, RTC_FORMAT_UINT, 
+                                       geometry->faceIndexCounts, 0, sizeof(uint32), 
+                                       metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
 
             rtcSetGeometryDisplacementFunction(dispAtMeshHandle, DisplacementFunction);
             rtcSetGeometryIntersectFilterFunction(dispAtMeshHandle, IntersectionFilter);
@@ -192,7 +209,9 @@ namespace Selas
             #else
             RTCGeometry dispAtMeshHandle = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
             SetVertexAttributes(dispAtMeshHandle, scene);
-            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices[eMeshAlphaTestedDisplaced], 0, 3 * sizeof(uint32), metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
+            rtcSetSharedGeometryBuffer(dispAtMeshHandle, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 
+                                       geometry->indices[eMeshAlphaTestedDisplaced], 0, 3 * sizeof(uint32), 
+                                       metadata->indexCounts[eMeshAlphaTestedDisplaced] / 3);
             rtcCommitGeometry(dispAtMeshHandle);
             rtcAttachGeometryByID(rtcScene, dispAtMeshHandle, eMeshAlphaTestedDisplaced);
             rtcReleaseGeometry(dispAtMeshHandle);
@@ -203,11 +222,11 @@ namespace Selas
         rtcCommitScene(rtcScene);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     // SceneResource
-    //==============================================================================
+    //=============================================================================================================================
 
-    //==============================================================================
+    //=============================================================================================================================
     SceneResource::SceneResource()
         : data(nullptr)
         , geometry(nullptr)
@@ -218,7 +237,7 @@ namespace Selas
         Memory::Zero(&rtcGeometries[0], sizeof(rtcGeometries));
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     SceneResource::~SceneResource()
     {
         Assert_(data == nullptr);
@@ -228,7 +247,7 @@ namespace Selas
         Assert_(rtcScene == nullptr);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ReadSceneMetaData(cpointer assetname, SceneResource* data)
     {
         FilePathString filepath;
@@ -250,7 +269,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error ReadSceneGeometryData(cpointer assetname, SceneResource* data)
     {
         FilePathString filepath;
@@ -278,7 +297,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ReadSceneResource(cpointer assetname, SceneResource* data)
     {
         ReturnError_(ReadSceneMetaData(assetname, data));
@@ -287,7 +306,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error InitializeSceneResource(SceneResource* scene)
     {
         // -- JSTODO - Should be fetching other resource data from some asset mgr here rather than directly loading it
@@ -302,7 +321,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void InitializeEmbreeScene(SceneResource* scene)
     {
         RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
@@ -314,7 +333,7 @@ namespace Selas
         PopulateEmbreeScene(scene, rtcDevice, rtcScene);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownSceneResource(SceneResource* scene)
     {
         if(scene->rtcScene)

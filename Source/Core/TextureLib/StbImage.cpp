@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "TextureLib/StbImage.h"
 #include "StringLib/StringUtil.h"
@@ -21,8 +21,9 @@
 
 namespace Selas
 {
-    //==============================================================================
-    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData, void*& rgba)
+    //=============================================================================================================================
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData,
+                       void*& rgba)
     {
         int32 w_;
         int32 h_;
@@ -50,7 +51,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba)
     {
         int32 ret = 0;

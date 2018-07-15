@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "BuildCore/BuildDependencyGraph.h"
 #include "Assets/AssetFileUtils.h"
@@ -21,20 +21,20 @@ namespace Selas
     #define BuildDependencyGraphType_ "builddependencygraph"
     #define BuildDependencyGraphVersion_ 1528779796ul
 
-    //==============================================================================
+    //=============================================================================================================================
     struct BuildGraphData
     {
         DependencyMap dependencyGraph;
     };
 
-    //==============================================================================
+    //=============================================================================================================================
     static void BuildGraphFilePath(FilePathString& filepath)
     {
         const char* name = "current";
         AssetFileUtils::AssetFilePath(BuildDependencyGraphType_, BuildDependencyGraphVersion_, name, filepath);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     template<typename Type_>
     void WriteArray(BinaryWriter* writer, CArray<Type_>& array)
     {
@@ -43,7 +43,7 @@ namespace Selas
         SerializerWrite(writer, array.GetData(), array.DataSize());
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     template<typename Type_>
     void ReadArray(BinaryReader* reader, CArray<Type_>& array)
     {
@@ -53,7 +53,7 @@ namespace Selas
         SerializerRead(reader, array.GetData(), array.DataSize());
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void WriteBuildProcessDependency(BinaryWriter* writer, BuildProcessDependencies* deps)
     {
         SerializerWrite(writer, &deps->source, sizeof(deps->source));
@@ -66,7 +66,7 @@ namespace Selas
         WriteArray(writer, deps->outputs);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void ReadBuildProcessDependency(BinaryReader* reader, BuildProcessDependencies* deps)
     {
         SerializerRead(reader, &deps->source, sizeof(deps->source));
@@ -79,7 +79,7 @@ namespace Selas
         ReadArray(reader, deps->outputs);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error LoadDependencyGraph(BuildGraphData* data)
     {
         FilePathString filepath;
@@ -113,7 +113,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Error SaveDependencyGraph(BuildGraphData* data)
     {
         FilePathString filepath;
@@ -134,7 +134,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ResetBuildProcessDependencies(BuildProcessDependencies* deps)
     {
         deps->version = InvalidIndex32;
@@ -143,38 +143,38 @@ namespace Selas
         deps->outputs.Close();
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool operator==(const ContentDependency& lhs, const ContentDependency& rhs)
     {
         return StringUtil::Equals(lhs.path.Ascii(), rhs.path.Ascii());
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool operator==(const ProcessDependency& lhs, const ProcessDependency& rhs)
     {
         return (lhs.id.type == rhs.id.type && lhs.id.name == rhs.id.name);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool operator==(const ProcessorOutput& lhs, const ProcessorOutput& rhs)
     {
         return (lhs.id.type == rhs.id.type && lhs.id.name == rhs.id.name && lhs.version == rhs.version);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     CBuildDependencyGraph::CBuildDependencyGraph()
         : _data(nullptr)
     {
 
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     CBuildDependencyGraph::~CBuildDependencyGraph()
     {
         Assert_(_data == nullptr);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error CBuildDependencyGraph::Initialize()
     {
         _data = New_(BuildGraphData);
@@ -183,7 +183,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error CBuildDependencyGraph::Shutdown()
     {
         ReturnError_(SaveDependencyGraph(_data));
@@ -196,7 +196,7 @@ namespace Selas
         return Success_;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     BuildProcessDependencies* CBuildDependencyGraph::Find(AssetId id)
     {
         auto obj = _data->dependencyGraph.find(id);
@@ -207,14 +207,14 @@ namespace Selas
         return nullptr;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     BuildProcessDependencies* CBuildDependencyGraph::Find(ContentId contentId)
     {
         AssetId hashes(contentId.type.Ascii(), contentId.name.Ascii());
         return Find(hashes);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     BuildProcessDependencies* CBuildDependencyGraph::Create(ContentId source)
     {       
         AssetId id(source.type.Ascii(), source.name.Ascii());
@@ -230,7 +230,7 @@ namespace Selas
         return deps;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static bool FileUpToDate(const ContentDependency& fileDep)
     {
         FilePathString contentFilePath;
@@ -242,7 +242,7 @@ namespace Selas
         return CompareFileTime(fileDep.timestamp, timestamp);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CBuildDependencyGraph::UpToDate(BuildProcessDependencies* __restrict deps, uint64 version)
     {
         if(deps->version != version) {

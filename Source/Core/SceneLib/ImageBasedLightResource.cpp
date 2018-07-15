@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "SceneLib/ImageBasedLightResource.h"
 #include "Assets/AssetFileUtils.h"
@@ -16,24 +16,25 @@ namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
 
-    //==============================================================================
+    //=============================================================================================================================
     ImageBasedLightResource::ImageBasedLightResource()
         : data(nullptr)
     {
 
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     ImageBasedLightResource::~ImageBasedLightResource()
     {
         Assert_(data == nullptr);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     Error ReadImageBasedLightResource(cpointer assetname, ImageBasedLightResource* resource)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(ImageBasedLightResource::kDataType, ImageBasedLightResource::kDataVersion, assetname, filepath);
+        AssetFileUtils::AssetFilePath(ImageBasedLightResource::kDataType, ImageBasedLightResource::kDataVersion, assetname,
+                                      filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
@@ -53,13 +54,13 @@ namespace Selas
         return Success_;;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownImageBasedLightResource(ImageBasedLightResource* resource)
     {
         SafeFreeAligned_(resource->data);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static void SampleDistributionFunction(float* __restrict distribution, uint count, float random01, uint& index, float& pdf)
     {
         // -- binary search the cdf to find the largest sample that is lower than the given random number between 0 and 1
@@ -84,19 +85,19 @@ namespace Selas
         Assert_(index != (uint)-1);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     uint CalculateMarginalDensityFunctionCount(uint width, uint height)
     {
         return height;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     uint CalculateConditionalDensityFunctionsCount(uint width, uint height)
     {
         return width * height;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
     {
         // - http://www.igorsklyar.com/system/documents/papers/4/fiscourse.comp.pdf Section 4.2
@@ -125,7 +126,7 @@ namespace Selas
         pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf)
     {
         int32 width = (int32)ibl->densityfunctions.width;
@@ -151,7 +152,8 @@ namespace Selas
             mdf = ibl->densityfunctions.marginalDensityFunction[y];
 
         if(x > 0)
-            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x] - (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x - 1];
+            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x]
+                - (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x - 1];
         else
             cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x];
 
@@ -164,7 +166,7 @@ namespace Selas
         return ibl->hdrData[y * ibl->densityfunctions.width + x];
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float SampleIBlPdf(const ImageBasedLightResourceData* ibl, float3 wi)
     {
         int32 width = (int32)ibl->densityfunctions.width;
@@ -189,8 +191,10 @@ namespace Selas
         else
             mdf = ibl->densityfunctions.marginalDensityFunction[y];
 
-        if(x > 0)
-            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x] - (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x - 1];
+        if(x > 0) {
+            cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x]
+                - (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x - 1];
+        }
         else
             cdf = (ibl->densityfunctions.conditionalDensityFunctions + y * width)[x];
 
@@ -201,13 +205,13 @@ namespace Selas
         return Math::Sinf(theta) * mdf * cdf * invJacobian;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y)
     {
         return ibl->hdrData[y * ibl->densityfunctions.width + x];
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void ShutdownDensityFunctions(IblDensityFunctions* distributions)
     {
         SafeFree_(distributions->conditionalDensityFunctions);

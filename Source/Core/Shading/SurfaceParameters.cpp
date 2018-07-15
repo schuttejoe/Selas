@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "SurfaceParameters.h"
 #include "IntegratorContexts.h"
@@ -21,7 +21,7 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     static float3 SampleTextureNormal(const SceneResource* scene, float2 uvs, uint textureIndex)
     {
         if(textureIndex == InvalidIndex32)
@@ -39,7 +39,7 @@ namespace Selas
         return 2.0f * sample - 1.0f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float SampleTextureOpacity(const SceneResource* scene, float2 uvs, uint textureIndex)
     {
         if(textureIndex == InvalidIndex32) {
@@ -57,7 +57,7 @@ namespace Selas
         return sample.w;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     template <typename Type_>
     static Type_ SampleTexture(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
     {
@@ -76,7 +76,7 @@ namespace Selas
         return sample;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float SampleTextureFloat(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
@@ -101,7 +101,7 @@ namespace Selas
         return 0.0f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float3 SampleTextureFloat3(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
@@ -118,7 +118,8 @@ namespace Selas
             return SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB,
+                                       float4(defaultValue, defaultValue, defaultValue, defaultValue));
             return val.XYZ();
         }
 
@@ -126,7 +127,7 @@ namespace Selas
         return 0.0f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static float4 SampleTextureFloat4(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
@@ -150,7 +151,7 @@ namespace Selas
         return 0.0f;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     static Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId, uint32 primId)
     {
         Assert_(geomId < eMeshIndexTypeCount);
@@ -161,19 +162,23 @@ namespace Selas
         return &scene->data->materials[materialIndex];
     }
 
-    //==============================================================================
-    bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* __restrict hit, SurfaceParameters& surface)
+    //=============================================================================================================================
+    bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* __restrict hit,
+                                SurfaceParameters& surface)
     {
         const SceneResource* scene = context->sceneData->scene;
 
         Material* material = GetSurfaceMaterial(scene, hit->geomId, hit->primId);
 
         Align_(16) float3 normal;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
         Align_(16) float4 tangent;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
         Align_(16) float2 uvs;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
         float3 n = Normalize(normal);
         float3 t = tangent.XYZ();
@@ -197,11 +202,13 @@ namespace Selas
         //surface.subsurface      = material->subsurface;
 
         surface.baseColor     = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, 1.0f);
+        surface.roughness     = material->scalarAttributeValues[eRoughness]
+                              * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eRoughness], false, 1.0f);
+        surface.metalness     = material->scalarAttributeValues[eMetallic]
+                              * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 0.4f);
 
-        surface.roughness     = material->scalarAttributeValues[eRoughness] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eRoughness], false, 1.0f);
-        surface.metalness     = material->scalarAttributeValues[eMetallic] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 0.4f);
-
-        float ior = material->scalarAttributeValues[eIor] * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eIor], false, 1.0f);
+        float ior = material->scalarAttributeValues[eIor]
+                  * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eIor], false, 1.0f);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;
@@ -215,19 +222,20 @@ namespace Selas
         return true;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
     {
         Material* material = GetSurfaceMaterial(scene, geomId, primId);
 
         Align_(16) float2 uvs;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[geomId], primId, baryCoords.x, baryCoords.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[geomId], primId, baryCoords.x, baryCoords.y,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
         static const float kAlphaTestCutoff = 0.5f;
         return SampleTextureOpacity(scene, uvs, material->baseColorTextureIndex) > kAlphaTestCutoff;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
     {
         Material* material = GetSurfaceMaterial(scene, geomId, primId);
@@ -239,7 +247,7 @@ namespace Selas
         return material->scalarAttributeValues[eDisplacement] * displacement;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale)
     {
         float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
@@ -247,7 +255,7 @@ namespace Selas
         return surface.position + offset;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance)
     {
         float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
@@ -256,7 +264,7 @@ namespace Selas
         return surface.position + offset;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     float ContinuationProbability(const SurfaceParameters& surface)
     {
         float3 value = surface.baseColor;

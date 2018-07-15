@@ -1,8 +1,8 @@
 #pragma once
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
@@ -78,6 +78,7 @@ namespace Selas
         void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state);
 
         float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex);
-        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha, float iterationIndex);
+        VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha,
+                                                          float iterationIndex);
     }
 }

@@ -1,7 +1,7 @@
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "Assets/AssetFileUtils.h"
 #include "StringLib/StringUtil.h"
@@ -13,14 +13,14 @@
 
 namespace Selas
 {
-    //==============================================================================
+    //=============================================================================================================================
     ContentId::ContentId()
     {
         type.Clear();
         name.Clear();
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     ContentId::ContentId(cpointer type_, cpointer name_)
     {
         type.Copy(type_);
@@ -30,14 +30,14 @@ namespace Selas
         // -- '~' and that it doesn't contain the root
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     AssetId::AssetId(cpointer typeStr, cpointer nameStr)
     {
         type = MurmurHash3_x86_32(typeStr, StringUtil::Length(typeStr), 0);
         name = MurmurHash3_x86_32(nameStr, StringUtil::Length(nameStr), 0);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     AssetId::AssetId(Hash32 type_, Hash32 name_)
         : type(type_)
         , name(name_)
@@ -47,7 +47,7 @@ namespace Selas
 
     namespace AssetFileUtils
     {
-        //==============================================================================
+        //=========================================================================================================================
         void ContentDirectoryRoot(FilePathString& filepath)
         {
             // JSTODO - cache this
@@ -58,7 +58,7 @@ namespace Selas
             StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c", root.Ascii(), ContentDirectoryName_, ps);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void AssetsDirectoryRoot(FilePathString& filepath)
         {
             // JSTODO - cache this
@@ -70,7 +70,7 @@ namespace Selas
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void ContentFilePath(cpointer name, FilePathString& filepath)
         {
             FixedString128 root = Environment_Root();
@@ -80,17 +80,18 @@ namespace Selas
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void ContentFilePath(cpointer prefix, cpointer name, cpointer postfix, FilePathString& filepath)
         {
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%s%s", root.Ascii(), ContentDirectoryName_, ps, prefix, name, postfix);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%s%s", root.Ascii(), ContentDirectoryName_, ps,
+                                prefix, name, postfix);
             StringUtil::ReplaceAll(filepath.Ascii(), PlatformIndependentPathSep_, ps);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void SanitizeContentPath(cpointer filepath, FilePathString& sanitized)
         {
             FilePathString root;
@@ -99,34 +100,37 @@ namespace Selas
             StringUtil::SanitizePath(root.Ascii(), PlatformIndependentPathSep_, filepath, sanitized.Ascii(), sanitized.Capacity());
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void EnsureAssetDirectory(cpointer typeStr, uint64 version)
         {
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
             FilePathString directory;
-            StringUtil::Sprintf(directory.Ascii(), directory.Capacity(), "%s%s%c%s%c%llu%c", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps);
+            StringUtil::Sprintf(directory.Ascii(), directory.Capacity(), "%s%s%c%s%c%llu%c", root.Ascii(), AssetsDirectoryName_,
+                                ps, typeStr, ps, version, ps);
 
             Directory::EnsureDirectoryExists(directory.Ascii());
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         void AssetFilePath(cpointer typeStr, uint64 version, cpointer nameStr, FilePathString& filepath)
         {
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
-            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%c%llu%c%s.bin", root.Ascii(), AssetsDirectoryName_, ps, typeStr, ps, version, ps, nameStr);
+            StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%s%c%llu%c%s.bin", root.Ascii(),
+                                AssetsDirectoryName_, ps, typeStr, ps, version, ps, nameStr);
         }
 
-        //==============================================================================
+        //=========================================================================================================================
         //void AssetFilePath(AssetId id, uint64 version, FilePathString& filepath)
         //{
         //    FixedString128 root = Environment_Root();
         //    char ps = StringUtil::PathSeperator();
 
-        //    StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(), AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
+        //    StringUtil::Sprintf(filepath.Ascii(), filepath.Capacity(), "%s%s%c%u%c%llu%c%u.bin", root.Ascii(),
+        //                        AssetsDirectoryName_, ps, id.type, ps, version, ps, id.name);
         //}
     }
 }

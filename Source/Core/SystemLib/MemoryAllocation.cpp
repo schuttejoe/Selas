@@ -1,6 +1,6 @@
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 //#if IsWindows_
 
@@ -56,7 +56,7 @@ namespace Selas
         void RemoveAllocation(void* address);
     };
 
-    //==============================================================================
+    //=============================================================================================================================
     CAllocationTracking::CAllocationTracking()
     {
         size = AllocationTrackingIncrement_;
@@ -69,7 +69,7 @@ namespace Selas
         CreateSpinLock(spinLock);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     CAllocationTracking::~CAllocationTracking()
     {
         char logstring[2048];
@@ -78,10 +78,13 @@ namespace Selas
             for(uint scan = 0; scan < used; ++scan) {
                 // -- log each leaked allocation
                 if(allocations[scan].name != nullptr) {
-                    sprintf_s(logstring, 2048, "Index (%llu) - Name (%s) - Memory leak (%llu bytes) on line (%d) of file: %s\n", allocations[scan].index, allocations[scan].name, allocations[scan].size, allocations[scan].line, allocations[scan].file);
+                    sprintf_s(logstring, 2048, "Index (%llu) - Name (%s) - Memory leak (%llu bytes) on line (%d) of file: %s\n",
+                              allocations[scan].index, allocations[scan].name, allocations[scan].size, allocations[scan].line,
+                              allocations[scan].file);
                 }
                 else {
-                    sprintf_s(logstring, 2048, "Index (%llu) - Memory leak (%llu bytes) on line (%d) of file: %s\n", allocations[scan].index, allocations[scan].size, allocations[scan].line, allocations[scan].file);
+                    sprintf_s(logstring, 2048, "Index (%llu) - Memory leak (%llu bytes) on line (%d) of file: %s\n",
+                              allocations[scan].index, allocations[scan].size, allocations[scan].line, allocations[scan].file);
                 }
 
                 OutputDebugStringA(logstring);
@@ -92,7 +95,7 @@ namespace Selas
         delete[] allocations;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CAllocationTracking::AddAllocation(void* address, uint64 allocationSize, const char* name, const char* file, int line)
     {
         EnterSpinLock(spinLock);
@@ -132,7 +135,7 @@ namespace Selas
         LeaveSpinLock(spinLock);
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void CAllocationTracking::RemoveAllocation(void* address)
     {
         EnterSpinLock(spinLock);
@@ -145,7 +148,8 @@ namespace Selas
 
                 #if EnableVerboseLogging_
                     char logstring[2048];
-                    sprintf_s(logstring, 2048, "Free (%llu): %s - Total Allocated %llu\n", allocations[scan].size, allocations[scan].name, allocatedMemory);
+                    sprintf_s(logstring, 2048, "Free (%llu): %s - Total Allocated %llu\n", allocations[scan].size,
+                              allocations[scan].name, allocatedMemory);
                     OutputDebugString(logstring);
                 #endif
 
@@ -170,7 +174,7 @@ namespace Selas
     CAllocationTracking tracker;
     #endif
 
-    //==============================================================================
+    //=============================================================================================================================
     void* SelasAlignedMalloc(uint size, uint alignment, const char* name, const char* file, int line)
     {
         #if IsWindows_
@@ -189,7 +193,7 @@ namespace Selas
         return address;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void* SelasMalloc(uint size, const char* name, const char* file, int line)
     {
         void* address = malloc(size);
@@ -201,7 +205,7 @@ namespace Selas
         return address;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void* SelasRealloc(void* address, uint size, const char* name, const char* file, int line)
     {
         #if EnableManualAllocationTracking_
@@ -218,7 +222,7 @@ namespace Selas
         return address;
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void SelasAlignedFree(void* address)
     {
         #if EnableManualAllocationTracking_
@@ -234,7 +238,7 @@ namespace Selas
         #endif
     }
 
-    //==============================================================================
+    //=============================================================================================================================
     void SelasFree(void* address)
     {
         #if EnableManualAllocationTracking_

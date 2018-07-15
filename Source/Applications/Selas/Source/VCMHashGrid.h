@@ -1,8 +1,8 @@
 #pragma once
 
-//==============================================================================
+//=================================================================================================================================
 // Joe Schutte
-//==============================================================================
+//=================================================================================================================================
 
 #include "GeometryLib/AxisAlignedBox.h"
 #include "MathLib/FloatStructs.h"
@@ -30,5 +30,6 @@ namespace Selas
     void BuildHashGrid(VCMHashGrid* hashGrid, uint cellCount, float radius, const CArray<VCMVertex>& points);
     void ShutdownHashGrid(VCMHashGrid* hashGrid);
 
-    void SearchHashGrid(const VCMHashGrid* hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData, HashGridCallbackFunction callback);
+    void SearchHashGrid(const VCMHashGrid* hashGrid, const CArray<VCMVertex>& vertices, float3 position, void* userData,
+                        HashGridCallbackFunction callback);
 }
