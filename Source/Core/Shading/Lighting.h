@@ -20,9 +20,27 @@ namespace Selas
     struct SurfaceParameters;
     struct SceneResource;
 
-    // -- BSDF sample output
+    enum SurfaceEventTypes
+    {
+        eScatterEvent,
+        eTransmissionEvent
+    };
+
+    enum MediumPhaseFunctions
+    {
+        eIsotropic
+    };
+
+    struct MediumParameters
+    {
+        MediumPhaseFunctions phaseFunction;
+        float absorption;
+    };
+
     struct BsdfSample
     {
+        SurfaceEventTypes type;
+
         float3 reflectance = float3::Zero_;
         float3 wi          = float3::Zero_;
         float forwardPdfW  = 0.0f;
@@ -31,5 +49,5 @@ namespace Selas
 
     // -- Bsdf evaluation
     bool SampleBsdfFunction(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
-    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf);
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 v, float3 l, float& forwardPdf, float& reversePdf);
 }

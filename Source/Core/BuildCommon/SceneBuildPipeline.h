@@ -62,6 +62,7 @@ namespace Selas
         CameraSettings camera;
         AxisAlignedBox aaBox;
         float4 boundingSphere;
+        float3 backgroundIntensity;
 
         // -- material information
         CArray<FilePathString> textures;

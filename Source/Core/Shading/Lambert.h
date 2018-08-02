@@ -12,11 +12,9 @@ namespace Selas
     struct HitParameters;
     struct SurfaceParameters;
     struct BsdfSample;
-    
-    // -- BSDF evaluation for next event estimation
-    float3 EvaluateTransparentGGXBsdf(const SurfaceParameters& surface, const float3& v, const float3& l,
-                                      float& forwardPdf, float& reversePdf);
 
-    // -- Shaders
-    bool SampleTransparentGgx(CSampler* sampler, const SurfaceParameters& surface, const float3& v, BsdfSample& sample);
+    float3 EvaluateLambert(const SurfaceParameters& surface, const float3& v, const float3& l,
+                           float& forwardPdf, float& reversePdf);
+
+    bool SampleLambert(CSampler* sampler, const SurfaceParameters& surface, const float3& v, BsdfSample& sample);
 }

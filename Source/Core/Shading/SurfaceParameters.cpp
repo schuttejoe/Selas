@@ -36,7 +36,7 @@ namespace Selas
         float3 sample;
         TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
 
-        return 2.0f * sample - 1.0f;
+        return 2.0f * sample - float3(1.0f);
     }
 
     //=============================================================================================================================
@@ -124,7 +124,7 @@ namespace Selas
         }
 
         Assert_(false);
-        return 0.0f;
+        return float3(0.0f);
     }
 
     //=============================================================================================================================
@@ -148,7 +148,7 @@ namespace Selas
         }
 
         Assert_(false);
-        return 0.0f;
+        return float4(0.0f);
     }
 
     //=============================================================================================================================
@@ -184,36 +184,40 @@ namespace Selas
         float3 t = tangent.XYZ();
         float3 b = Cross(normal, t) * tangent.w;
 
-        if(Dot(n, hit->incDirection) < 0.0f && ((material->flags & eTransparent) == 0)) {
-            // -- we've hit inside of a non-transparent object. This is probably caused by floating point precision issues.
-            return false;
-        }
-
         // -- Calculate tangent space transforms
         float3x3 tangentToWorld = MakeFloat3x3(t, n, b);
         surface.worldToTangent = MatrixTranspose(tangentToWorld);
 
-        surface.geometricNormal = n;
         surface.position        = hit->position;
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
 
+        surface.baseColor = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, 1.0f);
 
-        //surface.subsurface      = material->subsurface;
-
-        surface.baseColor     = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, 1.0f);
+        surface.sheen          = material->scalarAttributeValues[eSheen];
+        surface.sheenTint      = material->scalarAttributeValues[eSheenTint];
+        surface.clearcoat      = material->scalarAttributeValues[eClearcoat];
+        surface.clearcoatGloss = material->scalarAttributeValues[eClearcoatGloss];
+        surface.specTrans      = material->scalarAttributeValues[eSpecTrans];
+        surface.diffTrans      = material->scalarAttributeValues[eDiffuseTrans];
+        surface.flatness       = material->scalarAttributeValues[eFlatness];
+        surface.anisotropic    = material->scalarAttributeValues[eAnisotropic];
+        surface.specularTint   = material->scalarAttributeValues[eSpecularTint];
+        
         surface.roughness     = material->scalarAttributeValues[eRoughness]
                               * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eRoughness], false, 1.0f);
-        surface.metalness     = material->scalarAttributeValues[eMetallic]
-                              * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 0.4f);
+        surface.metallic      = material->scalarAttributeValues[eMetallic]
+                              * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 1.0f);
 
         float ior = material->scalarAttributeValues[eIor]
                   * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eIor], false, 1.0f);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;
-        surface.currentIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? ior : 1.0f;
-        surface.exitIor = (Dot(hit->incDirection, surface.geometricNormal) < 0.0f) ? 1.0f : ior;
+
+        // -- better way to handle this would be for the ray to know what IOR it is within
+        surface.relativeIOR = ((material->flags & eTransparent) && Dot(hit->incDirection, n) < 0.0f) ? ior : 1.0f / ior;
+        surface.ior = ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(scene, uvs, material->normalTextureIndex);
@@ -248,19 +252,37 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    float3 GeometricTangent(const SurfaceParameters& surface)
+    {
+        return float3(surface.worldToTangent.r0.x, surface.worldToTangent.r1.x, surface.worldToTangent.r2.x);
+    }
+
+    //=============================================================================================================================
+    float3 GeometricNormal(const SurfaceParameters& surface)
+    {
+        return float3(surface.worldToTangent.r0.y, surface.worldToTangent.r1.y, surface.worldToTangent.r2.y);
+    }
+
+    //=============================================================================================================================
+    float3 GeometricBitangent(const SurfaceParameters& surface)
+    {
+        return float3(surface.worldToTangent.r0.z, surface.worldToTangent.r1.z, surface.worldToTangent.r2.z);
+    }
+
+    //=============================================================================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale)
     {
-        float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
-        float3 offset = directionOffset * surface.error * biasScale * surface.geometricNormal;
+        float directionOffset = Dot(direction, GeometricNormal(surface)) < 0.0f ? -1.0f : 1.0f;
+        float3 offset = directionOffset * surface.error * biasScale * GeometricNormal(surface);
         return surface.position + offset;
     }
 
     //=============================================================================================================================
     float3 OffsetRayOrigin(const SurfaceParameters& surface, float3 direction, float biasScale, float& signedBiasDistance)
     {
-        float directionOffset = Dot(direction, surface.geometricNormal) < 0.0f ? -1.0f : 1.0f;
+        float directionOffset = Dot(direction, GeometricNormal(surface)) < 0.0f ? -1.0f : 1.0f;
         signedBiasDistance = directionOffset * surface.error * biasScale;
-        float3 offset = signedBiasDistance * surface.geometricNormal;
+        float3 offset = signedBiasDistance * GeometricNormal(surface);
         return surface.position + offset;
     }
 

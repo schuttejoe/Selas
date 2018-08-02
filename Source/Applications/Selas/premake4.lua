@@ -3,7 +3,7 @@ dofile("../../../ProjectGen/common.lua")
 
 local SolutionName = "Selas"
 local Architecture = "x64"
-local ExtraLibraries = { "SceneLib", "TextureLib", "GeometryLib", "Bsdf", "Shading", "BuildCore", "BuildCommon" }
+local ExtraLibraries = { "SceneLib", "TextureLib", "GeometryLib", "Shading", "BuildCore", "BuildCommon" }
 
 if _ARGS[1] == "osx" then
 	ExtraDefines = { "IsOsx_=1" }

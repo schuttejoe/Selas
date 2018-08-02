@@ -71,6 +71,10 @@ namespace Selas
         SerializerWrite(&writer, &sceneData.camera, sizeof(sceneData.camera));
         SerializerWrite(&writer, &sceneData.aaBox, sizeof(sceneData.aaBox));
         SerializerWrite(&writer, &sceneData.boundingSphere, sizeof(sceneData.boundingSphere));
+        SerializerWrite(&writer, &sceneData.backgroundIntensity, sizeof(sceneData.backgroundIntensity));
+
+        uint32 padding = 0;
+        SerializerWrite(&writer, &padding, sizeof(padding));
 
         SerializeMaterials(&writer, sceneData);
 

@@ -23,7 +23,7 @@ namespace Selas
     cpointer SceneResource::kDataType = "Scene";
     cpointer SceneResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1531598122ul;
+    const uint64 SceneResource::kDataVersion = 1532576488ul;
     const uint32 SceneResource::kSceneDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kSceneDataAlignment == 0, "SceneGeometryData must be aligned");
 

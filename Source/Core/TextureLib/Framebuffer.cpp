@@ -15,20 +15,28 @@
 namespace Selas
 {
     //=============================================================================================================================
-    void FrameBuffer_Initialize(Framebuffer* frame, uint32 width, uint32 height)
+    void FrameBuffer_Initialize(Framebuffer* frame, uint32 width, uint32 height, uint32 layerCount)
     {
+        CreateSpinLock(frame->spinlock);
+
         frame->width = width;
         frame->height = height;
-        CreateSpinLock(frame->spinlock);
-        frame->buffer = AllocArrayAligned_(float3, width * height, 16);
-
-        Memory::Zero(frame->buffer, sizeof(float3) * width * height);
+        frame->layerCount = layerCount;
+        
+        frame->buffers = AllocArray_(float3*, layerCount);
+        for(uint scan = 0; scan < layerCount; ++scan) {
+            frame->buffers[scan] = AllocArrayAligned_(float3, width * height, 16);
+            Memory::Zero(frame->buffers[scan], sizeof(float3) * width * height);
+        }
     }
 
     //=============================================================================================================================
     void FrameBuffer_Shutdown(Framebuffer* frame)
     {
-        FreeAligned_(frame->buffer);
+        for(uint scan = 0; scan < frame->layerCount; ++scan) {
+            FreeAligned_(frame->buffers[scan]);
+        }
+        Free_(frame->buffers);
     }
 
     //=============================================================================================================================
@@ -40,20 +48,24 @@ namespace Selas
         FilePathString dirpath;
         FixedStringSprintf(dirpath, "%s_Images%c", root.Ascii(), pathsep);
 
-        FilePathString filepath;
-        FixedStringSprintf(filepath, "%s%s.hdr", dirpath.Ascii(), name);
-
         Directory::EnsureDirectoryExists(dirpath.Ascii());
 
-        StbImageWrite(filepath.Ascii(), frame->width, frame->height, 3, HDR, frame->buffer);
+        for(uint32 scan = 0, count = frame->layerCount; scan < count; ++scan) {
+            FilePathString filepath;
+            FixedStringSprintf(filepath, "%s%s_%u.hdr", dirpath.Ascii(), name, scan);
+
+            StbImageWrite(filepath.Ascii(), frame->width, frame->height, 3, HDR, frame->buffers[scan]);
+        }
     }
 
     //=============================================================================================================================
     void FrameBuffer_Normalize(Framebuffer* __restrict frame, float term)
     {
         uint indexcount = frame->width * frame->height;
-        for(uint scan = 0; scan < indexcount; ++scan) {
-            frame->buffer[scan] = frame->buffer[scan] * term;
+        for(uint layer = 0; layer < frame->layerCount; ++layer) {
+            for(uint scan = 0; scan < indexcount; ++scan) {
+                frame->buffers[layer][scan] = frame->buffers[layer][scan] * term;
+            }
         }
     }
 
@@ -65,7 +77,8 @@ namespace Selas
         writer->softCapacity = softCapacity;
         writer->framebuffer = frame;
 
-        writer->samples = AllocArrayAligned_(FramebufferSample, capacity, 16);
+        writer->sampleIndices = AllocArrayAligned_(uint32, capacity, 16);
+        writer->samples = AllocArrayAligned_(float3, frame->layerCount * capacity, 16);
     }
 
     //=============================================================================================================================
@@ -73,32 +86,41 @@ namespace Selas
     {
         Assert_(*writer->framebuffer->spinlock == 1);
 
+        uint layerCount = writer->framebuffer->layerCount;
+
         Framebuffer* frame = writer->framebuffer;
-
         for(uint scan = 0, count = writer->count; scan < count; ++scan) {
-            uint32 index = writer->samples[scan].index;
-            frame->buffer[index] += writer->samples[scan].value;
-        }
+            uint32 index = writer->sampleIndices[scan];
 
+            for(uint layer = 0; layer < layerCount; ++layer) {
+                frame->buffers[layer][index] += writer->samples[layerCount * scan + layer];
+            }
+        }
+        
         writer->count = 0;
     }
 
     //=============================================================================================================================
-    void FramebufferWriter_Write(FramebufferWriter* __restrict writer, float3 sample, uint32 x, uint32 y)
+    void FramebufferWriter_Write(FramebufferWriter* __restrict writer, float3* samples, uint32 layerCount, uint32 x, uint32 y)
     {
         uint32 index = writer->framebuffer->width * y + x;
-        FramebufferWriter_Write(writer, sample, index);
+        FramebufferWriter_Write(writer, samples, layerCount, index);
     }
 
     //=============================================================================================================================
-    void FramebufferWriter_Write(FramebufferWriter* writer, float3 sample, uint32 index)
+    void FramebufferWriter_Write(FramebufferWriter* writer, float3* samples, uint32 layerCount, uint32 index)
     {
         if(writer->count == writer->capacity) {
             FramebufferWriter_Flush(writer);
         }
 
-        writer->samples[writer->count].index = index;
-        writer->samples[writer->count].value = sample;
+        Assert_(layerCount == writer->framebuffer->layerCount);
+
+        writer->sampleIndices[writer->count] = index;
+        for(uint layer = 0; layer < layerCount; ++layer) {
+            writer->samples[layerCount * writer->count + layer] = samples[layer];
+        }
+        
         ++writer->count;
 
         if(writer->count > writer->softCapacity) {
@@ -125,5 +147,6 @@ namespace Selas
     {
         FramebufferWriter_Flush(writer);
         FreeAligned_(writer->samples);
+        FreeAligned_(writer->sampleIndices);
     }
 }

@@ -47,9 +47,7 @@ namespace Selas
     enum ScalarMaterialProperties
     {
         // -- Disney BSDF parameters
-        eSubsurface,
         eMetallic,
-        eSpecular,
         eSpecularTint,
         eRoughness,
         eAnisotropic,
@@ -58,6 +56,8 @@ namespace Selas
         eClearcoat,
         eClearcoatGloss,
         eSpecTrans,
+        eDiffuseTrans,
+        eFlatness,
         eIor,
 
         // -- other properties
@@ -97,6 +97,10 @@ namespace Selas
         // -- misc scene info
         AxisAlignedBox  aaBox;
         float4          boundingSphere;
+        
+        // -- only used when no ibl is provided for the scene
+        float3          backgroundIntensity;
+        uint32          padding;
 
         // -- material information
         uint32          textureCount;

@@ -13,7 +13,7 @@ namespace Selas
         float x, y;
 
         ForceInline_ float2() {}
-        ForceInline_ float2(float v) : x(v), y(v) {}
+        ForceInline_ explicit float2(float v) : x(v), y(v) {}
         ForceInline_ float2(float x_, float y_) : x(x_), y(y_) {}
 
         static const float2 Zero_;
@@ -26,7 +26,7 @@ namespace Selas
         float x, y, z;
 
         ForceInline_ float3() {}
-        ForceInline_ float3(float v) : x(v), y(v), z(v) {}
+        ForceInline_ explicit float3(float v) : x(v), y(v), z(v) {}
         ForceInline_ float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
         static const float3 Zero_;
@@ -40,7 +40,7 @@ namespace Selas
     {
         float x, y, z, w;
         ForceInline_ float4() {}
-        ForceInline_ float4(float v) : x(v), y(v), z(v), w(v) {}
+        ForceInline_ explicit float4(float v) : x(v), y(v), z(v), w(v) {}
         ForceInline_ float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
         ForceInline_ float4(float3 xyz, float w_) : x(xyz.x), y(xyz.y), z(xyz.z), w(w_) {}
 

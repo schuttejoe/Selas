@@ -15,9 +15,7 @@ namespace Selas
 {
     cpointer attributes[] =
     {
-        "subsurface",
         "metallic",
-        "specular",
         "specularTint",
         "roughness",
         "anisotropic",
@@ -26,6 +24,8 @@ namespace Selas
         "clearcoat",
         "clearcoatGloss",
         "specTrans",
+        "diffTrans",
+        "flatness",
         "ior",
         "displacement"
     };
@@ -33,9 +33,7 @@ namespace Selas
 
     float attributeDefaults[] =
     {
-        0.0f, // subsurface
-        0.0f, // metallic
-        0.3f, // specular
+        0.3f, // metallic
         0.0f, // specularTint
         0.5f, // roughness
         0.0f, // anisotropic
@@ -44,8 +42,10 @@ namespace Selas
         0.0f, // clearcoat
         0.0f, // clearcoatGloss
         0.0f, // specTrans
+        0.0f, // diffTrans
+        0.0f, // flatness
         1.5f, // ior
-        0.1f, // displacement
+        0.0f, // displacement
     };
     static_assert(CountOf_(attributeDefaults) == eMaterialPropertyCount, "Incorrect attribute default count");
 

@@ -225,6 +225,7 @@ namespace Selas
 
         BuildMeshes(imported, built);
 
+        built->backgroundIntensity = float3(1.5f, 1.5f, 1.5f);
         built->camera = imported->camera;
 
         return Success_;

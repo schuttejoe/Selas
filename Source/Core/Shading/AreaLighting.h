@@ -58,17 +58,20 @@ namespace Selas
         float cosThetaLight;
     };
 
-    float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
-                                           RectangularAreaLight light, uint sampleCount);
-    float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
-                                                 RectangularAreaLight light, uint sampleCount);
-    float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
-                                                SphericalAreaLight light, uint lightSampleCount);
-    float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
-                                                      float3 view, SphericalAreaLight light, uint lightSampleCount);
+    //float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+    //                                       RectangularAreaLight light, uint sampleCount);
+    //float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+    //                                             RectangularAreaLight light, uint sampleCount);
+    //float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+    //                                            SphericalAreaLight light, uint lightSampleCount);
+    //float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
+    //                                                  float3 view, SphericalAreaLight light, uint lightSampleCount);
 
     void EmitIblLightSample(GIIntegrationContext* context, LightEmissionSample& sample);
     void DirectIblLightSample(GIIntegrationContext* context, LightDirectSample& sample);
     float3 IblCalculateRadiance(GIIntegrationContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
-    float DirectIblLightPdf(GIIntegrationContext* __restrict context, float3 wi);
+
+    void NextEventEstimation(GIIntegrationContext* context, LightDirectSample& sample);
+    float BackgroundLightingPdf(GIIntegrationContext* context, float3 wi);
+    float3 SampleBackgroundLight(GIIntegrationContext* context, float3 wi);
 }

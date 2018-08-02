@@ -33,6 +33,7 @@
 #include "SystemLib/MinMax.h"
 #include "SystemLib/SystemTime.h"
 #include "SystemLib/Logging.h"
+#include "SystemLib/CountOf.h"
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
@@ -40,9 +41,10 @@
 #define MaxBounceCount_         100
 
 #define EnableMultiThreading_   1
-#define PathsPerPixel_          8
+#define PathsPerPixel_          1
+#define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     20.0f
 
 namespace Selas
 {
@@ -134,7 +136,11 @@ namespace Selas
         //=========================================================================================================================
         static void EvaluateRayBatch(GIIntegrationContext* __restrict context, Ray ray, uint x, uint y)
         {
+            float3 Ld[LayerCount_];
+            Memory::Zero(Ld, sizeof(Ld));
+
             float3 throughput = float3::One_;
+            float3 misThroughput = float3::One_;
 
             uint bounceCount = 0;
             while (bounceCount < context->maxPathLength) {
@@ -150,7 +156,7 @@ namespace Selas
 
                     // -- choose a light and sample the light source
                     LightDirectSample lightSample;
-                    DirectIblLightSample(context, lightSample);
+                    NextEventEstimation(context, lightSample);
 
                     {
                         float forwardPdfW;
@@ -161,12 +167,12 @@ namespace Selas
 
                             if(OcclusionRay(context->sceneData->rtcScene, surface, lightSample.direction, lightSample.distance)) {
 
-                                float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.directionPdfA);
-
                                 // JSTODO - WARNING! We want directionPdfW not directionPdfA here. However, since we're currently
                                 // only sampling IBLs which return the solid angle pdf in directionPdfA we're good for now.
                                 float weight = ImportanceSampling::BalanceHeuristic(1, lightSample.directionPdfA, 1, forwardPdfW);
-                                FramebufferWriter_Write(&context->frameWriter, weight * throughput * sample, (uint32)x, (uint32)y);
+
+                                float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.directionPdfA);
+                                Ld[1] += weight * sample * misThroughput;
                             }
                         }
                     }
@@ -178,30 +184,35 @@ namespace Selas
                             break;
                         }
 
-                        float lightPdfW = DirectIblLightPdf(context, bsdfSample.wi);
+                        float lightPdfW = BackgroundLightingPdf(context, bsdfSample.wi);
                         float weight = ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
 
-                        throughput = weight * throughput * bsdfSample.reflectance;
+                        throughput    = throughput * bsdfSample.reflectance;
+                        misThroughput = weight * misThroughput * bsdfSample.reflectance;
 
-                        float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
+                        float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 32.0f);
                         ray = MakeRay(offsetOrigin, bsdfSample.wi);
                         ++bounceCount;
                     }
 
                     // -- Russian roulette path termination
-                    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
-                    if(context->sampler.UniformFloat() > continuationProb) {
-                        break;
-                    }
-                    throughput = throughput * (1.0f / continuationProb);
+                    //if(bounceCount > 3) {
+                    //    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
+                    //    if(context->sampler.UniformFloat() > continuationProb) {
+                    //        break;
+                    //    }
+                    //    throughput = throughput * (1.0f / continuationProb);
+                    //}
                 }
                 else {
-                    float pdf;
-                    float3 sample = SampleIbl(context->sceneData->ibl, ray.direction, pdf);
-                    FramebufferWriter_Write(&context->frameWriter, throughput * sample, (uint32)x, (uint32)y);
+                    float3 sample = SampleBackgroundLight(context, ray.direction);
+                    Ld[0] += sample * throughput;
+                    Ld[1] += sample * misThroughput;
                     break;
                 }
             }
+
+            FramebufferWriter_Write(&context->frameWriter, Ld, LayerCount_, (uint32)x, (uint32)y);
         }
 
         //=========================================================================================================================
@@ -272,7 +283,7 @@ namespace Selas
             SceneMetaData* sceneData = scene->data;
 
             Framebuffer frame;
-            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
+            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, LayerCount_);
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);

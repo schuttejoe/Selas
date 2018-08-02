@@ -5,61 +5,53 @@
 
 #include "Shading/Lighting.h"
 #include "Shading/SurfaceParameters.h"
-#include "Shading/IntegratorContexts.h"
-
+#include "Shading/Lambert.h"
 #include "Shading/Disney.h"
 #include "Shading/TransparentGGX.h"
+#include "SystemLib/JsAssert.h"
 
-#include "Bsdf/Fresnel.h"
-#include "Bsdf/Ggx.h"
-#include "SceneLib/SceneResource.h"
-#include "SceneLib/ImageBasedLightResource.h"
-#include "GeometryLib/RectangulerLightSampler.h"
-#include "GeometryLib/CoordinateSystem.h"
-#include "UtilityLib/Color.h"
-#include "MathLib/FloatFuncs.h"
-#include "MathLib/FloatStructs.h"
-#include "MathLib/Trigonometric.h"
-#include "MathLib/ImportanceSampling.h"
-#include "MathLib/Random.h"
-#include "MathLib/Projection.h"
-#include "MathLib/Quaternion.h"
-#include "MathLib/GeometryIntersection.h"
-#include "ContainersLib/Rect.h"
-#include "SystemLib/MemoryAllocation.h"
-#include "SystemLib/BasicTypes.h"
-#include "SystemLib/MinMax.h"
+// JSTODO - Rename this to shading
 
 namespace Selas
 {
+    #define LambertAllTheThings_ 0
+
     //=============================================================================================================================
     bool SampleBsdfFunction(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
-        if(surface.shader == eDisney) {
-            return SampleDisneyBrdf(sampler, surface, v, sample);
-        }
-        else if(surface.shader == eTransparentGgx) {
-            return SampleTransparentGgx(sampler, surface, v, sample);
-        }
-        else {
-            Assert_(false);
-        }
+        #if LambertAllTheThings_
+            return SampleLambert(sampler, surface, v, sample);
+        #else
+            if(surface.shader == eDisney) {
+                return SampleDisneyThin(sampler, surface, v, sample);
+            }
+            else if(surface.shader == eTransparentGgx) {
+                return SampleTransparentGgx(sampler, surface, v, sample);
+            }
+            else {
+                Assert_(false);
+            }
+        #endif
 
         return false;
     }
 
     //=============================================================================================================================
-    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 wo, float3 wi, float& forwardPdf, float& reversePdf)
+    float3 EvaluateBsdf(const SurfaceParameters& surface, float3 v, float3 l, float& forwardPdfW, float& reversePdfW)
     {
-        if(surface.shader == eDisney) {
-            return EvaluateDisneyBrdf(surface, wo, wi, forwardPdf, reversePdf);
-        }
-        else if(surface.shader == eTransparentGgx) {
-            return EvaluateTransparentGGXBsdf(surface, wo, wi, forwardPdf, reversePdf);
-        }
-        else {
-            Assert_(false);
-        }
+        #if LambertAllTheThings_
+            return EvaluateLambert(surface, v, l, forwardPdfW, reversePdfW);
+        #else
+            if(surface.shader == eDisney) {
+                return EvaluateDisneyThin(surface, v, l, forwardPdfW, reversePdfW);
+            }
+            else if(surface.shader == eTransparentGgx) {
+                return EvaluateTransparentGGXBsdf(surface, v, l, forwardPdfW, reversePdfW);
+            }
+            else {
+                Assert_(false);
+            }
+        #endif
 
         return float3::Zero_;
     }

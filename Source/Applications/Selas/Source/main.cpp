@@ -34,34 +34,37 @@
 using namespace Selas;
 
 static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
-static cpointer iblName = "HDR~simons_town_rocks_4k_upper.hdr";
+static cpointer iblName = "HDR~flower_road_4k.hdr";
 
 //=================================================================================================================================
-Error ValidateAssetsAreBuilt()
+static Error ValidateAssetsAreBuilt()
 {
     auto timer = SystemTime::Now();
 
-    CJobMgr jobMgr;
-    jobMgr.Initialize();
+    CJobMgr* jobMgr = New_(CJobMgr);
+    jobMgr->Initialize();
 
     CBuildDependencyGraph depGraph;
     ReturnError_(depGraph.Initialize());
 
     CBuildCore buildCore;
-    buildCore.Initialize(&jobMgr, &depGraph);
+    buildCore.Initialize(jobMgr, &depGraph);
 
     CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
     buildCore.BuildAsset(ContentId("fbx", sceneName));
-    buildCore.BuildAsset(ContentId("HDR", iblName));
+    if(StringUtil::Length(iblName) > 0) {
+        buildCore.BuildAsset(ContentId("HDR", iblName));
+    }
 
     ReturnError_(buildCore.Execute());
     buildCore.Shutdown();
 
     ReturnError_(depGraph.Shutdown());
-    jobMgr.Shutdown();
+    jobMgr->Shutdown();
+    Delete_(jobMgr);
 
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene build time %fms", elapsedMs);
@@ -85,7 +88,9 @@ int main(int argc, char *argv[])
     ImageBasedLightResource iblResouce;
 
     auto timer = SystemTime::Now();
-    ExitMainOnError_(ReadImageBasedLightResource(iblName, &iblResouce));
+    if(StringUtil::Length(iblName) > 0) {
+        ExitMainOnError_(ReadImageBasedLightResource(iblName, &iblResouce));
+    }
 
     ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
     ExitMainOnError_(InitializeSceneResource(&sceneResource));
@@ -96,7 +101,7 @@ int main(int argc, char *argv[])
     InitializeEmbreeScene(&sceneResource);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
-    
+
     Selas::uint width = 1400;
     Selas::uint height = 800;
 
@@ -106,14 +111,16 @@ int main(int argc, char *argv[])
     context.ibl = iblResouce.data;
 
     timer = SystemTime::Now();
-    //PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
-    VCM::GenerateImage(context, "vcmTemp", width, height);
+    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
+    //VCM::GenerateImage(context, "vcmTemp", width, height);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
     // -- delete the scene
     ShutdownSceneResource(&sceneResource);
-    ShutdownImageBasedLightResource(&iblResouce);
+    if(StringUtil::Length(iblName) > 0) {
+        ShutdownImageBasedLightResource(&iblResouce);
+    }
 
     return 0;
 }

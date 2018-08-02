@@ -201,7 +201,7 @@ namespace Selas
             float distance = Length(toPosition);
             toPosition = (1.0f / distance) * toPosition;
 
-            float cosThetaSurface = Math::Absf(Dot(surface.geometricNormal, -toPosition));
+            float cosThetaSurface = Math::Absf(Dot(GeometricNormal(surface), -toPosition));
             float cosThetaCamera = Dot(camera->forward, toPosition);
 
             float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;
@@ -231,7 +231,7 @@ namespace Selas
             }
 
             if(OcclusionRay(context->sceneData->rtcScene, surface, -toPosition, distance)) {
-                FramebufferWriter_Write(&context->frameWriter, pathContribution, imagePosition.x, imagePosition.y);
+                FramebufferWriter_Write(&context->frameWriter, &pathContribution, 1, imagePosition.x, imagePosition.y);
             }
         }
 
@@ -597,7 +597,7 @@ namespace Selas
                     }
 
                     float connectionLengthSqr = LengthSquared(cameraPathState.position - surface.position);
-                    float absDotNL = Math::Absf(Dot(surface.geometricNormal, surface.view));
+                    float absDotNL = Math::Absf(Dot(GeometricNormal(surface), surface.view));
 
                     // -- Update accumulated MIS parameters with info from our new hit position. This combines with work done
                     // -- at the previous vertex to convert the solid angle pdf to the area pdf of the outermost term.
@@ -655,7 +655,7 @@ namespace Selas
                     }
                 }
 
-                FramebufferWriter_Write(&context->frameWriter, color, cameraPathState.index);
+                FramebufferWriter_Write(&context->frameWriter, &color, 1, cameraPathState.index);
             }
         }
 
@@ -749,7 +749,7 @@ namespace Selas
             SceneMetaData* sceneData = scene->data;
 
             Framebuffer frame;
-            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height);
+            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, 1);
 
             RayCastCameraSettings camera;
             InitializeRayCastCamera(scene->data->camera, width, height, camera);

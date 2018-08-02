@@ -102,21 +102,57 @@ namespace Selas
         return result;
     }
 
-    ForceInline_ float2 operator*(float scale, float2 lhs)
+    ForceInline_ float2 operator/(float2 lhs, float dividend)
     {
-        float2 result = { lhs.x * scale, lhs.y * scale };
+        float2 result = { lhs.x / dividend, lhs.y / dividend };
         return result;
     }
 
-    ForceInline_ float3 operator*(float scale, float3 lhs)
+    ForceInline_ float3 operator/(float3 lhs, float dividend)
     {
-        float3 result = { lhs.x * scale, lhs.y * scale, lhs.z * scale };
+        float3 result = { lhs.x / dividend, lhs.y / dividend, lhs.z / dividend };
         return result;
     }
 
-    ForceInline_ float4 operator*(float scale, float4 lhs)
+    ForceInline_ float4 operator/(float4 lhs, float dividend)
     {
-        float4 result = { lhs.x * scale, lhs.y * scale, lhs.z * scale, lhs.w * scale };
+        float4 result = { lhs.x / dividend, lhs.y / dividend, lhs.z / dividend, lhs.w / dividend };
+        return result;
+    }
+
+    ForceInline_ float2 operator*(float scale, float2 rhs)
+    {
+        float2 result = { rhs.x * scale, rhs.y * scale };
+        return result;
+    }
+
+    ForceInline_ float3 operator*(float scale, float3 rhs)
+    {
+        float3 result = { rhs.x * scale, rhs.y * scale, rhs.z * scale };
+        return result;
+    }
+
+    ForceInline_ float4 operator*(float scale, float4 rhs)
+    {
+        float4 result = { rhs.x * scale, rhs.y * scale, rhs.z * scale, rhs.w * scale };
+        return result;
+    }
+
+    ForceInline_ float2 operator/(float dividend, float2 rhs)
+    {
+        float2 result = { rhs.x / dividend, rhs.y / dividend };
+        return result;
+    }
+
+    ForceInline_ float3 operator/(float dividend, float3 rhs)
+    {
+        float3 result = { rhs.x / dividend, rhs.y / dividend, rhs.z / dividend };
+        return result;
+    }
+
+    ForceInline_ float4 operator/(float dividend, float4 rhs)
+    {
+        float4 result = { rhs.x / dividend, rhs.y / dividend, rhs.z / dividend, rhs.w / dividend };
         return result;
     }
 
@@ -238,7 +274,7 @@ namespace Selas
         return 2.0f * Dot(n, l) * n - l;
     }
 
-    ForceInline_ bool Transmit(float3 wm, float3 wi, float ni, float no, float3& wo)
+    ForceInline_ bool Transmit(float3 wm, float3 wi, float n, float3& wo)
     {
         float c = Dot(wi, wm);
         if(c < 0.0f) {
@@ -246,10 +282,8 @@ namespace Selas
             wm = -wm;
         }
 
-        float n = ni / no;
-
         float root = 1.0f - n * n * (1.0f - c * c);
-        if(root < 0)
+        if(root <= 0)
             return false;
 
         wo = (n * c - Math::Sqrtf(root)) * wm - n * wi;

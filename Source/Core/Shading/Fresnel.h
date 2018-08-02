@@ -12,7 +12,9 @@ namespace Selas
     {
         float3 Schlick(float3 r0, float radians);
         float Schlick(float r0, float radians);
-        float Schlick(float u);
-        float SchlickDialectic(float cosThetaI, float ni, float nt);
+        float SchlickWeight(float u);
+        float SchlickDielectic(float cosThetaI, float relativeIor);
+        float Dielectric(float cosThetaI, float relativeIorI, float relativeIorT);
+        float SchlickR0FromIOR(float eta);
     }
 }
