@@ -15,7 +15,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    static float3 SampleCosine(float r0, float r1)
+    static float3 SampleCosineWeightedHemisphere(float r0, float r1)
     {
         float r = Math::Sqrtf(r0);
         float theta = Math::TwoPi_ * r1;
@@ -51,7 +51,7 @@ namespace Selas
         // -- Sample cosine lobe
         float r0 = sampler->UniformFloat();
         float r1 = sampler->UniformFloat();
-        float3 wi = SampleCosine(r0, r1);
+        float3 wi = SampleCosineWeightedHemisphere(r0, r1);
 
         float dotNL = Math::CosTheta(wi);
         float dotNV = Math::CosTheta(wo);

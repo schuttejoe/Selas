@@ -23,7 +23,8 @@
 
 namespace Selas
 {
-    #define MaxBounceCount_  10
+    #define MaxBounceCount_    10
+    #define SkyIntensityScale_ 0.5f
 
     //=============================================================================================================================
     //float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
@@ -258,7 +259,7 @@ namespace Selas
         // -- even though it's a solid angle measure.
         Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
-        float3 radiance = SampleIbl(context->sceneData->ibl, x, y);
+        float3 radiance = SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, x, y);
 
         float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
 
@@ -273,7 +274,7 @@ namespace Selas
     float3 IblCalculateRadiance(GIIntegrationContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
     {
         float iblPdfA;
-        float3 radiance = SampleIbl(context->sceneData->ibl, direction, iblPdfA);
+        float3 radiance = SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, direction, iblPdfA);
 
         float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
         float pdfPosition = ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
@@ -334,7 +335,7 @@ namespace Selas
     {
         if(context->sceneData->ibl) {
             float pdf;
-            return SampleIbl(context->sceneData->ibl, wi, pdf);
+            return SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, wi, pdf);
         }
         else {
             return context->sceneData->scene->data->backgroundIntensity;

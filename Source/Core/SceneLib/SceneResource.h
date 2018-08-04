@@ -72,6 +72,7 @@ namespace Selas
             : baseColorTextureIndex(InvalidIndex32)
             , normalTextureIndex(InvalidIndex32)
             , flags(0)
+            , baseColor(float3::Zero_)
             , shader(eDisney)
         {
             for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
@@ -84,6 +85,7 @@ namespace Selas
         uint32 baseColorTextureIndex;
         uint32 normalTextureIndex;
         uint32 flags;
+        float3 baseColor;
         
         float scalarAttributeValues[eMaterialPropertyCount];
         uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];

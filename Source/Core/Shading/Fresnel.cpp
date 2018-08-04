@@ -37,7 +37,7 @@ namespace Selas
         //=========================================================================================================================
         float SchlickDielectic(float cosThetaI, float relativeIor)
         {
-            float r0 = SchlickR0FromIOR(relativeIor);
+            float r0 = SchlickR0FromRelativeIOR(relativeIor);
             return r0 + (1.0f - r0) * SchlickWeight(cosThetaI);
         }
 
@@ -75,7 +75,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        float SchlickR0FromIOR(float eta)
+        float SchlickR0FromRelativeIOR(float eta)
         {
             // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
             return Math::Square(eta - 1.0f) / Math::Square(eta + 1.0f);

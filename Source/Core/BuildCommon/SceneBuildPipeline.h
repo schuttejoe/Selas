@@ -21,6 +21,8 @@ namespace Selas
         FixedString256 shaderName;
         FilePathString normalTexture;
         FilePathString baseColorTexture;
+        float3 baseColor;
+
         FilePathString scalarAttributeTextures[eMaterialPropertyCount];
         float scalarAttributes[eMaterialPropertyCount];
         

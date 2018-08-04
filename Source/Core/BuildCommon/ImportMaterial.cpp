@@ -55,14 +55,25 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(filepath, document));
 
         Json::ReadFixedString(document, "shaderName", material->shaderName);
-        Json::ReadFixedString(document, "baseColorTexture", material->baseColorTexture);
         Json::ReadFixedString(document, "normalTexture", material->normalTexture);
 
+        material->baseColorTexture.Clear();
+        if(Json::IsStringAttribute(document, "baseColor")) {
+            Json::ReadFixedString(document, "baseColor", material->baseColorTexture);
+        }
+        else {
+            Json::ReadFloat3(document, "baseColor", material->baseColor, float3(0.6f, 0.6f, 0.6f));
+        }
+
         for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
-            FixedString64 texPropertyName;
-            FixedStringSprintf(texPropertyName, "%sTexture", attributes[scan]);
-            Json::ReadFixedString(document, texPropertyName.Ascii(), material->scalarAttributeTextures[scan]);
-            Json::ReadFloat(document, attributes[scan], material->scalarAttributes[scan], attributeDefaults[scan]);
+            material->scalarAttributeTextures[scan].Clear();
+
+            if(Json::IsStringAttribute(document, attributes[scan])) {
+                Json::ReadFixedString(document, attributes[scan], material->scalarAttributeTextures[scan]);
+            }
+            else {
+                Json::ReadFloat(document, attributes[scan], material->scalarAttributes[scan], attributeDefaults[scan]);
+            }
         }
              
         Json::ReadBool(document, "alphaTesting", material->alphaTested, false);

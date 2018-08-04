@@ -27,6 +27,10 @@ namespace Selas
     {
         Error OpenJsonDocument(cpointer filepath, rapidjson::Document& document);
 
+        bool IsStringAttribute(const rapidjson::Value& element, cpointer key);
+        bool IsFloatAttribute(const rapidjson::Value& element, cpointer key);
+        bool IsFloat3Attribute(const rapidjson::Value& element, cpointer key);
+
         bool ReadBool(const rapidjson::Value& element, cpointer key, bool& value, bool defaultValue);
         bool ReadInt32(const rapidjson::Value& element, cpointer key, int32& value, int32 defaultValue);
         bool ReadFloat(const rapidjson::Value& element, cpointer key, float& value, float defaultValue);

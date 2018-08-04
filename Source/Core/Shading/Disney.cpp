@@ -39,10 +39,10 @@ namespace Selas
 
         float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight + clearcoatWeight);
 
-        pSpecular = specularWeight * norm;
+        pSpecular  = specularWeight     * norm;
         pSpecTrans = transmissionWeight * norm;
-        pDiffuse = diffuseWeight * norm;
-        pClearcoat = clearcoatWeight * norm;
+        pDiffuse   = diffuseWeight      * norm;
+        pClearcoat = clearcoatWeight    * norm;
     }
 
     //=============================================================================================================================
@@ -86,8 +86,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float EvaluateDisneyClearcoat(float clearcoat, float clearcoatGloss,
-                                         const float3& wo, const float3& wm, const float3& wi, float& fPdfW, float& rPdfW)
+    static float EvaluateDisneyClearcoat(float clearcoat, float alpha, const float3& wo, const float3& wm, const float3& wi,
+                                         float& fPdfW, float& rPdfW)
     {
         if(clearcoat <= 0.0f) {
             return 0.0f;
@@ -98,7 +98,7 @@ namespace Selas
         float absDotNV = AbsCosTheta(wo);
         float dotHL = Dot(wm, wi);
 
-        float d = GTR1(absDotNH, Lerp(0.1f, 0.001f, clearcoatGloss));
+        float d = GTR1(absDotNH, Lerp(0.1f, 0.001f, alpha));
         float f = Fresnel::Schlick(0.04f, dotHL);
         float gl = Bsdf::SeparableSmithGGXG1(wi, 0.25f);
         float gv = Bsdf::SeparableSmithGGXG1(wo, 0.25f);
@@ -107,16 +107,6 @@ namespace Selas
         rPdfW = d / (4.0f * absDotNV);
 
         return 0.25f * clearcoat * d * f * gl * gv;
-    }
-
-    //=============================================================================================================================
-    static void DisneyClearcoatPdf(float dotNH, float dotNL, float dotNV, float& forwardPdfW, float& reversePdfW)
-    {
-        float clearcoatGloss = 0.1f;
-        float d = GTR1(Absf(dotNH), Lerp(0.1f, 0.001f, clearcoatGloss));
-
-        forwardPdfW = d / (4.0f * dotNL);
-        reversePdfW = d / (4.0f * dotNV);
     }
 
     //=============================================================================================================================
@@ -142,7 +132,9 @@ namespace Selas
 
         float3 tint = CalculateTint(surface.baseColor);
 
-        float3 R0 = Fresnel::SchlickR0FromIOR(surface.ior) * Lerp(float3(1.0f), tint, surface.specularTint);
+        // -- See section 3.1 and 3.2 of the 2015 PBR presentation + the Disney BRDF explorer (which does their 2012 remapping
+        // -- rather than the SchlickR0FromRelativeIOR seen here but they mentioned the switch in 3.2).
+        float3 R0 = Fresnel::SchlickR0FromRelativeIOR(surface.relativeIOR) * Lerp(float3(1.0f), tint, surface.specularTint);
                R0 = Lerp(R0, surface.baseColor, surface.metallic);
 
         float dielectricFresnel = Fresnel::Dielectric(dotHV, 1.0f, surface.ior);
@@ -191,7 +183,7 @@ namespace Selas
         float r1 = sampler->UniformFloat();
         float3 wm = Bsdf::SampleGgxVndfAnisotropic(wo, ax, ay, r0, r1);
 
-        // -- Refract wo about wm with the given ior
+        // -- Reflect over wm
         float3 wi = Normalize(Reflect(wm, wo));
         if(CosTheta(wi) <= 0.0f) {
             sample.forwardPdfW = 0.0f;
@@ -202,7 +194,7 @@ namespace Selas
         }
 
         // -- Fresnel term for this lobe is complicated since we're blending with both the metallic and the specularTint
-        // -- parameters.
+        // -- parameters plus we must take the IOR into account for dielectrics
         float3 F = DisneyFresnel(surface, wo, wm, wi);
 
         // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms and
@@ -286,7 +278,7 @@ namespace Selas
         // -- add in energy from diffuse transmission that is just a lambert lobe
         reflectance += surface.diffTrans;
 
-        return InvPi_ * reflectance * Absf(dotNL);
+        return InvPi_ * reflectance;
     }
 
     //=============================================================================================================================
@@ -313,8 +305,8 @@ namespace Selas
             return false;
         }
 
-        float clearcoatWeight = 1.0f;
-        float clearcoatGloss = 0.1f;
+        float clearcoatWeight = surface.clearcoat;
+        float clearcoatGloss = surface.clearcoatGloss;
 
         float dotNH = CosTheta(wm);
         float dotLH = Dot(wm, wi);
@@ -325,9 +317,11 @@ namespace Selas
         float f = Fresnel::Schlick(0.04f, dotLH);
         float g = Bsdf::SeparableSmithGGXG1(wi, 0.25f) * Bsdf::SeparableSmithGGXG1(wo, 0.25f);
 
-        sample.reflectance = float3(0.25f * clearcoatWeight * g * f * d);
+        float fPdf = d / (4.0f * Dot(wo, wm));
+
+        sample.reflectance = float3(0.25f * clearcoatWeight * g * f * d) / fPdf;
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
-        sample.forwardPdfW = d / (4.0f * Dot(wo, wm));
+        sample.forwardPdfW = fPdf;
         sample.reversePdfW = d / (4.0f * Dot(wi, wm));
 
         return true;
@@ -396,7 +390,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float3 SampleCosine(float r0, float r1)
+    static float3 SampleCosineWeightedHemisphere(float r0, float r1)
     {
         float r = Sqrtf(r0);
         float theta = TwoPi_ * r1;
@@ -409,12 +403,12 @@ namespace Selas
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
-        float sign = Math::Sign(CosTheta(wo));
+        float sign = Sign(CosTheta(wo));
 
         // -- Sample cosine lobe
         float r0 = sampler->UniformFloat();
         float r1 = sampler->UniformFloat();
-        float3 wi = sign * SampleCosine(r0, r1);
+        float3 wi = sign * SampleCosineWeightedHemisphere(r0, r1);
         float3 wm = Normalize(wi + wo);
 
         float dotNL = CosTheta(wi);
@@ -440,10 +434,10 @@ namespace Selas
 
         float diffuse = EvaluateDisneyDiffuseThin(surface, wo, wm, wi);
 
-        sample.reflectance = color * (diffuse / pdf);
+        sample.reflectance = color * (diffuse / pdf) * Absf(dotNL);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
-        sample.forwardPdfW = Math::Absf(dotNL) / pdf;
-        sample.reversePdfW = Math::Absf(dotNV) / pdf;
+        sample.forwardPdfW = Absf(dotNL) / pdf;
+        sample.reversePdfW = Absf(dotNV) / pdf;
         sample.type = SurfaceEventTypes::eScatterEvent;
     }
 
@@ -534,6 +528,8 @@ namespace Selas
             forwardPdf += pBRDF * forwardMetallicPdfW;
             reversePdf += pBRDF * reverseMetallicPdfW;
         }
+
+        reflectance = reflectance * Absf(dotNL);
 
         return reflectance;
     }

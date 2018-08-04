@@ -15,6 +15,6 @@ namespace Selas
         float SchlickWeight(float u);
         float SchlickDielectic(float cosThetaI, float relativeIor);
         float Dielectric(float cosThetaI, float relativeIorI, float relativeIorT);
-        float SchlickR0FromIOR(float eta);
+        float SchlickR0FromRelativeIOR(float eta);
     }
 }

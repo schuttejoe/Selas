@@ -31,6 +31,54 @@ namespace Selas
         }
 
         //=========================================================================================================================
+        bool IsStringAttribute(const rapidjson::Value& element, cpointer key)
+        {
+            if(element.HasMember(key) == false) {
+                return false;
+            }
+
+            if(element[key].IsString() == false) {
+                return false;
+            }
+
+            return true;
+        }
+
+        //=========================================================================================================================
+        bool IsFloatAttribute(const rapidjson::Value& element, cpointer key)
+        {
+            if(element.HasMember(key) == false) {
+                return false;
+            }
+
+            if(element[key].IsFloat() == false) {
+                return false;
+            }
+
+            return true;
+        }
+
+        //=========================================================================================================================
+        bool IsFloat3Attribute(const rapidjson::Value& element, cpointer key)
+        {
+            if(element[key].IsArray() && element[key].Size() == 2) {
+                if(element[key][0].IsFloat() == false) {
+                    return false;
+                }
+                if(element[key][1].IsFloat() == false) {
+                    return false;
+                }
+                if(element[key][2].IsFloat() == false) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        //=========================================================================================================================
         bool ReadBool(const rapidjson::Value& element, cpointer key, bool& value, bool defaultValue)
         {
             if(element.HasMember(key)) {
@@ -111,7 +159,7 @@ namespace Selas
         bool ReadFloat3(const rapidjson::Value& element, cpointer key, float3& value, float3 defaultValue)
         {
             if(element.HasMember(key)) {
-                if(element[key].IsArray() && element[key].Size() == 2) {
+                if(element[key].IsArray() && element[key].Size() == 3) {
                     value.x = element[key][0].GetFloat();
                     value.y = element[key][1].GetFloat();
                     value.z = element[key][2].GetFloat();
@@ -132,7 +180,7 @@ namespace Selas
         bool ReadFloat4(const rapidjson::Value& element, cpointer key, float4& value, float4 defaultValue)
         {
             if(element.HasMember(key)) {
-                if(element[key].IsArray() && element[key].Size() == 2) {
+                if(element[key].IsArray() && element[key].Size() == 4) {
                     value.x = element[key][0].GetFloat();
                     value.y = element[key][1].GetFloat();
                     value.z = element[key][2].GetFloat();

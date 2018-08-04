@@ -19,6 +19,9 @@
 #define ForceNoMips_ true
 #define EnableEWA_ true
 
+#define ReadUvAttribute(scene, uvs, attrib) \
+   SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[attrib], false, material->scalarAttributeValues[attrib]);
+
 namespace Selas
 {
     //=============================================================================================================================
@@ -102,24 +105,23 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float3 SampleTextureFloat3(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
+    static float3 SampleTextureFloat3(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float3 defaultValue)
     {
         if(textureIndex == InvalidIndex32)
-            return float3(defaultValue, defaultValue, defaultValue);
+            return defaultValue;
 
         TextureResource* textures = scene->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
             float val;
-            val = SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
+            val = SampleTexture(scene, uvs, textureIndex, sRGB, 0.0f);
             return float3(val, val, val);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
+            return SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB,
-                                       float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, 1.0f));
             return val.XYZ();
         }
 
@@ -192,32 +194,27 @@ namespace Selas
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
 
-        surface.baseColor = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, 1.0f);
+        surface.baseColor = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, material->baseColor);
 
-        surface.sheen          = material->scalarAttributeValues[eSheen];
-        surface.sheenTint      = material->scalarAttributeValues[eSheenTint];
-        surface.clearcoat      = material->scalarAttributeValues[eClearcoat];
-        surface.clearcoatGloss = material->scalarAttributeValues[eClearcoatGloss];
-        surface.specTrans      = material->scalarAttributeValues[eSpecTrans];
-        surface.diffTrans      = material->scalarAttributeValues[eDiffuseTrans];
-        surface.flatness       = material->scalarAttributeValues[eFlatness];
-        surface.anisotropic    = material->scalarAttributeValues[eAnisotropic];
-        surface.specularTint   = material->scalarAttributeValues[eSpecularTint];
-        
-        surface.roughness     = material->scalarAttributeValues[eRoughness]
-                              * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eRoughness], false, 1.0f);
-        surface.metallic      = material->scalarAttributeValues[eMetallic]
-                              * SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eMetallic], false, 1.0f);
-
-        float ior = material->scalarAttributeValues[eIor]
-                  * SampleTextureFloat(scene, uvs,material->scalarAttributeTextureIndices[eIor], false, 1.0f);
+        surface.sheen          = ReadUvAttribute(scene, uvs, eSheen);
+        surface.sheenTint      = ReadUvAttribute(scene, uvs, eSheenTint);
+        surface.clearcoat      = ReadUvAttribute(scene, uvs, eClearcoat);
+        surface.clearcoatGloss = ReadUvAttribute(scene, uvs, eClearcoatGloss);
+        surface.specTrans      = ReadUvAttribute(scene, uvs, eSpecTrans);
+        surface.diffTrans      = ReadUvAttribute(scene, uvs, eDiffuseTrans);
+        surface.flatness       = ReadUvAttribute(scene, uvs, eFlatness);
+        surface.anisotropic    = ReadUvAttribute(scene, uvs, eAnisotropic);
+        surface.specularTint   = ReadUvAttribute(scene, uvs, eSpecularTint);
+        surface.roughness      = ReadUvAttribute(scene, uvs, eRoughness);
+        surface.metallic       = ReadUvAttribute(scene, uvs, eMetallic);
+        surface.ior            = ReadUvAttribute(scene, uvs, eIor);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;
 
         // -- better way to handle this would be for the ray to know what IOR it is within
-        surface.relativeIOR = ((material->flags & eTransparent) && Dot(hit->incDirection, n) < 0.0f) ? ior : 1.0f / ior;
-        surface.ior = ior;
+        surface.relativeIOR = ((material->flags & eTransparent) && Dot(hit->incDirection, n) < 0.0f) 
+                            ? surface.ior : 1.0f / surface.ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
         float3 perturbNormal = SampleTextureNormal(scene, uvs, material->normalTextureIndex);

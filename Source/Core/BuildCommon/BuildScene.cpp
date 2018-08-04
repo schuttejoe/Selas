@@ -193,6 +193,7 @@ namespace Selas
             uint32 shaderFlags = 0;
             DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
             material.flags |= shaderFlags;
+            material.baseColor = importedMaterialData.baseColor;
 
             if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
                 material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
@@ -225,7 +226,7 @@ namespace Selas
 
         BuildMeshes(imported, built);
 
-        built->backgroundIntensity = float3(1.5f, 1.5f, 1.5f);
+        built->backgroundIntensity = float3(0.6f, 0.6f, 0.6f);
         built->camera = imported->camera;
 
         return Success_;
