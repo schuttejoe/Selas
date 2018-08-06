@@ -24,6 +24,12 @@ namespace Selas
         SerializerWritePointerData(writer, sceneData.materials.GetData(), sceneData.materials.DataSize());
     }
 
+    //=============================================================================================================================
+    static void SerializeMeshMetaData(BinaryWriter* writer, const BuiltScene& sceneData)
+    {
+        SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.meshes.GetData(), sceneData.meshes.DataSize());
+    }
 
     //=============================================================================================================================
     static void SerializeBufferAligned(BinaryWriter* writer, void* data, uint32 dataSize, uint32 pw2alignment)
@@ -41,23 +47,18 @@ namespace Selas
     //=============================================================================================================================
     static void SerializeGeometry(BinaryWriter* writer, const BuiltScene& sceneData)
     {  
-        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-            SerializeBufferAligned(writer, (void*)sceneData.indices[scan].GetData(), sceneData.indices[scan].DataSize(), 
-                                   SceneResource::kSceneDataAlignment);
-        }
+        SerializeBufferAligned(writer, (void*)sceneData.indices.GetData(), sceneData.indices.DataSize(), 
+                               SceneResource::kGeometryDataAlignment);
         SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.GetData(), sceneData.faceIndexCounts.DataSize(),
-                               SceneResource::kSceneDataAlignment);
-
+                               SceneResource::kGeometryDataAlignment);
         SerializeBufferAligned(writer, (void*)sceneData.positions.GetData(), sceneData.positions.DataSize(),
-                               SceneResource::kSceneDataAlignment);
+                               SceneResource::kGeometryDataAlignment);
         SerializeBufferAligned(writer, (void*)sceneData.normals.GetData(), sceneData.normals.DataSize(),
-                               SceneResource::kSceneDataAlignment);
+                               SceneResource::kGeometryDataAlignment);
         SerializeBufferAligned(writer, (void*)sceneData.tangents.GetData(), sceneData.tangents.DataSize(),
-                               SceneResource::kSceneDataAlignment);
+                               SceneResource::kGeometryDataAlignment);
         SerializeBufferAligned(writer, (void*)sceneData.uvs.GetData(), sceneData.uvs.DataSize(),
-                               SceneResource::kSceneDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.materialIndices.GetData(), sceneData.materialIndices.DataSize(),
-                               SceneResource::kSceneDataAlignment);
+                               SceneResource::kGeometryDataAlignment);
     }
 
     //=============================================================================================================================
@@ -77,14 +78,11 @@ namespace Selas
         SerializerWrite(&writer, &padding, sizeof(padding));
 
         SerializeMaterials(&writer, sceneData);
+        SerializeMeshMetaData(&writer, sceneData);
 
         uint32 meshCount = sceneData.meshes.Length();
         uint32 vertexCount = sceneData.positions.Length();
-
-        uint32 indexCounts[eMeshIndexTypeCount];
-        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-            indexCounts[scan] = sceneData.indices[scan].Length();
-        }
+        uint32 indexCounts = sceneData.indices.Length();
 
         SerializerWrite(&writer, &meshCount, sizeof(meshCount));
         SerializerWrite(&writer, &vertexCount, sizeof(vertexCount));
@@ -105,18 +103,13 @@ namespace Selas
     //=============================================================================================================================
     static Error BakeSceneGeometryData(BuildProcessorContext* context, const BuiltScene& sceneData)
     {
-        uint32 indexSize = 0;
-        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-            indexSize += sceneData.indices[scan].DataSize();
-        }
-
-        uint32 geometryDataSize = indexSize + 1024/*extra space for alignment*/
+        uint32 geometryDataSize = 1024/*extra space for alignment*/
                                 + sceneData.faceIndexCounts.DataSize()
                                 + sceneData.positions.DataSize()
                                 + sceneData.normals.DataSize()
                                 + sceneData.tangents.DataSize()
                                 + sceneData.uvs.DataSize()
-                                + sceneData.materialIndices.DataSize();
+                                + sceneData.indices.DataSize();
 
         BinaryWriter writer;
         SerializerStart(&writer, 0, geometryDataSize);

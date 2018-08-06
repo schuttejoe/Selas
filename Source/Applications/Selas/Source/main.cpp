@@ -33,8 +33,8 @@
 
 using namespace Selas;
 
-static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
-static cpointer iblName = "HDR~flower_road_4k.hdr";
+static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
+static cpointer iblName = "HDR~flower_road_4k_upper.hdr";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()
@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
     context.ibl = iblResouce.data;
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
-    //VCM::GenerateImage(context, "vcmTemp", width, height);
+    //PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
+    VCM::GenerateImage(context, "vcmTemp", width, height);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 

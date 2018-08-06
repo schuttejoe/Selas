@@ -8,6 +8,7 @@
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/Color.h"
 #include "GeometryLib/AxisAlignedBox.h"
+#include "GeometryLib/CoordinateSystem.h"
 #include "MathLib/FloatFuncs.h"
 #include "SystemLib/CheckedCast.h"
 #include "SystemLib/MinMax.h"
@@ -52,62 +53,36 @@ namespace Selas
     static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
     {
         uint32 totalVertexCount = 0;
-        uint32 totalIndexCount[eMeshIndexTypeCount] = { 0, 0, 0, 0 };
+        uint32 totalIndexCount = 0;
 
         for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
             ImportedMesh* mesh = imported->meshes[scan];
-            Material* material = &built->materials[mesh->materialIndex];
-
-            uint32 indexType = 0;
-
-            bool alphaTested = material->flags & eAlphaTested;
-            bool displaced = material->flags & eDisplacement;
-            if(alphaTested & displaced)
-                indexType = eMeshAlphaTestedDisplaced;
-            else if(alphaTested)
-                indexType = eMeshAlphaTested;
-            else if(displaced)
-                indexType = eMeshDisplaced;
-            else
-                indexType = eMeshStandard;
 
             totalVertexCount += mesh->positions.Length();
-            totalIndexCount[indexType] += mesh->indices.Length();
+            totalIndexCount += mesh->indices.Length();
         }
 
-        for(uint scan = 0; scan < eMeshIndexTypeCount; ++scan) {
-            built->indices[scan].Reserve(totalIndexCount[scan]);
-        }
-
+        built->indices.Reserve(totalIndexCount);
         built->positions.Reserve(totalVertexCount);
         built->normals.Reserve(totalVertexCount);
         built->tangents.Reserve(totalVertexCount);
         built->uvs.Reserve(totalVertexCount);
-        built->materialIndices.Reserve(totalVertexCount);
 
         uint32 vertexOffset = 0;
+        uint32 indexOffset = 0;
         for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
 
             ImportedMesh* mesh = imported->meshes[scan];
-            Material* material = &built->materials[mesh->materialIndex];
 
-            BuiltMeshData meshData;
+            MeshMetaData meshData;
             meshData.indexCount = mesh->indices.Length();
+            meshData.indexOffset = indexOffset;
             meshData.vertexCount = mesh->positions.Length();
             meshData.vertexOffset = vertexOffset;
-
+            meshData.materialIndex = mesh->materialIndex;
             built->meshes.Add(meshData);
 
-            bool alphaTested = material->flags & eAlphaTested;
-            bool displaced = material->flags & eDisplacement;
-            if(alphaTested & displaced)
-                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshAlphaTestedDisplaced]);
-            else if(alphaTested)
-                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshAlphaTested]);
-            else if(displaced)
-                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshDisplaced]);
-            else
-                AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices[eMeshStandard]);
+            AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices);
             
             built->positions.Append(mesh->positions);
             built->uvs.Append(mesh->uv0);
@@ -115,8 +90,15 @@ namespace Selas
             for(uint i = 0; i < meshData.vertexCount; ++i) {
 
                 float3 n = mesh->normals[i];
-                float3 t = mesh->tangents[i];
-                float3 b = mesh->bitangents[i];
+                float3 t;
+                float3 b;
+                if(i < mesh->tangents.Length() && i < mesh->bitangents.Length()) {
+                    t = mesh->tangents[i];
+                    b = mesh->bitangents[i];
+                }
+                else {
+                    MakeOrthogonalCoordinateSystem(n, &t, &b);
+                }
 
                 // -- Gram-Schmidt to make sure they are orthogonal
                 t = t - Dot(n, t) * n;
@@ -126,14 +108,13 @@ namespace Selas
 
                 built->normals.Add(n);
                 built->tangents.Add(float4(t, handedness));
-                built->materialIndices.Add(mesh->materialIndex);
             }
 
             vertexOffset += meshData.vertexCount;
+            indexOffset += meshData.indexCount;
         }
 
-        uint32 maxFaceIndices = Max(built->indices[eMeshDisplaced].Length() / 3,
-                                    built->indices[eMeshAlphaTestedDisplaced].Length() / 3);
+        uint32 maxFaceIndices = built->indices.Length() / 3;
         built->faceIndexCounts.Resize(maxFaceIndices);
         for(uint scan = 0; scan < maxFaceIndices; ++scan) {
             built->faceIndexCounts[scan] = 3;
@@ -223,7 +204,6 @@ namespace Selas
     Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltScene* built)
     {
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
-
         BuildMeshes(imported, built);
 
         built->backgroundIntensity = float3(0.6f, 0.6f, 0.6f);

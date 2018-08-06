@@ -51,13 +51,6 @@ namespace Selas
     };
 
     //== Build =====================================================================
-    struct BuiltMeshData
-    {
-        uint32 indexCount;
-        uint32 vertexCount;
-        uint32 vertexOffset;
-    };
-
     struct BuiltScene
     {
         // -- meta data
@@ -71,14 +64,13 @@ namespace Selas
         CArray<Material>       materials;
 
         // -- geometry information
-        CArray<BuiltMeshData>       meshes;
-        CArray<uint32>              indices[eMeshIndexTypeCount];
+        CArray<MeshMetaData>        meshes;
+        CArray<uint32>              indices;
         CArray<uint32>              faceIndexCounts;
         CArray<float3>              positions;
         CArray<float3>              normals;
         CArray<float4>              tangents;
         CArray<float2>              uvs;
-        CArray<uint32>              materialIndices;
     };
 
 }

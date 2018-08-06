@@ -8,6 +8,7 @@
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
 #include "MathLib/FloatStructs.h"
+#include "ContainersLib/CArray.h"
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
 
@@ -26,22 +27,12 @@ namespace Selas
         eShaderCount
     };
 
-    enum eMaterialFlags
+    enum MaterialFlags
     {
         eTransparent              = 1 << 0,
         eAlphaTested              = 1 << 1,
         eDisplacementEnabled      = 1 << 2,
         eInvertDisplacement       = 1 << 3
-    };
-
-    enum MeshIndexTypes
-    {
-        eMeshStandard,
-        eMeshAlphaTested,
-        eMeshDisplaced,
-        eMeshAlphaTestedDisplaced,
-
-        eMeshIndexTypeCount
     };
 
     enum ScalarMaterialProperties
@@ -91,6 +82,15 @@ namespace Selas
         uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];
     };
 
+    struct MeshMetaData
+    {
+        uint32 indexCount;
+        uint32 indexOffset;
+        uint32 vertexCount;
+        uint32 vertexOffset;
+        uint32 materialIndex;
+    };
+
     struct SceneMetaData
     {
         // -- camera information
@@ -111,22 +111,22 @@ namespace Selas
         // -- for now I'm just making textures as a separate resource.
         FilePathString* textureResourceNames;
         Material*       materials;
+        MeshMetaData*   meshData;
 
         // -- mesh information
         uint32          meshCount;
         uint32          totalVertexCount;
-        uint32          indexCounts[eMeshIndexTypeCount];
+        uint32          indexCount;
     };
 
     struct SceneGeometryData
     {
-        uint32* indices[eMeshIndexTypeCount];
+        uint32* indices;
         uint32* faceIndexCounts;
         float3* positions;
         float3* normals;
         float4* tangents;
         float2* uvs;
-        uint32* materialIndices;
     };
 
     struct SceneResource
@@ -134,7 +134,7 @@ namespace Selas
         static cpointer kDataType;
         static cpointer kGeometryDataType;
         static const uint64 kDataVersion;
-        static const uint32 kSceneDataAlignment;
+        static const uint32 kGeometryDataAlignment;
 
         SceneMetaData* data;
         SceneGeometryData* geometry;
@@ -142,7 +142,7 @@ namespace Selas
         TextureResource* textures;
         void* rtcDevice;
         void* rtcScene;
-        void* rtcGeometries[eMeshIndexTypeCount];
+        CArray<void*> rtcGeometries;
 
         SceneResource();
         ~SceneResource();
