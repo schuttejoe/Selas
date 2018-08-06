@@ -47,12 +47,8 @@ namespace Selas
     static void ExtractQuad(const aiFace* face, CArray<uint32>& indices)
     {
         Assert_(face->mNumIndices == 4);
-        AssertMsg_(false, "Not tested");
-
         indices.Add(face->mIndices[0]);
         indices.Add(face->mIndices[1]);
-        indices.Add(face->mIndices[2]);
-        indices.Add(face->mIndices[0]);
         indices.Add(face->mIndices[2]);
         indices.Add(face->mIndices[3]);
     }
@@ -147,16 +143,30 @@ namespace Selas
                 }
             }
 
-            // -- extract indices
-            mesh->indices.Reserve((uint32)aimesh->mNumFaces * 3);
+            // -- count the amount of space we'll need for triangle and quad indices
+            uint32 triindexcount = 0;
+            uint32 quadindexcount = 0;
+            for(uint facescan = 0, facecount = aimesh->mNumFaces; facescan < facecount; ++facescan) {
+                const struct aiFace* face = &aimesh->mFaces[facescan];
+                if(face->mNumIndices == 3) {
+                    triindexcount += 3;
+                }
+                else if(face->mNumIndices == 4) {
+                    quadindexcount += 4;
+                }
+            }
+
+            // -- extract triangle and quad indices
+            mesh->triindices.Reserve(triindexcount);
+            mesh->quadindices.Reserve(quadindexcount);
             for(uint facescan = 0, facecount = aimesh->mNumFaces; facescan < facecount; ++facescan) {
                 const struct aiFace* face = &aimesh->mFaces[facescan];
 
                 if(face->mNumIndices == 3) {
-                    ExtractTriangles(face, mesh->indices);
+                    ExtractTriangles(face, mesh->triindices);
                 }
                 else if(face->mNumIndices == 4) {
-                    ExtractQuad(face, mesh->indices);
+                    ExtractQuad(face, mesh->quadindices);
                 }
                 else {
                     return Error_("Unsupported index count %d", face->mNumIndices);
@@ -181,11 +191,11 @@ namespace Selas
     {
         // -- prepare defaults
         scene->camera.position = float3(0.0f, 0.0f, 5.0f);
-        scene->camera.lookAt = float3(0.0f, 0.0f, 0.0f);
-        scene->camera.up = float3(0.0f, 1.0f, 0.0f);
-        scene->camera.fov = 45.0f * Math::DegreesToRadians_;
-        scene->camera.znear = 0.1f;
-        scene->camera.zfar = 500.0f;
+        scene->camera.lookAt   = float3(0.0f, 0.0f, 0.0f);
+        scene->camera.up       = float3(0.0f, 1.0f, 0.0f);
+        scene->camera.fov      = 45.0f * Math::DegreesToRadians_;
+        scene->camera.znear    = 0.1f;
+        scene->camera.zfar     = 500.0f;
 
         // -- just grabbing the first camera for now
         if(aiscene->mNumCameras > 0) {
@@ -214,13 +224,8 @@ namespace Selas
                                                    | aiProcess_CalcTangentSpace
                                                    | aiProcess_GenUVCoords
                                                    | aiProcess_ConvertToLeftHanded
-                                                   | aiProcess_Triangulate
-                                                   | aiProcess_JoinIdenticalVertices
                                                    | aiProcess_PreTransformVertices
-                                                   | aiProcess_TransformUVCoords
-                                                   | aiProcess_ImproveCacheLocality
-                                                   | aiProcess_OptimizeMeshes
-                                                   | aiProcess_OptimizeGraph);
+                                                   | aiProcess_TransformUVCoords);
         if(!aiscene) {
             const char* errstr = importer.GetErrorString();
             return Error_("AssetImporter failed with error: %s", errstr);

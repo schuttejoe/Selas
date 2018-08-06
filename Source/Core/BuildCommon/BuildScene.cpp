@@ -54,12 +54,17 @@ namespace Selas
     {
         uint32 totalVertexCount = 0;
         uint32 totalIndexCount = 0;
+        uint32 totalFaceCount = 0;
 
         for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
             ImportedMesh* mesh = imported->meshes[scan];
 
             totalVertexCount += mesh->positions.Length();
-            totalIndexCount += mesh->indices.Length();
+            totalIndexCount += mesh->triindices.Length();
+            totalIndexCount += mesh->quadindices.Length();
+
+            totalFaceCount += mesh->triindices.Length() / 3;
+            totalFaceCount += mesh->quadindices.Length() / 4;
         }
 
         built->indices.Reserve(totalIndexCount);
@@ -67,6 +72,7 @@ namespace Selas
         built->normals.Reserve(totalVertexCount);
         built->tangents.Reserve(totalVertexCount);
         built->uvs.Reserve(totalVertexCount);
+        built->faceIndexCounts.Reserve(totalFaceCount);
 
         uint32 vertexOffset = 0;
         uint32 indexOffset = 0;
@@ -74,20 +80,49 @@ namespace Selas
 
             ImportedMesh* mesh = imported->meshes[scan];
 
-            MeshMetaData meshData;
-            meshData.indexCount = mesh->indices.Length();
-            meshData.indexOffset = indexOffset;
-            meshData.vertexCount = mesh->positions.Length();
-            meshData.vertexOffset = vertexOffset;
-            meshData.materialIndex = mesh->materialIndex;
-            built->meshes.Add(meshData);
+            uint32 vertexCount = mesh->positions.Length();
 
-            AppendAndOffsetIndices(mesh->indices, vertexOffset, built->indices);
+            if(mesh->triindices.Length() > 0) {
+                MeshMetaData meshData;
+                meshData.indexCount = mesh->triindices.Length();
+                meshData.indexOffset = indexOffset;
+                meshData.vertexCount = vertexCount;
+                meshData.vertexOffset = vertexOffset;
+                meshData.materialIndex = mesh->materialIndex;
+                meshData.indicesPerFace = 3;
+                built->meshes.Add(meshData);
+
+                AppendAndOffsetIndices(mesh->triindices, vertexOffset, built->indices);
+
+                for(uint i = 0, faceCount = meshData.indexCount / 3; i < faceCount; ++i) {
+                    built->faceIndexCounts.Add(3);
+                }
+
+                indexOffset += meshData.indexCount;
+            }
+            if(mesh->quadindices.Length() > 0) {
+                MeshMetaData meshData;
+                meshData.indexCount = mesh->quadindices.Length();
+                meshData.indexOffset = indexOffset;
+                meshData.vertexCount = vertexCount;
+                meshData.vertexOffset = vertexOffset;
+                meshData.materialIndex = mesh->materialIndex;
+                meshData.indicesPerFace = 4;
+                built->meshes.Add(meshData);
+
+                AppendAndOffsetIndices(mesh->quadindices, vertexOffset, built->indices);
+
+                for(uint i = 0, faceCount = meshData.indexCount / 4; i < faceCount; ++i) {
+                    built->faceIndexCounts.Add(4);
+                }
+
+                indexOffset += meshData.indexCount;
+            }
             
             built->positions.Append(mesh->positions);
             built->uvs.Append(mesh->uv0);
 
-            for(uint i = 0; i < meshData.vertexCount; ++i) {
+            for(uint i = 0; i < vertexCount; ++i) {
 
                 float3 n = mesh->normals[i];
                 float3 t;
@@ -110,14 +145,7 @@ namespace Selas
                 built->tangents.Add(float4(t, handedness));
             }
 
-            vertexOffset += meshData.vertexCount;
-            indexOffset += meshData.indexCount;
-        }
-
-        uint32 maxFaceIndices = built->indices.Length() / 3;
-        built->faceIndexCounts.Resize(maxFaceIndices);
-        for(uint scan = 0; scan < maxFaceIndices; ++scan) {
-            built->faceIndexCounts[scan] = 3;
+            vertexOffset += vertexCount;
         }
 
         MakeInvalid(&built->aaBox);

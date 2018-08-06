@@ -23,7 +23,7 @@ namespace Selas
     cpointer SceneResource::kDataType = "Scene";
     cpointer SceneResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1532577599ul;
+    const uint64 SceneResource::kDataVersion = 1532577600ul;
     const uint32 SceneResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(SceneResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -130,19 +130,16 @@ namespace Selas
 
         for(uint32 scan = 0, count = sceneData->meshCount; scan < count; ++scan) {
             const MeshMetaData& meshData = sceneData->meshData[scan];
-
             const Material& material = sceneData->materials[meshData.materialIndex];
-
-            uint32 indicesPerFace = 3;
 
             bool hasDisplacement = material.flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
             bool hasAlphaTesting = material.flags & MaterialFlags::eAlphaTested;
 
+            uint32 indicesPerFace = meshData.indicesPerFace;
+            uint32 indexByteOffset = meshData.indexOffset * sizeof(uint32);
+
             RTCGeometry rtcGeometry;
-
             if(hasDisplacement) {
-                uint32 indexByteOffset = meshData.indexOffset * sizeof(uint32);
-
                 rtcGeometry = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
                 SetVertexAttributes(rtcGeometry, scene);
                 rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices,
@@ -156,11 +153,12 @@ namespace Selas
                 rtcSetGeometrySubdivisionMode(rtcGeometry, 0, RTC_SUBDIVISION_MODE_PIN_BOUNDARY);
             }
             else {
-                uint32 indexByteOffset = meshData.indexOffset * sizeof(uint32);
+                RTCGeometryType type = indicesPerFace == 3 ? RTC_GEOMETRY_TYPE_TRIANGLE : RTC_GEOMETRY_TYPE_QUAD;
+                RTCFormat format = indicesPerFace == 3 ? RTC_FORMAT_UINT3 : RTC_FORMAT_UINT4;
 
-                rtcGeometry = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+                rtcGeometry = rtcNewGeometry(rtcDevice, type);
                 SetVertexAttributes(rtcGeometry, scene);
-                rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, geometry->indices,
+                rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, format, geometry->indices,
                                            indexByteOffset, indicesPerFace * sizeof(uint32), meshData.indexCount / indicesPerFace);
             }
 

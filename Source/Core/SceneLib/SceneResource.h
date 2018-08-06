@@ -89,6 +89,7 @@ namespace Selas
         uint32 vertexCount;
         uint32 vertexOffset;
         uint32 materialIndex;
+        uint32 indicesPerFace;
     };
 
     struct SceneMetaData

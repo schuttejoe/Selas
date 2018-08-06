@@ -39,7 +39,8 @@ namespace Selas
         CArray<float3> tangents;
         CArray<float3> bitangents;
 
-        CArray<uint32> indices;
+        CArray<uint32> triindices;
+        CArray<uint32> quadindices;
         uint32         materialIndex;
     };
 
