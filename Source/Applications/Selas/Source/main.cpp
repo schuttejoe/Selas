@@ -55,7 +55,7 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId("fbx", sceneName));
+    buildCore.BuildAsset(ContentId("model", sceneName));
     if(StringUtil::Length(iblName) > 0) {
         buildCore.BuildAsset(ContentId("HDR", iblName));
     }
