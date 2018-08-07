@@ -2,7 +2,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "BuildCommon/SceneBuildProcessor.h"
+#include "BuildCommon/CModelBuildProcessor.h"
 
 #include "BuildCommon/ImportModel.h"
 #include "BuildCommon/BuildScene.h"
@@ -15,7 +15,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    Error CSceneBuildProcessor::Setup()
+    Error CModelBuildProcessor::Setup()
     {
         AssetFileUtils::EnsureAssetDirectory<SceneResource>();
         AssetFileUtils::EnsureAssetDirectory(SceneResource::kGeometryDataType, SceneResource::kDataVersion);
@@ -24,20 +24,19 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    cpointer CSceneBuildProcessor::Type()
+    cpointer CModelBuildProcessor::Type()
     {
-        // JSTODO - Allow for multiple input types to a build processor.
-        return "fbx";
+        return "model";
     }
 
     //=============================================================================================================================
-    uint64 CSceneBuildProcessor::Version()
+    uint64 CModelBuildProcessor::Version()
     {
         return SceneResource::kDataVersion;
     }
 
     //=============================================================================================================================
-    Error CSceneBuildProcessor::Process(BuildProcessorContext* context)
+    Error CModelBuildProcessor::Process(BuildProcessorContext* context)
     {
         ImportedModel importedModel;
         ReturnError_(ImportModel(context, &importedModel));

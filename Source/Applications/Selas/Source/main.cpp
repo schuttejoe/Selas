@@ -8,7 +8,7 @@
 
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
 #include "BuildCommon/TextureBuildProcessor.h"
-#include "BuildCommon/SceneBuildProcessor.h"
+#include "BuildCommon/CModelBuildProcessor.h"
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
 #include "Shading/IntegratorContexts.h"
@@ -53,7 +53,7 @@ static Error ValidateAssetsAreBuilt()
 
     CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
-    CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
 
     buildCore.BuildAsset(ContentId("fbx", sceneName));
     if(StringUtil::Length(iblName) > 0) {

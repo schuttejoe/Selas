@@ -9,7 +9,7 @@
 
 namespace Selas
 {
-    class CSceneBuildProcessor : public CBuildProcessor
+    class CModelBuildProcessor : public CBuildProcessor
     {
         virtual Error    Setup() override;
         virtual cpointer Type() override;
