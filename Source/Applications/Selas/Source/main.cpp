@@ -9,6 +9,7 @@
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
 #include "BuildCommon/TextureBuildProcessor.h"
 #include "BuildCommon/CModelBuildProcessor.h"
+#include "BuildCommon/CDisneySceneBuildProcessor.h"
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
 #include "Shading/IntegratorContexts.h"
@@ -34,7 +35,8 @@
 using namespace Selas;
 
 //static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
-static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
+static cpointer sceneName = "Scenes~island~island.json";
+static cpointer sceneType = "disney";
 static cpointer iblName = "HDR~flower_road_4k.hdr";
 
 //=================================================================================================================================
@@ -54,8 +56,9 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CDisneySceneBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId("model", sceneName));
+    buildCore.BuildAsset(ContentId(sceneType, sceneName));
     if(StringUtil::Length(iblName) > 0) {
         buildCore.BuildAsset(ContentId("HDR", iblName));
     }
