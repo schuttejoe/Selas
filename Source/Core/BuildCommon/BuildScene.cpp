@@ -7,6 +7,7 @@
 #include "BuildCommon/ImportMaterial.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/Color.h"
+#include <UtilityLib/QuickSort.h>
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/CoordinateSystem.h"
 #include "MathLib/FloatFuncs.h"
@@ -88,7 +89,7 @@ namespace Selas
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
-                meshData.materialIndex = mesh->materialIndex;
+                meshData.materialHash = mesh->materialHash;
                 meshData.indicesPerFace = 3;
                 built->meshes.Add(meshData);
 
@@ -106,7 +107,7 @@ namespace Selas
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
-                meshData.materialIndex = mesh->materialIndex;
+                meshData.materialHash = mesh->materialHash;
                 meshData.indicesPerFace = 4;
                 built->meshes.Add(meshData);
 
@@ -175,7 +176,7 @@ namespace Selas
     //=============================================================================================================================
     static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltScene* built)
     {
-        built->materials.Resize(imported->materials.Length());
+        built->materials.Reserve(imported->materials.Length());
         for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
             FilePathString materialfile;
             AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
@@ -184,14 +185,13 @@ namespace Selas
             Error err = ImportMaterial(materialfile.Ascii(), &importedMaterialData);
             if(Failed_(err)) {
                 WriteDebugInfo_("Failed to load material: %s", materialfile.Ascii());
-
-                AssetFileUtils::ContentFilePath("Materials~Default.json", materialfile);
-                ReturnError_(ImportMaterial(materialfile.Ascii(), &importedMaterialData));
+                continue;
             }
 
             context->AddFileDependency(materialfile.Ascii());
 
-            Material& material = built->materials[scan];
+            built->materialHashes.Add(imported->materialHashes[scan]);
+            Material& material = built->materials.Add();
             material = Material();
 
             if(importedMaterialData.alphaTested)
@@ -225,6 +225,7 @@ namespace Selas
             }
         }
 
+        QuickSortMatchingArrays(built->materialHashes.GetData(), built->materials.GetData(), built->materials.Length());
         return Success_;
     }
 

@@ -5,10 +5,11 @@
 //=================================================================================================================================
 
 #include "SceneLib/SceneResource.h"
-#include "ContainersLib/CArray.h"
-#include "StringLib/FixedString.h"
 #include "GeometryLib/AxisAlignedBox.h"
+#include "UtilityLib/MurmurHash.h"
+#include "StringLib/FixedString.h"
 #include "MathLib/FloatStructs.h"
+#include "ContainersLib/CArray.h"
 #include "SystemLib/BasicTypes.h"
 
 namespace Selas
@@ -41,13 +42,14 @@ namespace Selas
 
         CArray<uint32> triindices;
         CArray<uint32> quadindices;
-        uint32         materialIndex;
+        Hash32         materialHash;
     };
 
     struct ImportedModel
     {
         CArray<ImportedMesh*> meshes;
         CArray<FixedString256> materials;
+        CArray<Hash32> materialHashes;
         CameraSettings camera;
     };
 
@@ -62,6 +64,7 @@ namespace Selas
 
         // -- material information
         CArray<FilePathString> textures;
+        CArray<Hash32>         materialHashes;
         CArray<Material>       materials;
 
         // -- geometry information

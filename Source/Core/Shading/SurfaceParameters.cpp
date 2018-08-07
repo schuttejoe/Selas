@@ -154,12 +154,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId)
+    static const Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId)
     {
-        Assert_(geomId < scene->data->meshCount);
-        uint32 materialIndex = scene->data->meshData[geomId].materialIndex;
-
-        return &scene->data->materials[materialIndex];
+        Assert_(geomId < scene->materialLookup.Length());
+        return scene->materialLookup[geomId];
     }
 
     //=============================================================================================================================
@@ -168,7 +166,7 @@ namespace Selas
     {
         const SceneResource* scene = context->sceneData->scene;
 
-        Material* material = GetSurfaceMaterial(scene, hit->geomId);
+        const Material* material = GetSurfaceMaterial(scene, hit->geomId);
 
         Align_(16) float3 normal;
         rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
@@ -224,7 +222,7 @@ namespace Selas
     //=============================================================================================================================
     bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
     {
-        Material* material = GetSurfaceMaterial(scene, geomId);
+        const Material* material = GetSurfaceMaterial(scene, geomId);
         Assert_(material->flags & MaterialFlags::eAlphaTested);
 
         Align_(16) float2 uvs;
@@ -238,7 +236,7 @@ namespace Selas
     //=============================================================================================================================
     float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
     {
-        Material* material = GetSurfaceMaterial(scene, geomId);
+        const Material* material = GetSurfaceMaterial(scene, geomId);
         float displacement = SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eDisplacement], false, 0.0f);
         if(material->flags & eInvertDisplacement) {
             displacement = 1.0f - displacement;

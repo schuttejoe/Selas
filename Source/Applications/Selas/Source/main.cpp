@@ -34,10 +34,11 @@
 
 using namespace Selas;
 
-//static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
-static cpointer sceneName = "Scenes~island~island.json";
-static cpointer sceneType = "disney";
-static cpointer iblName = "HDR~flower_road_4k.hdr";
+static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
+//static cpointer sceneName = "Scenes~island~island.json";
+//static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
+static cpointer sceneType = "model";
+static cpointer iblName = "";// HDR~flower_road_4k.hdr";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()

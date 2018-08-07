@@ -21,6 +21,9 @@ namespace Selas
         SerializerWritePointerData(writer, sceneData.textures.GetData(), sceneData.textures.DataSize());
 
         SerializerWritePointerOffsetX64(writer);
+        SerializerWritePointerData(writer, sceneData.materialHashes.GetData(), sceneData.materialHashes.DataSize());
+
+        SerializerWritePointerOffsetX64(writer);
         SerializerWritePointerData(writer, sceneData.materials.GetData(), sceneData.materials.DataSize());
     }
 

@@ -59,12 +59,14 @@ namespace Selas
         uint32 materialCount = aiscene->mNumMaterials;
 
         scene->materials.Resize(materialCount);
+        scene->materialHashes.Resize(materialCount);
         for(uint scan = 0; scan < materialCount; ++scan) {
             aiMaterial* material = aiscene->mMaterials[scan];
             aiString name;
             material->Get(AI_MATKEY_NAME, name);
 
             scene->materials[scan].Copy(name.data);
+            scene->materialHashes[scan] = MurmurHash3_x86_32(name.data, StringUtil::Length(name.data), 0);
         }
     }
 
@@ -78,10 +80,7 @@ namespace Selas
 
             bool hasNans = false;
 
-            mesh->materialIndex = aimesh->mMaterialIndex;
-            if(mesh->materialIndex > scene->materials.Length()) {
-                return Error_("Invalid material index found in scene");
-            }
+            mesh->materialHash = scene->materialHashes[aimesh->mMaterialIndex];
 
             // -- extract vertices
             uint vertexcount = aimesh->mNumVertices;

@@ -7,6 +7,7 @@
 #include "StringLib/FixedString.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
+#include <UtilityLib/MurmurHash.h>
 #include "MathLib/FloatStructs.h"
 #include "ContainersLib/CArray.h"
 #include "SystemLib/Error.h"
@@ -88,7 +89,7 @@ namespace Selas
         uint32 indexOffset;
         uint32 vertexCount;
         uint32 vertexOffset;
-        uint32 materialIndex;
+        uint32 materialHash;
         uint32 indicesPerFace;
     };
 
@@ -111,6 +112,7 @@ namespace Selas
         // -- long run plan is to have texture header in the scene and then the texture data will be loaded in via caching.
         // -- for now I'm just making textures as a separate resource.
         FilePathString* textureResourceNames;
+        Hash32*         materialHashes;
         Material*       materials;
         MeshMetaData*   meshData;
 
@@ -144,6 +146,9 @@ namespace Selas
         void* rtcDevice;
         void* rtcScene;
         CArray<void*> rtcGeometries;
+
+        Material* defaultMaterial;
+        CArray<const Material*> materialLookup;
 
         SceneResource();
         ~SceneResource();

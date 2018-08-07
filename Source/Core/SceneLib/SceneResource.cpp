@@ -5,6 +5,7 @@
 #include "SceneLib/SceneResource.h"
 #include "TextureLib/TextureResource.h"
 #include "Shading/SurfaceParameters.h"
+#include <UtilityLib/BinarySearch.h>
 #include "Assets/AssetFileUtils.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/FloatStructs.h"
@@ -23,7 +24,7 @@ namespace Selas
     cpointer SceneResource::kDataType = "Scene";
     cpointer SceneResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1532577600ul;
+    const uint64 SceneResource::kDataVersion = 1533665599ul;
     const uint32 SceneResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(SceneResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -120,6 +121,28 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static Material* CreateDefaultMaterial()
+    {
+        Material* defaultMat = New_(Material);
+        defaultMat->baseColor = float3(0.6f, 0.6f, 0.6f);
+        defaultMat->shader = eDisney;
+        defaultMat->scalarAttributeValues[eIor]= 1.5f;
+        
+        return defaultMat;
+    }
+
+    //=============================================================================================================================
+    static const Material* FindMeshMaterial(SceneResource* scene, Hash32 materialHash)
+    {
+        uint materialIndex = BinarySearch(scene->data->materialHashes, scene->data->materialCount, materialHash);
+        if(materialIndex == (uint)-1) {
+            return scene->defaultMaterial;
+        }
+
+        return &scene->data->materials[materialIndex];
+    }
+
+    //=============================================================================================================================
     static void PopulateEmbreeScene(SceneResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
     {
         SceneMetaData* sceneData = scene->data;
@@ -130,10 +153,10 @@ namespace Selas
 
         for(uint32 scan = 0, count = sceneData->meshCount; scan < count; ++scan) {
             const MeshMetaData& meshData = sceneData->meshData[scan];
-            const Material& material = sceneData->materials[meshData.materialIndex];
+            const Material* material = FindMeshMaterial(scene, meshData.materialHash);
 
-            bool hasDisplacement = material.flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
-            bool hasAlphaTesting = material.flags & MaterialFlags::eAlphaTested;
+            bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
+            bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
 
             uint32 indicesPerFace = meshData.indicesPerFace;
             uint32 indexByteOffset = meshData.indexOffset * sizeof(uint32);
@@ -166,6 +189,7 @@ namespace Selas
                 rtcSetGeometryIntersectFilterFunction(rtcGeometry, IntersectionFilter);
             }
 
+            scene->materialLookup.Add(material);
             scene->rtcGeometries.Add(rtcGeometry);
 
             rtcCommitGeometry(rtcGeometry);
@@ -187,6 +211,7 @@ namespace Selas
         , textures(nullptr)
         , rtcDevice(nullptr)
         , rtcScene(nullptr)
+        , defaultMaterial(nullptr)
     {
 
     }
@@ -218,6 +243,7 @@ namespace Selas
         SerializerEnd(&reader);
 
         FixupPointerX64(fileData, data->data->textureResourceNames);
+        FixupPointerX64(fileData, data->data->materialHashes);
         FixupPointerX64(fileData, data->data->materials);
         FixupPointerX64(fileData, data->data->meshData);
 
@@ -270,6 +296,8 @@ namespace Selas
             ReturnError_(ReadTextureResource(scene->data->textureResourceNames[scan].Ascii(), &scene->textures[scan]));
         }
 
+        scene->defaultMaterial = CreateDefaultMaterial();
+
         return Success_;
     }
 
@@ -300,6 +328,7 @@ namespace Selas
             ShutdownTextureResource(&scene->textures[scan]);
         }
 
+        SafeDelete_(scene->defaultMaterial);
         SafeFree_(scene->textures);
         SafeFreeAligned_(scene->data);
         SafeFreeAligned_(scene->geometry);
