@@ -5,7 +5,7 @@
 
 #include "Shading/AreaLighting.h"
 #include "Shading/SurfaceParameters.h"
-#include "Shading/Lighting.h"
+#include "Shading/SurfaceScattering.h"
 #include "Shading/IntegratorContexts.h"
 
 #include "SceneLib/SceneResource.h"

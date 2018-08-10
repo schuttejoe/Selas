@@ -3,7 +3,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "Shading/Lighting.h"
+#include "Shading/SurfaceScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/Lambert.h"
 #include "Shading/Disney.h"

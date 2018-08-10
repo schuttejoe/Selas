@@ -4,7 +4,7 @@
 //=================================================================================================================================
 
 #include "Shading/Lambert.h"
-#include "Shading/Lighting.h"
+#include "Shading/SurfaceScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 

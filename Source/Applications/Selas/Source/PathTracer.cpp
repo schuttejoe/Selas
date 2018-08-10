@@ -4,7 +4,7 @@
 //=================================================================================================================================
 
 #include "PathTracer.h"
-#include "Shading/Lighting.h"
+#include "Shading/SurfaceScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 #include "Shading/AreaLighting.h"
