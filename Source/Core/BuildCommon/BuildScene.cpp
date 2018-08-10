@@ -20,24 +20,20 @@
 namespace Selas
 {
     //=============================================================================================================================
-    static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader, uint32& shaderFlags)
+    static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader)
     {
         static const char* shaderNames[] = {
-            "Disney",
+            "DisneyThin",
+            "DisneySolid",
             "TransparentGGX"
         };
         static_assert(CountOf_(shaderNames) == eShaderCount, "Missing shader name");
 
-        shaderFlags = 0;
-        shader = eDisney;
+        shader = eDisneySolid;
         for(uint scan = 0; scan < eShaderCount; ++scan) {
             if(StringUtil::EqualsIgnoreCase(shaderNames[scan], material.shaderName.Ascii())) {
                 shader = (eMaterialShader)scan;
             }
-        }
-
-        if(shader == eTransparentGgx) {
-            shaderFlags |= eTransparent;
         }
     }
 
@@ -199,9 +195,7 @@ namespace Selas
             if(importedMaterialData.invertDisplacement)
                 material.flags |= eInvertDisplacement;
 
-            uint32 shaderFlags = 0;
-            DetermineShaderType(importedMaterialData, material.shader, shaderFlags);
-            material.flags |= shaderFlags;
+            DetermineShaderType(importedMaterialData, material.shader);
             material.baseColor = importedMaterialData.baseColor;
 
             if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
@@ -223,6 +217,14 @@ namespace Selas
             if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
                 material.flags |= eDisplacementEnabled;
             }
+            if(material.shader == eTransparentGgx) {
+                material.flags |= eTransparent;
+            }
+            if(material.shader == eDisneySolid) {
+                if(material.scalarAttributeValues[eDiffuseTrans] > 0.0f || material.scalarAttributeValues[eSpecTrans] > 0.0f) {
+                    material.flags |= eTransparent;
+                }
+            }
         }
 
         QuickSortMatchingArrays(built->materialHashes.GetData(), built->materials.GetData(), built->materials.Length());
@@ -235,7 +237,8 @@ namespace Selas
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
         BuildMeshes(imported, built);
 
-        built->backgroundIntensity = float3(0.6f, 0.6f, 0.6f);
+        const float intensityScale = 1.2f;
+        built->backgroundIntensity = intensityScale * float3(0.9f, 0.84f, 0.78f);
         built->camera = imported->camera;
 
         return Success_;

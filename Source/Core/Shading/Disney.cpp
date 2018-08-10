@@ -210,8 +210,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float3 EvaluateDisneySpecTransmissionThin(const SurfaceParameters& surface, const float3& wo, const float3& wm,
-                                                     const float3& wi, float ax, float ay)
+    static float3 EvaluateDisneySpecTransmission(const SurfaceParameters& surface, const float3& wo, const float3& wm,
+                                                 const float3& wi, float ax, float ay, bool thin)
     {
         float relativeIor = surface.relativeIOR;
         float n2 = relativeIor * relativeIor;
@@ -229,7 +229,12 @@ namespace Selas
 
         float f = Fresnel::Dielectric(dotHV, 1.0f, 1.0f / surface.relativeIOR);
 
-        float3 color = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+        float3 color;
+        if(thin)
+            color = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+        else
+            color = surface.baseColor;
+        
 
         // Note that we are intentionally leaving out the 1/n2 spreading factor since for VCM we will be evaluating particles with
         // this. That means we'll need to model the air-[other medium] transmission if we ever place the camera inside a non-air
@@ -240,7 +245,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float EvaluateDisneyDiffuseThin(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi)
+    static float EvaluateDisneyDiffuse(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi,
+                                       bool thin)
     {
         float dotNL = CosTheta(wi);
         float dotNV = CosTheta(wo);
@@ -270,13 +276,18 @@ namespace Selas
             }
 
             float lambert = 1.0f;
-            float subsurfaceApprox = Lerp(lambert, hanrahanKrueger, surface.flatness);
+            float subsurfaceApprox;
+            if(thin)
+                subsurfaceApprox = Lerp(lambert, hanrahanKrueger, surface.flatness);
+            else
+                subsurfaceApprox = lambert;
 
             reflectance += topSideWeight * (subsurfaceApprox * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv) + retro);
         }
 
         // -- add in energy from diffuse transmission that is just a lambert lobe
-        reflectance += surface.diffTrans;
+        if(thin)
+            reflectance += surface.diffTrans;
 
         return InvPi_ * reflectance;
     }
@@ -328,7 +339,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SampleDisneySpecTransmissionThin(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    static void SampleDisneySpecTransmission(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin,
+                                             BsdfSample& sample)
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
@@ -351,6 +363,8 @@ namespace Selas
         float scatterPdf;
         float3 surfaceColor;
 
+        SurfaceEventTypes eventType = SurfaceEventTypes::eScatterEvent;
+
         float3 wi;
         if(sampler->UniformFloat() < F) {
             wi = Reflect(wm, wo);
@@ -367,7 +381,13 @@ namespace Selas
 
             // -- Both the entering and exiting scattering events must be simultaneously simulated so we use the sqrt of the
             // -- base color.
-            surfaceColor = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+            if(thin) {
+                surfaceColor = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+            }
+            else {
+                surfaceColor = surface.baseColor;
+                eventType = SurfaceEventTypes::eTransmissionEvent;
+            }
         }
         wi = Normalize(wi);
 
@@ -386,7 +406,7 @@ namespace Selas
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
 
         // -- Since this is a thin surface we are not ending up inside of a volume so we treat this as a scatter event.
-        sample.type = SurfaceEventTypes::eScatterEvent;
+        sample.type = eventType;
     }
 
     //=============================================================================================================================
@@ -399,7 +419,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SampleDisneyDiffuseThin(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    static void SampleDisneyDiffuse(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin, BsdfSample& sample)
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
@@ -417,13 +437,19 @@ namespace Selas
 
         float pdf;
 
+        SurfaceEventTypes eventType = SurfaceEventTypes::eScatterEvent;
+
         float3 color = surface.baseColor;
 
         float p = sampler->UniformFloat();
         if(p < surface.diffTrans) {
             wi = -wi;
             pdf = surface.diffTrans;
-            color = float3(Sqrtf(color.x), Sqrtf(color.y), Sqrtf(color.z));
+
+            if(thin)
+                color = float3(Sqrtf(color.x), Sqrtf(color.y), Sqrtf(color.z));
+            else
+                eventType = SurfaceEventTypes::eTransmissionEvent;
         }
         else {
             pdf = (1.0f - surface.diffTrans);
@@ -432,17 +458,17 @@ namespace Selas
         float3 sheen = EvaluateSheen(surface, wo, wm, wi);
         sample.reflectance += sheen;
 
-        float diffuse = EvaluateDisneyDiffuseThin(surface, wo, wm, wi);
+        float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
         sample.reflectance = color * (diffuse / pdf) * Absf(dotNL);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         sample.forwardPdfW = Absf(dotNL) / pdf;
         sample.reversePdfW = Absf(dotNV) / pdf;
-        sample.type = SurfaceEventTypes::eScatterEvent;
+        sample.type = eventType;
     }
 
     //=============================================================================================================================
-    float3 EvaluateDisneyThin(const SurfaceParameters& surface, float3 v, float3 l, float& forwardPdf, float& reversePdf)
+    float3 EvaluateDisney(const SurfaceParameters& surface, float3 v, float3 l, bool thin, float& forwardPdf, float& reversePdf)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
         float3 wi = Normalize(MatrixMultiply(l, surface.worldToTangent));
@@ -488,7 +514,7 @@ namespace Selas
         if(diffuseWeight > 0.0f) {
             float forwardDiffusePdfW = AbsCosTheta(wi);
             float reverseDiffusePdfW = AbsCosTheta(wo);
-            float diffuse = EvaluateDisneyDiffuseThin(surface, wo, wm, wi);
+            float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
             float3 sheen = EvaluateSheen(surface, wo, wm, wi);
             reflectance += sheen;
@@ -507,7 +533,7 @@ namespace Selas
             float tax, tay;
             CalculateAnisotropicParams(rscaled, surface.anisotropic, tax, tay);
 
-            float3 transmission = EvaluateDisneySpecTransmissionThin(surface, wo, wm, wi, tax, tay);
+            float3 transmission = EvaluateDisneySpecTransmission(surface, wo, wm, wi, tax, tay, thin);
             reflectance += transWeight * transmission;
 
             float forwardTransmissivePdfW;
@@ -535,7 +561,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    bool SampleDisneyThin(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    bool SampleDisney(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin, BsdfSample& sample)
     {
         float pSpecular;
         float pDiffuse;
@@ -554,11 +580,11 @@ namespace Selas
             pLobe = pClearcoat;
         }
         else if(p > pSpecular + pClearcoat && p <= (pSpecular + pClearcoat + pDiffuse)) {
-            SampleDisneyDiffuseThin(sampler, surface, v, sample);
+            SampleDisneyDiffuse(sampler, surface, v, thin, sample);
             pLobe = pDiffuse;
         }
         else if(pTransmission >= 0.0f) {
-            SampleDisneySpecTransmissionThin(sampler, surface, v, sample);
+            SampleDisneySpecTransmission(sampler, surface, v, thin, sample);
             pLobe = pTransmission;
         }
         else {

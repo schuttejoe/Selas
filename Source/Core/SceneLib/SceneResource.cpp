@@ -24,7 +24,7 @@ namespace Selas
     cpointer SceneResource::kDataType = "Scene";
     cpointer SceneResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1533665599ul;
+    const uint64 SceneResource::kDataVersion = 1533865499ul;
     const uint32 SceneResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(SceneResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -125,7 +125,7 @@ namespace Selas
     {
         Material* defaultMat = New_(Material);
         defaultMat->baseColor = float3(0.6f, 0.6f, 0.6f);
-        defaultMat->shader = eDisney;
+        defaultMat->shader = eDisneySolid;
         defaultMat->scalarAttributeValues[eIor]= 1.5f;
         
         return defaultMat;

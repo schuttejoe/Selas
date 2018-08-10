@@ -22,8 +22,11 @@ namespace Selas
         #if LambertAllTheThings_
             return SampleLambert(sampler, surface, v, sample);
         #else
-            if(surface.shader == eDisney) {
-                return SampleDisneyThin(sampler, surface, v, sample);
+            if(surface.shader == eDisneyThin) {
+                return SampleDisney(sampler, surface, v, true, sample);
+            }
+            if(surface.shader == eDisneySolid) {
+                return SampleDisney(sampler, surface, v, false, sample);
             }
             else if(surface.shader == eTransparentGgx) {
                 return SampleTransparentGgx(sampler, surface, v, sample);
@@ -42,8 +45,11 @@ namespace Selas
         #if LambertAllTheThings_
             return EvaluateLambert(surface, v, l, forwardPdfW, reversePdfW);
         #else
-            if(surface.shader == eDisney) {
-                return EvaluateDisneyThin(surface, v, l, forwardPdfW, reversePdfW);
+            if(surface.shader == eDisneyThin) {
+                return EvaluateDisney(surface, v, l, true, forwardPdfW, reversePdfW);
+            }
+            if(surface.shader == eDisneySolid) {
+                return EvaluateDisney(surface, v, l, false, forwardPdfW, reversePdfW);
             }
             else if(surface.shader == eTransparentGgx) {
                 return EvaluateTransparentGGXBsdf(surface, v, l, forwardPdfW, reversePdfW);

@@ -22,7 +22,8 @@ namespace Selas
 
     enum eMaterialShader
     {
-        eDisney,
+        eDisneyThin,
+        eDisneySolid,
         eTransparentGgx,
 
         eShaderCount
@@ -65,7 +66,7 @@ namespace Selas
             , normalTextureIndex(InvalidIndex32)
             , flags(0)
             , baseColor(float3::Zero_)
-            , shader(eDisney)
+            , shader(eDisneyThin)
         {
             for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
                 scalarAttributeValues[scan] = 0.0f;

@@ -14,8 +14,8 @@ namespace Selas
     struct BsdfSample;
 
     // -- BSDF evaluation for next event estimation
-    float3 EvaluateDisneyThin(const SurfaceParameters& surface, float3 v, float3 l, float& forwardPdf, float& reversePdf);
+    float3 EvaluateDisney(const SurfaceParameters& surface, float3 v, float3 l, bool thin, float& forwardPdf, float& reversePdf);
 
     // -- Shaders
-    bool SampleDisneyThin(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample);
+    bool SampleDisney(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin, BsdfSample& sample);
 }
