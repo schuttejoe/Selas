@@ -359,7 +359,11 @@ namespace Selas
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
         // -- Scale roughness based on IOR
-        float rscaled = ThinTransmissionRoughness(surface.ior, surface.roughness);
+        float rscaled;
+        if(thin)
+            rscaled = ThinTransmissionRoughness(surface.ior, surface.roughness);
+        else
+            rscaled = surface.roughness;
          
         float tax, tay;
         CalculateAnisotropicParams(rscaled, surface.anisotropic, tax, tay);
