@@ -19,14 +19,8 @@ namespace Selas
 {
     using namespace Math;
 
-    // Burley 2012
-    // http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf
-    // Burley 2015
-    // http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
-    // Hanrahan-Krueger 1993
-    // https://cseweb.ucsd.edu/~ravir/6998/papers/p165-hanrahan.pdf
-    // Disney BRDF explorer
-    // https://github.com/wdas/brdf
+    // There a lot going on here so I wrote a blog post about it.
+    // https://schuttejoe.github.io/post/DisneyBsdf/
 
     //=============================================================================================================================
     static void CalculateLobePdfs(const SurfaceParameters& surface,
@@ -201,9 +195,9 @@ namespace Selas
         // -- parameters plus we must take the IOR into account for dielectrics
         float3 F = DisneyFresnel(surface, wo, wm, wi);
 
-        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms and
-        // -- us with a weight of G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function we have
-        // -- G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
+        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms.
+        // -- We are left with the weight G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function
+        // -- we get G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
         float G1v = Bsdf::SeparableSmithGGXG1(wo, wm, ax, ay);
         float3 specular = G1v * F;
 
@@ -235,7 +229,7 @@ namespace Selas
 
         float3 color;
         if(thin)
-            color = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+            color = Sqrt(surface.baseColor);
         else
             color = surface.baseColor;
         
@@ -359,11 +353,7 @@ namespace Selas
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
         // -- Scale roughness based on IOR
-        float rscaled;
-        if(thin)
-            rscaled = ThinTransmissionRoughness(surface.ior, surface.roughness);
-        else
-            rscaled = surface.roughness;
+        float rscaled = thin ? ThinTransmissionRoughness(surface.ior, surface.roughness) : surface.roughness;
          
         float tax, tay;
         CalculateAnisotropicParams(rscaled, surface.anisotropic, tax, tay);
@@ -390,31 +380,35 @@ namespace Selas
             surfaceColor = surface.baseColor;
         }
         else {
-            // -- The surface is thin so it refracts into and then out of the surface during this shading event.
-            wi = Reflect(wm, wo);
-            wi.y = -wi.y;
-
-            // -- pdf for importance sampling the fresnel term
-            scatterPdf = 1.0f - F;
-
-            // -- Both the entering and exiting scattering events must be simultaneously simulated so we use the sqrt of the
-            // -- base color.
             if(thin) {
-                surfaceColor = float3(Sqrtf(surface.baseColor.x), Sqrtf(surface.baseColor.y), Sqrtf(surface.baseColor.z));
+                // -- When the surface is thin so it refracts into and then out of the surface during this shading event.
+                // -- So the ray is just reflected then flipped and we use the sqrt of the surface color.
+                wi = Reflect(wm, wo);
+                wi.y = -wi.y;
+                surfaceColor = Sqrt(surface.baseColor);
             }
             else {
                 surfaceColor = surface.baseColor;
-                eventType = SurfaceEventTypes::eTransmissionEvent;
 
-                sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
-                sample.medium.extinction    = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
+                if(Transmit(wm, wo, surface.relativeIOR, wi)) {
+                    eventType = SurfaceEventTypes::eTransmissionEvent;
+
+                    sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
+                    sample.medium.extinction = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
+                }
+                else {
+                    wi = Reflect(wm, wo);
+                }
             }
+
+            // -- pdf for importance sampling the fresnel term
+            scatterPdf = 1.0f - F;
         }
         wi = Normalize(wi);
 
-        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms and
-        // -- us with a weight of G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function we have
-        // -- G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
+        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms.
+        // -- We are left with the weight G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function
+        // -- we get G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
         float G1v = Bsdf::SeparableSmithGGXG1(wo, wm, tax, tay);
         sample.reflectance = surfaceColor * G1v;
 
@@ -468,7 +462,7 @@ namespace Selas
             pdf = surface.diffTrans;
 
             if(thin)
-                color = float3(Sqrtf(color.x), Sqrtf(color.y), Sqrtf(color.z));
+                color = Sqrt(color);
             else {
                 eventType = SurfaceEventTypes::eTransmissionEvent;
 

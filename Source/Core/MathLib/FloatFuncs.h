@@ -275,6 +275,21 @@ namespace Selas
         return float4(Math::Expf(vec.x), Math::Expf(vec.y), Math::Expf(vec.z), Math::Expf(vec.w));
     }
 
+    ForceInline_ float2 Sqrt(float2 vec)
+    {
+        return float2(Math::Sqrtf(vec.x), Math::Sqrtf(vec.y));
+    }
+
+    ForceInline_ float3 Sqrt(float3 vec)
+    {
+        return float3(Math::Sqrtf(vec.x), Math::Sqrtf(vec.y), Math::Sqrtf(vec.z));
+    }
+
+    ForceInline_ float4 Sqrt(float4 vec)
+    {
+        return float4(Math::Sqrtf(vec.x), Math::Sqrtf(vec.y), Math::Sqrtf(vec.z), Math::Sqrtf(vec.w));
+    }
+
     ForceInline_ float3 ProjectOntoV(float3 u, float3 v)
     {
         float d = Dot(u, v);
