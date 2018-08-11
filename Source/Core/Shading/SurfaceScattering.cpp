@@ -10,8 +10,6 @@
 #include "Shading/TransparentGGX.h"
 #include "SystemLib/JsAssert.h"
 
-// JSTODO - Rename this to shading
-
 namespace Selas
 {
     #define LambertAllTheThings_ 0
@@ -25,7 +23,7 @@ namespace Selas
             if(surface.shader == eDisneyThin) {
                 return SampleDisney(sampler, surface, v, true, sample);
             }
-            if(surface.shader == eDisneySolid) {
+            else if(surface.shader == eDisneySolid) {
                 return SampleDisney(sampler, surface, v, false, sample);
             }
             else if(surface.shader == eTransparentGgx) {
@@ -48,7 +46,7 @@ namespace Selas
             if(surface.shader == eDisneyThin) {
                 return EvaluateDisney(surface, v, l, true, forwardPdfW, reversePdfW);
             }
-            if(surface.shader == eDisneySolid) {
+            else if(surface.shader == eDisneySolid) {
                 return EvaluateDisney(surface, v, l, false, forwardPdfW, reversePdfW);
             }
             else if(surface.shader == eTransparentGgx) {

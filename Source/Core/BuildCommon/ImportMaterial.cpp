@@ -27,6 +27,7 @@ namespace Selas
         "diffTrans",
         "flatness",
         "ior",
+        "scatterDistance",
         "displacement"
     };
     static_assert(CountOf_(attributes) == eMaterialPropertyCount, "Incorrect attribute string count");
@@ -45,6 +46,7 @@ namespace Selas
         0.0f, // diffTrans
         0.0f, // flatness
         1.5f, // ior
+        0.0f, // scatter distance
         0.0f, // displacement
     };
     static_assert(CountOf_(attributeDefaults) == eMaterialPropertyCount, "Incorrect attribute default count");
@@ -64,6 +66,8 @@ namespace Selas
         else {
             Json::ReadFloat3(document, "baseColor", material->baseColor, float3(0.6f, 0.6f, 0.6f));
         }
+
+        Json::ReadFloat3(document, "transmittanceColor", material->transmittanceColor, float3::Zero_);
 
         for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
             material->scalarAttributeTextures[scan].Clear();

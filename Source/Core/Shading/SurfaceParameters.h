@@ -25,6 +25,7 @@ namespace Selas
         float3 view;
         
         float3 baseColor;
+        float3 transmittanceColor;
         float sheen;
         float sheenTint;
         float clearcoat;
@@ -36,7 +37,8 @@ namespace Selas
         float anisotropic;
         float relativeIOR;
         float specularTint;
-        float  roughness;
+        float roughness;
+        float scatterDistance;
 
         float ior;
 

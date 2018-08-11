@@ -5,6 +5,7 @@
 
 #include "PathTracer.h"
 #include "Shading/SurfaceScattering.h"
+#include "Shading/VolumetricScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 #include "Shading/AreaLighting.h"
@@ -38,13 +39,13 @@
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_ray.h>
 
-#define MaxBounceCount_         100
+#define MaxBounceCount_         2048
 
 #define EnableMultiThreading_   1
 #define PathsPerPixel_          1
 #define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     60.0f
+#define IntegrationSeconds_     60 * 60.0f
 
 namespace Selas
 {
@@ -94,7 +95,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static bool RayPick(const RTCScene& rtcScene, const Ray& ray, HitParameters& hit)
+        static bool RayPick(const RTCScene& rtcScene, const Ray& ray, float tfar, HitParameters& hit)
         {
 
             RTCIntersectContext context;
@@ -107,8 +108,8 @@ namespace Selas
             rayhit.ray.dir_x = ray.direction.x;
             rayhit.ray.dir_y = ray.direction.y;
             rayhit.ray.dir_z = ray.direction.z;
-            rayhit.ray.tnear = 0.00001f;
-            rayhit.ray.tfar = FloatMax_;
+            rayhit.ray.tnear = 0.0f;
+            rayhit.ray.tfar = tfar;
 
             rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
             rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
@@ -142,11 +143,26 @@ namespace Selas
             float3 throughput = float3::One_;
             float3 misThroughput = float3::One_;
 
+            MediumParameters vacuum;
+            MediumParameters currentMedium = vacuum;
+
+            float rayDistance = FloatMax_;
+
             uint bounceCount = 0;
             while (bounceCount < context->maxPathLength) {
                 
+                float pdf;
+                rayDistance = SampleDistance(&context->sampler, currentMedium, &pdf);
+
                 HitParameters hit;
-                bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, hit);
+                bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, rayDistance, hit);
+
+                if(rayCastHit) {
+                    rayDistance = Length(hit.position - ray.origin);
+                }
+                float3 transmission = Transmission(currentMedium, rayDistance);
+                throughput = throughput * transmission;
+                misThroughput = misThroughput * transmission;
 
                 if(rayCastHit) {
                     SurfaceParameters surface;
@@ -184,31 +200,46 @@ namespace Selas
                             break;
                         }
 
+                        if(bsdfSample.type == SurfaceEventTypes::eTransmissionEvent) {
+                            // -- Currently we only support "air"(vacuum)-surface interfaces without any nesting.
+                            if(currentMedium.phaseFunction == eVacuum)
+                                currentMedium = bsdfSample.medium;
+                            else
+                                currentMedium = vacuum;
+                        }
+
                         float lightPdfW = BackgroundLightingPdf(context, bsdfSample.wi);
                         float weight = ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
 
                         throughput    = throughput * bsdfSample.reflectance;
                         misThroughput = weight * misThroughput * bsdfSample.reflectance;
 
-                        float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 32.0f);
+                        float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
                         ray = MakeRay(offsetOrigin, bsdfSample.wi);
-                        ++bounceCount;
                     }
-
-                    // -- Russian roulette path termination
-                    //if(bounceCount > 3) {
-                    //    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
-                    //    if(context->sampler.UniformFloat() > continuationProb) {
-                    //        break;
-                    //    }
-                    //    throughput = throughput * (1.0f / continuationProb);
-                    //}
+                }
+                else if(currentMedium.phaseFunction != MediumPhaseFunction::eVacuum) {
+                    float3 origin = ray.origin + rayDistance * ray.direction;
+                    float pdf;
+                    float3 direction = SampleScatterDirection(&context->sampler, currentMedium, ray.direction, &pdf);
+                    ray = MakeRay(origin, direction);
                 }
                 else {
                     float3 sample = SampleBackgroundLight(context, ray.direction);
                     Ld[0] += sample * throughput;
                     Ld[1] += sample * misThroughput;
                     break;
+                }
+
+                ++bounceCount;
+
+                // -- Russian roulette path termination
+                if(bounceCount > 8) {
+                    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
+                    if(context->sampler.UniformFloat() > continuationProb) {
+                        break;
+                    }
+                    throughput = throughput * (1.0f / continuationProb);
                 }
             }
 

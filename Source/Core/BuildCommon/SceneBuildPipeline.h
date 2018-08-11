@@ -23,6 +23,7 @@ namespace Selas
         FilePathString normalTexture;
         FilePathString baseColorTexture;
         float3 baseColor;
+        float3 transmittanceColor;
 
         FilePathString scalarAttributeTextures[eMaterialPropertyCount];
         float scalarAttributes[eMaterialPropertyCount];

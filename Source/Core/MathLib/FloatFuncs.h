@@ -260,6 +260,21 @@ namespace Selas
         return 1.f / Length(vec4);
     }
 
+    ForceInline_ float2 Exp(float2 vec)
+    {
+        return float2(Math::Expf(vec.x), Math::Expf(vec.y));
+    }
+
+    ForceInline_ float3 Exp(float3 vec)
+    {
+        return float3(Math::Expf(vec.x), Math::Expf(vec.y), Math::Expf(vec.z));
+    }
+
+    ForceInline_ float4 Exp(float4 vec)
+    {
+        return float4(Math::Expf(vec.x), Math::Expf(vec.y), Math::Expf(vec.z), Math::Expf(vec.w));
+    }
+
     ForceInline_ float3 ProjectOntoV(float3 u, float3 v)
     {
         float d = Dot(u, v);

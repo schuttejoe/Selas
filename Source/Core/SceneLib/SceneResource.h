@@ -52,6 +52,7 @@ namespace Selas
         eDiffuseTrans,
         eFlatness,
         eIor,
+        eScatterDistance,
 
         // -- other properties
         eDisplacement,
@@ -66,6 +67,7 @@ namespace Selas
             , normalTextureIndex(InvalidIndex32)
             , flags(0)
             , baseColor(float3::Zero_)
+            , transmittanceColor(float3::Zero_)
             , shader(eDisneyThin)
         {
             for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
@@ -79,6 +81,7 @@ namespace Selas
         uint32 normalTextureIndex;
         uint32 flags;
         float3 baseColor;
+        float3 transmittanceColor;
         
         float scalarAttributeValues[eMaterialPropertyCount];
         uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];

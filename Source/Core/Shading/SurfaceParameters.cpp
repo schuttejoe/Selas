@@ -191,19 +191,21 @@ namespace Selas
         surface.materialFlags   = material->flags;
 
         surface.baseColor = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, material->baseColor);
+        surface.transmittanceColor = material->transmittanceColor;
 
-        surface.sheen          = ReadUvAttribute(scene, uvs, eSheen);
-        surface.sheenTint      = ReadUvAttribute(scene, uvs, eSheenTint);
-        surface.clearcoat      = ReadUvAttribute(scene, uvs, eClearcoat);
-        surface.clearcoatGloss = ReadUvAttribute(scene, uvs, eClearcoatGloss);
-        surface.specTrans      = ReadUvAttribute(scene, uvs, eSpecTrans);
-        surface.diffTrans      = ReadUvAttribute(scene, uvs, eDiffuseTrans);
-        surface.flatness       = ReadUvAttribute(scene, uvs, eFlatness);
-        surface.anisotropic    = ReadUvAttribute(scene, uvs, eAnisotropic);
-        surface.specularTint   = ReadUvAttribute(scene, uvs, eSpecularTint);
-        surface.roughness      = ReadUvAttribute(scene, uvs, eRoughness);
-        surface.metallic       = ReadUvAttribute(scene, uvs, eMetallic);
-        surface.ior            = ReadUvAttribute(scene, uvs, eIor);
+        surface.sheen           = ReadUvAttribute(scene, uvs, eSheen);
+        surface.sheenTint       = ReadUvAttribute(scene, uvs, eSheenTint);
+        surface.clearcoat       = ReadUvAttribute(scene, uvs, eClearcoat);
+        surface.clearcoatGloss  = ReadUvAttribute(scene, uvs, eClearcoatGloss);
+        surface.specTrans       = ReadUvAttribute(scene, uvs, eSpecTrans);
+        surface.diffTrans       = ReadUvAttribute(scene, uvs, eDiffuseTrans);
+        surface.flatness        = ReadUvAttribute(scene, uvs, eFlatness);
+        surface.anisotropic     = ReadUvAttribute(scene, uvs, eAnisotropic);
+        surface.specularTint    = ReadUvAttribute(scene, uvs, eSpecularTint);
+        surface.roughness       = ReadUvAttribute(scene, uvs, eRoughness);
+        surface.metallic        = ReadUvAttribute(scene, uvs, eMetallic);
+        surface.scatterDistance = ReadUvAttribute(scene, uvs, eScatterDistance);
+        surface.ior             = ReadUvAttribute(scene, uvs, eIor);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;

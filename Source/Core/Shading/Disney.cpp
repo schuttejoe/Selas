@@ -32,9 +32,13 @@ namespace Selas
     static void CalculateLobePdfs(const SurfaceParameters& surface,
                                   float& pSpecular, float& pDiffuse, float& pClearcoat, float& pSpecTrans)
     {
-        float specularWeight     = 1.0f;
-        float transmissionWeight = surface.specTrans * (1.0f - surface.metallic);
-        float diffuseWeight      = (1.0f - surface.specTrans) * (1.0f - surface.metallic);
+        float metallicBRDF   = surface.metallic;
+        float specularBSDF   = (1.0f - surface.metallic) * surface.specTrans;
+        float dielectricBRDF = (1.0f - surface.specTrans) * (1.0f - surface.metallic);
+
+        float specularWeight     = metallicBRDF + dielectricBRDF;
+        float transmissionWeight = specularBSDF;
+        float diffuseWeight      = dielectricBRDF;
         float clearcoatWeight    = 1.0f * Saturate(surface.clearcoat); 
 
         float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight + clearcoatWeight);
@@ -245,51 +249,48 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float EvaluateDisneyDiffuse(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi,
-                                       bool thin)
+    static float EvaluateDisneyRetroDiffuse(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi)
     {
-        float dotNL = CosTheta(wi);
-        float dotNV = CosTheta(wo);
-
-        float reflectance = 0.0f;
-
-        float topSideWeight = (1.0f - surface.diffTrans);
+        float dotNL = AbsCosTheta(wi);
+        float dotNV = AbsCosTheta(wo);
 
         float roughness = surface.roughness * surface.roughness;
 
-        if(dotNL > 0.0f && dotNV > 0.0f && topSideWeight > 0.0f) {
+        float rr = 0.5f + 2.0f * dotNL * dotNL * roughness;
+        float fl = Fresnel::SchlickWeight(dotNL);
+        float fv = Fresnel::SchlickWeight(dotNV);
+        
+        return rr * (fl + fv + fl * fv * (rr - 1.0f));
+    }
 
-            // -- calculate retroreflection term
-            float rr = 0.5f + 2.0f * dotNL * dotNL * roughness;
-            float fl = Fresnel::SchlickWeight(dotNL);
-            float fv = Fresnel::SchlickWeight(dotNV);
-            float retro =  rr * (fl + fv + fl * fv * (rr - 1.0f));
+    //=============================================================================================================================
+    static float EvaluateDisneyDiffuse(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi,
+                                       bool thin)
+    {
+        float dotNL = AbsCosTheta(wi);
+        float dotNV = AbsCosTheta(wo);
 
-            float hanrahanKrueger = 0.0f;
-            if(surface.flatness > 0.0f) {
-                float dotHL = Dot(wm, wi);
-                float fss90 = dotHL * dotHL * roughness;
-                float fss = Lerp(1.0f, fss90, fl) * Lerp(1.0f, fss90, fv);
+        float fl = Fresnel::SchlickWeight(dotNL);
+        float fv = Fresnel::SchlickWeight(dotNV);
 
-                float ss = 1.25f * (fss * (1.0f / (dotNL + dotNV) - 0.5f) + 0.5f);
-                hanrahanKrueger = ss;
-            }
+        float hanrahanKrueger = 0.0f;
 
-            float lambert = 1.0f;
-            float subsurfaceApprox;
-            if(thin)
-                subsurfaceApprox = Lerp(lambert, hanrahanKrueger, surface.flatness);
-            else
-                subsurfaceApprox = lambert;
+        if(thin && surface.flatness > 0.0f) {
+            float roughness = surface.roughness * surface.roughness;
 
-            reflectance += topSideWeight * (subsurfaceApprox * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv) + retro);
+            float dotHL = Dot(wm, wi);
+            float fss90 = dotHL * dotHL * roughness;
+            float fss = Lerp(1.0f, fss90, fl) * Lerp(1.0f, fss90, fv);
+
+            float ss = 1.25f * (fss * (1.0f / (dotNL + dotNV) - 0.5f) + 0.5f);
+            hanrahanKrueger = ss;
         }
 
-        // -- add in energy from diffuse transmission that is just a lambert lobe
-        if(thin)
-            reflectance += surface.diffTrans;
+        float lambert = 1.0f;
+        float retro = EvaluateDisneyRetroDiffuse(surface, wo, wm, wi);
+        float subsurfaceApprox = Lerp(lambert, hanrahanKrueger, thin ? surface.flatness : 0.0f);
 
-        return InvPi_ * reflectance;
+        return InvPi_ *(retro + subsurfaceApprox * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv));
     }
 
     //=============================================================================================================================
@@ -336,6 +337,19 @@ namespace Selas
         sample.reversePdfW = d / (4.0f * Dot(wi, wm));
 
         return true;
+    }
+
+    //=============================================================================================================================
+    static float3 CalculateExtinction(float3 apparantColor, float scatterDistance)
+    {
+        float3 a = apparantColor;
+        float3 a2 = a * a;
+        float3 a3 = a2 * a;
+
+        float3 alpha = float3(1.0f) - Exp(-5.09406f * a + 2.61188f * a2 - 4.31805f * a3);
+        float3 s = float3(1.0f) - a + 3.5f * (a - float3(0.8f)) * (a - float3(0.8f));
+
+        return 1.0f / (s * scatterDistance);
     }
 
     //=============================================================================================================================
@@ -387,6 +401,9 @@ namespace Selas
             else {
                 surfaceColor = surface.baseColor;
                 eventType = SurfaceEventTypes::eTransmissionEvent;
+
+                sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
+                sample.medium.extinction    = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
             }
         }
         wi = Normalize(wi);
@@ -448,19 +465,23 @@ namespace Selas
 
             if(thin)
                 color = float3(Sqrtf(color.x), Sqrtf(color.y), Sqrtf(color.z));
-            else
+            else {
                 eventType = SurfaceEventTypes::eTransmissionEvent;
+
+                sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
+                sample.medium.extinction = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
+            }
         }
         else {
             pdf = (1.0f - surface.diffTrans);
         }
 
         float3 sheen = EvaluateSheen(surface, wo, wm, wi);
-        sample.reflectance += sheen;
+        sample.reflectance = sheen;
 
         float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
-        sample.reflectance = color * (diffuse / pdf) * Absf(dotNL);
+        sample.reflectance += color * (diffuse / pdf) * Absf(dotNL);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         sample.forwardPdfW = Absf(dotNL) / pdf;
         sample.reversePdfW = Absf(dotNV) / pdf;
@@ -517,7 +538,6 @@ namespace Selas
             float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
             float3 sheen = EvaluateSheen(surface, wo, wm, wi);
-            reflectance += sheen;
 
             reflectance += diffuseWeight * (diffuse * surface.baseColor + sheen);
 
@@ -529,7 +549,7 @@ namespace Selas
         if(transWeight > 0.0f) {
 
             // Scale roughness based on IOR (Burley 2015, Figure 15).
-            float rscaled = ThinTransmissionRoughness(surface.ior, surface.roughness);
+            float rscaled = thin ? ThinTransmissionRoughness(surface.ior, surface.roughness) : surface.roughness;
             float tax, tay;
             CalculateAnisotropicParams(rscaled, surface.anisotropic, tax, tay);
 

@@ -197,6 +197,7 @@ namespace Selas
 
             DetermineShaderType(importedMaterialData, material.shader);
             material.baseColor = importedMaterialData.baseColor;
+            material.transmittanceColor = importedMaterialData.transmittanceColor;
 
             if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
                 material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
