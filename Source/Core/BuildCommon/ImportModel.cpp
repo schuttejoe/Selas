@@ -251,10 +251,10 @@ namespace Selas
     //=============================================================================================================================
     void ShutdownImportedModel(ImportedModel* scene)
     {
-        for(uint scan = 0, meshcount = scene->meshes.Length(); scan < meshcount; ++scan) {
+        for(uint scan = 0, meshcount = scene->meshes.Count(); scan < meshcount; ++scan) {
             Delete_(scene->meshes[scan]);
         }
 
-        scene->meshes.Close();
+        scene->meshes.Shutdown();
     }
 }

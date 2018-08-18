@@ -17,18 +17,17 @@ namespace Selas
         CSet(void);
         ~CSet(void);
 
-        void Close(void); // JSTODO - Rename to Shutdown
+        void Shutdown(void);
         void Clear(void);
         void Reserve(uint32 capacity);
 
-        const Type_* GetData(void) const { return _data; }
-        Type_* GetData(void) { return _data; }
+        const Type_* DataPointer(void) const { return _data; }
+        Type_* DataPointer(void) { return _data; }
 
         inline Type_&       operator[] (uint index) { return _data[index]; }
         inline const Type_& operator[] (uint index) const { return _data[index]; }
 
-        // -- JSTODO -- Rename to Count
-        inline uint32 Length(void) const { return _count; }
+        inline uint32 Count(void) const { return _count; }
         inline uint32 Capacity(void) const { return _capacity; }
         inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
 
@@ -61,11 +60,11 @@ namespace Selas
     template<typename Type_>
     CSet<Type_>::~CSet(void)
     {
-        Close();
+        Shutdown();
     }
 
     template<typename Type_>
-    void CSet<Type_>::Close(void)
+    void CSet<Type_>::Shutdown(void)
     {
         if(_data) {
             Free_(_data);

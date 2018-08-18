@@ -40,7 +40,7 @@ namespace Selas
     //=============================================================================================================================
     static void AppendAndOffsetIndices(const CArray<uint32>& addend, uint32 offset, CArray <uint32>& indices)
     {
-        uint addendCount = addend.Length();
+        uint addendCount = addend.Count();
         for(uint scan = 0; scan < addendCount; ++scan) {
             indices.Add(addend[scan] + offset);
         }
@@ -53,15 +53,15 @@ namespace Selas
         uint32 totalIndexCount = 0;
         uint32 totalFaceCount = 0;
 
-        for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = imported->meshes.Count(); scan < count; ++scan) {
             ImportedMesh* mesh = imported->meshes[scan];
 
-            totalVertexCount += mesh->positions.Length();
-            totalIndexCount += mesh->triindices.Length();
-            totalIndexCount += mesh->quadindices.Length();
+            totalVertexCount += mesh->positions.Count();
+            totalIndexCount += mesh->triindices.Count();
+            totalIndexCount += mesh->quadindices.Count();
 
-            totalFaceCount += mesh->triindices.Length() / 3;
-            totalFaceCount += mesh->quadindices.Length() / 4;
+            totalFaceCount += mesh->triindices.Count() / 3;
+            totalFaceCount += mesh->quadindices.Count() / 4;
         }
 
         built->indices.Reserve(totalIndexCount);
@@ -73,15 +73,15 @@ namespace Selas
 
         uint32 vertexOffset = 0;
         uint32 indexOffset = 0;
-        for(uint scan = 0, count = imported->meshes.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = imported->meshes.Count(); scan < count; ++scan) {
 
             ImportedMesh* mesh = imported->meshes[scan];
 
-            uint32 vertexCount = mesh->positions.Length();
+            uint32 vertexCount = mesh->positions.Count();
 
-            if(mesh->triindices.Length() > 0) {
+            if(mesh->triindices.Count() > 0) {
                 MeshMetaData meshData;
-                meshData.indexCount = mesh->triindices.Length();
+                meshData.indexCount = mesh->triindices.Count();
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
@@ -97,9 +97,9 @@ namespace Selas
 
                 indexOffset += meshData.indexCount;
             }
-            if(mesh->quadindices.Length() > 0) {
+            if(mesh->quadindices.Count() > 0) {
                 MeshMetaData meshData;
-                meshData.indexCount = mesh->quadindices.Length();
+                meshData.indexCount = mesh->quadindices.Count();
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
@@ -124,7 +124,7 @@ namespace Selas
                 float3 n = mesh->normals[i];
                 float3 t;
                 float3 b;
-                if(i < mesh->tangents.Length() && i < mesh->bitangents.Length()) {
+                if(i < mesh->tangents.Count() && i < mesh->bitangents.Count()) {
                     t = mesh->tangents[i];
                     b = mesh->bitangents[i];
                 }
@@ -159,21 +159,21 @@ namespace Selas
     static uint32 AddTexture(BuiltScene* builtScene, const FilePathString& path)
     {
         // JSTODO - Implement a hash set
-        for(uint scan = 0, count = builtScene->textures.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = builtScene->textures.Count(); scan < count; ++scan) {
             if(StringUtil::EqualsIgnoreCase(builtScene->textures[scan].Ascii(), path.Ascii())) {
                 return (uint32)scan;
             }
         }
 
         builtScene->textures.Add(path);
-        return (uint32)builtScene->textures.Length() - 1;
+        return (uint32)builtScene->textures.Count() - 1;
     }
 
     //=============================================================================================================================
     static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltScene* built)
     {
-        built->materials.Reserve(imported->materials.Length());
-        for(uint scan = 0, count = imported->materials.Length(); scan < count; ++scan) {
+        built->materials.Reserve(imported->materials.Count());
+        for(uint scan = 0, count = imported->materials.Count(); scan < count; ++scan) {
             FilePathString materialfile;
             AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
             
@@ -228,7 +228,7 @@ namespace Selas
             }
         }
 
-        QuickSortMatchingArrays(built->materialHashes.GetData(), built->materials.GetData(), built->materials.Length());
+        QuickSortMatchingArrays(built->materialHashes.DataPointer(), built->materials.DataPointer(), built->materials.Count());
         return Success_;
     }
 

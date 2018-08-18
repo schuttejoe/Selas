@@ -82,8 +82,8 @@ namespace Selas
         source = source_;
         id = id_;
 
-        Assert_(contentDependencies.Length() == 0);
-        Assert_(processDependencies.Length() == 0);
-        Assert_(outputs.Length() == 0);
+        Assert_(contentDependencies.Count() == 0);
+        Assert_(processDependencies.Count() == 0);
+        Assert_(outputs.Count() == 0);
     }
 }

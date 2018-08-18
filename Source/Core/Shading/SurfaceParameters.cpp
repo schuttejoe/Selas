@@ -156,7 +156,7 @@ namespace Selas
     //=============================================================================================================================
     static const Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId)
     {
-        Assert_(geomId < scene->materialLookup.Length());
+        Assert_(geomId < scene->materialLookup.Count());
         return scene->materialLookup[geomId];
     }
 

@@ -50,8 +50,6 @@ namespace Selas
         //=========================================================================================================================
         void ContentDirectoryRoot(FilePathString& filepath)
         {
-            // JSTODO - cache this
-
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 
@@ -61,8 +59,6 @@ namespace Selas
         //=========================================================================================================================
         void AssetsDirectoryRoot(FilePathString& filepath)
         {
-            // JSTODO - cache this
-
             FixedString128 root = Environment_Root();
             char ps = StringUtil::PathSeperator();
 

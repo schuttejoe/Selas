@@ -17,19 +17,18 @@ namespace Selas
         CArray(void);
         ~CArray(void);
 
-        void Close(void);
+        void Shutdown(void);
         void Clear(void);
         void Reserve(uint32 capacity);
         void Resize(uint32 length);
 
-        const Type_* GetData(void) const { return _data; }
-        Type_* GetData(void) { return _data; }
+        const Type_* DataPointer(void) const { return _data; }
+        Type_* DataPointer(void) { return _data; }
 
         inline Type_&       operator[] (uint index) { return _data[index]; }
         inline const Type_& operator[] (uint index) const { return _data[index]; }
 
-        // -- JSTOO -- Rename to Count
-        inline uint32 Length(void) const { return _count; }
+        inline uint32 Count(void) const { return _count; }
         inline uint32 Capacity(void) const { return _capacity; }
         inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
 
@@ -63,11 +62,11 @@ namespace Selas
     template<typename Type_>
     CArray<Type_>::~CArray(void)
     {
-        Close();
+        Shutdown();
     }
 
     template<typename Type_>
-    void CArray<Type_>::Close(void)
+    void CArray<Type_>::Shutdown(void)
     {
         if(_data) {
             Free_(_data);
@@ -131,12 +130,12 @@ namespace Selas
     template<typename OtherType_>
     void CArray<Type_>::Append(const OtherType_& addend)
     {
-        uint32 newLength = _count + addend.Length();
+        uint32 newLength = _count + addend.Count();
 
         if(_capacity < newLength)
             ReallocateArray(_count, newLength);
 
-        Memory::Copy(static_cast<Type_*>(_data) + _count, addend.GetData(), addend.DataSize());
+        Memory::Copy(static_cast<Type_*>(_data) + _count, addend.DataPointer(), addend.DataSize());
         _count = newLength;
     }
 

@@ -198,11 +198,11 @@ namespace Selas
     //=============================================================================================================================
     void CBuildCore::EnqueueDependencies(BuildProcessDependencies* dependencies)
     {
-        for(uint scan = 0, count = dependencies->processDependencies.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = dependencies->processDependencies.Count(); scan < count; ++scan) {
             EnqueueInternal(dependencies->processDependencies[scan].source, dependencies->processDependencies[scan].id);
         }
 
-        for(uint scan = 0, count = dependencies->outputs.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = dependencies->outputs.Count(); scan < count; ++scan) {
             EnqueueInternal(dependencies->outputs[scan].source, dependencies->outputs[scan].id);
         }
     }
@@ -250,9 +250,9 @@ namespace Selas
         // -- Add dependencies to the work queue
         EnqueueDependencies(dependencies);
 
-        jobData->context.outputs.Close();
-        jobData->context.processDependencies.Close();
-        jobData->context.contentDependencies.Close();
+        jobData->context.outputs.Shutdown();
+        jobData->context.processDependencies.Shutdown();
+        jobData->context.contentDependencies.Shutdown();
         
         QueueList_Push(&_coreData->jobDataFreeList, jobData);
 

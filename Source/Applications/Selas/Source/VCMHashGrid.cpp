@@ -56,11 +56,11 @@ namespace Selas
         hashGrid->inverseCellSize = inverseCellSize;
         hashGrid->cellCount       = cellCount;
 
-        uint pointCount = points.Length();
+        uint pointCount = points.Count();
 
         hashGrid->cellRangeEnds.Resize((uint32)cellCount);
         hashGrid->cellIndices.Resize((uint32)pointCount);
-        Memory::Zero(hashGrid->cellRangeEnds.GetData(), hashGrid->cellRangeEnds.DataSize());
+        Memory::Zero(hashGrid->cellRangeEnds.DataPointer(), hashGrid->cellRangeEnds.DataSize());
 
         // -- Prep the AABox
         MakeInvalid(&hashGrid->aaBox);
@@ -99,8 +99,8 @@ namespace Selas
     //=============================================================================================================================
     void ShutdownHashGrid(VCMHashGrid* hashGrid)
     {
-        hashGrid->cellIndices.Close();
-        hashGrid->cellRangeEnds.Close();
+        hashGrid->cellIndices.Shutdown();
+        hashGrid->cellRangeEnds.Shutdown();
     }
 
     //=============================================================================================================================

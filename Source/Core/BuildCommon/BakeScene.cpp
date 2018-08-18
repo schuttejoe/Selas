@@ -11,27 +11,27 @@ namespace Selas
     //=============================================================================================================================
     static void SerializeMaterials(BinaryWriter* writer, const BuiltScene& sceneData)
     {
-        uint32 materialCount = sceneData.materials.Length();
-        uint32 textureCount = sceneData.textures.Length();
+        uint32 materialCount = sceneData.materials.Count();
+        uint32 textureCount = sceneData.textures.Count();
 
         SerializerWrite(writer, &textureCount, sizeof(textureCount));
         SerializerWrite(writer, &materialCount, sizeof(materialCount));
 
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.textures.GetData(), sceneData.textures.DataSize());
+        SerializerWritePointerData(writer, sceneData.textures.DataPointer(), sceneData.textures.DataSize());
 
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.materialHashes.GetData(), sceneData.materialHashes.DataSize());
+        SerializerWritePointerData(writer, sceneData.materialHashes.DataPointer(), sceneData.materialHashes.DataSize());
 
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.materials.GetData(), sceneData.materials.DataSize());
+        SerializerWritePointerData(writer, sceneData.materials.DataPointer(), sceneData.materials.DataSize());
     }
 
     //=============================================================================================================================
     static void SerializeMeshMetaData(BinaryWriter* writer, const BuiltScene& sceneData)
     {
         SerializerWritePointerOffsetX64(writer);
-        SerializerWritePointerData(writer, sceneData.meshes.GetData(), sceneData.meshes.DataSize());
+        SerializerWritePointerData(writer, sceneData.meshes.DataPointer(), sceneData.meshes.DataSize());
     }
 
     //=============================================================================================================================
@@ -50,17 +50,17 @@ namespace Selas
     //=============================================================================================================================
     static void SerializeGeometry(BinaryWriter* writer, const BuiltScene& sceneData)
     {  
-        SerializeBufferAligned(writer, (void*)sceneData.indices.GetData(), sceneData.indices.DataSize(), 
+        SerializeBufferAligned(writer, (void*)sceneData.indices.DataPointer(), sceneData.indices.DataSize(), 
                                SceneResource::kGeometryDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.GetData(), sceneData.faceIndexCounts.DataSize(),
+        SerializeBufferAligned(writer, (void*)sceneData.faceIndexCounts.DataPointer(), sceneData.faceIndexCounts.DataSize(),
                                SceneResource::kGeometryDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.positions.GetData(), sceneData.positions.DataSize(),
+        SerializeBufferAligned(writer, (void*)sceneData.positions.DataPointer(), sceneData.positions.DataSize(),
                                SceneResource::kGeometryDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.normals.GetData(), sceneData.normals.DataSize(),
+        SerializeBufferAligned(writer, (void*)sceneData.normals.DataPointer(), sceneData.normals.DataSize(),
                                SceneResource::kGeometryDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.tangents.GetData(), sceneData.tangents.DataSize(),
+        SerializeBufferAligned(writer, (void*)sceneData.tangents.DataPointer(), sceneData.tangents.DataSize(),
                                SceneResource::kGeometryDataAlignment);
-        SerializeBufferAligned(writer, (void*)sceneData.uvs.GetData(), sceneData.uvs.DataSize(),
+        SerializeBufferAligned(writer, (void*)sceneData.uvs.DataPointer(), sceneData.uvs.DataSize(),
                                SceneResource::kGeometryDataAlignment);
     }
 
@@ -83,9 +83,9 @@ namespace Selas
         SerializeMaterials(&writer, sceneData);
         SerializeMeshMetaData(&writer, sceneData);
 
-        uint32 meshCount = sceneData.meshes.Length();
-        uint32 vertexCount = sceneData.positions.Length();
-        uint32 indexCounts = sceneData.indices.Length();
+        uint32 meshCount = sceneData.meshes.Count();
+        uint32 vertexCount = sceneData.positions.Count();
+        uint32 indexCounts = sceneData.indices.Count();
 
         SerializerWrite(&writer, &meshCount, sizeof(meshCount));
         SerializerWrite(&writer, &vertexCount, sizeof(vertexCount));

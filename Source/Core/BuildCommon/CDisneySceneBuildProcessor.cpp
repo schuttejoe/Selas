@@ -120,7 +120,7 @@ namespace Selas
         SceneFileData sceneFile;
         ReturnError_(ParseSceneFile(context, sceneFile));
 
-        for(uint scan = 0, count = sceneFile.elements.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
             const FixedString256& elementName = sceneFile.elements[scan];
 
             SElementData elementData;

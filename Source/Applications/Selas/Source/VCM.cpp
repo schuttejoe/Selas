@@ -550,7 +550,7 @@ namespace Selas
                     }
                 }
 
-                lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Length());
+                lightPathSet->pathEnds.Add(lightPathSet->lightVertices.Count());
             }
         }
 
@@ -675,16 +675,16 @@ namespace Selas
             lightPathSet->pathEnds.Reserve((uint32)(constants.vmCount));
 
             {
-                GenerateLightSamples(constants, context, 0, constants.vmCount, pathVertices.GetData());
-                EvaluateLightPaths(constants, context, 0, constants.vmCount, pathVertices.GetData(), lightPathSet);
+                GenerateLightSamples(constants, context, 0, constants.vmCount, pathVertices.DataPointer());
+                EvaluateLightPaths(constants, context, 0, constants.vmCount, pathVertices.DataPointer(), lightPathSet);
             }
 
             // -- build the hash grid
             BuildHashGrid(&lightPathSet->hashGrid, constants.vmCount, constants.vmSearchRadius, lightPathSet->lightVertices);
 
             {
-                GenerateCameraPaths(constants, context, 0, constants.vmCount, pathVertices.GetData());
-                EvaluateCameraPaths(constants, lightPathSet, context, 0, constants.vmCount, pathVertices.GetData());
+                GenerateCameraPaths(constants, context, 0, constants.vmCount, pathVertices.DataPointer());
+                EvaluateCameraPaths(constants, lightPathSet, context, 0, constants.vmCount, pathVertices.DataPointer());
             }
         }
 
@@ -731,8 +731,8 @@ namespace Selas
             }
 
             ShutdownHashGrid(&lightPathSet.hashGrid);
-            lightPathSet.lightVertices.Close();
-            lightPathSet.pathEnds.Close();
+            lightPathSet.lightVertices.Shutdown();
+            lightPathSet.pathEnds.Shutdown();
 
             Atomic::Add64(sharedData->iterationsPerPixel, iterationCount);
 

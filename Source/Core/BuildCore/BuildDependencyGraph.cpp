@@ -38,9 +38,9 @@ namespace Selas
     template<typename Type_>
     void WriteArray(BinaryWriter* writer, CArray<Type_>& array)
     {
-        uint32 count = array.Length();
+        uint32 count = array.Count();
         SerializerWrite(writer, &count, sizeof(count));
-        SerializerWrite(writer, array.GetData(), array.DataSize());
+        SerializerWrite(writer, array.DataPointer(), array.DataSize());
     }
 
     //=============================================================================================================================
@@ -50,7 +50,7 @@ namespace Selas
         uint32 count;
         SerializerRead(reader, &count, sizeof(count));
         array.Resize(count);
-        SerializerRead(reader, array.GetData(), array.DataSize());
+        SerializerRead(reader, array.DataPointer(), array.DataSize());
     }
 
     //=============================================================================================================================
@@ -138,9 +138,9 @@ namespace Selas
     void ResetBuildProcessDependencies(BuildProcessDependencies* deps)
     {
         deps->version = InvalidIndex32;
-        deps->contentDependencies.Close();
-        deps->processDependencies.Close();
-        deps->outputs.Close();
+        deps->contentDependencies.Shutdown();
+        deps->processDependencies.Shutdown();
+        deps->outputs.Shutdown();
     }
 
     //=============================================================================================================================
@@ -249,11 +249,11 @@ namespace Selas
             return false;
         }
 
-        for(uint scan = 0, count = deps->contentDependencies.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = deps->contentDependencies.Count(); scan < count; ++scan) {
             ReturnFailure_(FileUpToDate(deps->contentDependencies[scan]));
         }
 
-        for(uint scan = 0, count = deps->outputs.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = deps->outputs.Count(); scan < count; ++scan) {
             FilePathString filepath;
             AssetFileUtils::AssetFilePath(deps->outputs[scan].source.type.Ascii(), deps->outputs[scan].version,
                                           deps->outputs[scan].source.name.Ascii(), filepath);

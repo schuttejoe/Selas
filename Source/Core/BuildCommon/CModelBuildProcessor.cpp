@@ -48,7 +48,7 @@ namespace Selas
         ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));
         ShutdownImportedModel(&importedModel);
 
-        for(uint scan = 0, count = builtScene.textures.Length(); scan < count; ++scan) {
+        for(uint scan = 0, count = builtScene.textures.Count(); scan < count; ++scan) {
             cpointer textureName = builtScene.textures[scan].Ascii();
             context->AddProcessDependency("Texture", textureName);
         }

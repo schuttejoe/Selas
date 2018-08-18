@@ -13,9 +13,9 @@ namespace Selas
     //=============================================================================================================================
     void SerializerStart(BinaryWriter* serializer, uint32 sizea, uint32 sizeb)
     {
-        serializer->rawData.Close();
-        serializer->pointers.Close();
-        serializer->pointerData.Close();
+        serializer->rawData.Shutdown();
+        serializer->pointers.Shutdown();
+        serializer->pointerData.Shutdown();
 
         if(sizea != 0) {
             serializer->rawData.Reserve(sizea);
@@ -45,11 +45,11 @@ namespace Selas
         }
 
         Assert_(serializer);
-        Assert_(serializer->rawData.Length() + serializer->pointerData.Length() != 0); // Don't make zero-sized files
+        Assert_(serializer->rawData.Count() + serializer->pointerData.Count() != 0); // Don't make zero-sized files
 
         // Fixup all of the pointers to their actual offsets
-        uint64 pointer_data_offset = serializer->rawData.Length();
-        for(uint scan = 0, count = serializer->pointers.Length(); scan < count; ++scan) {
+        uint64 pointer_data_offset = serializer->rawData.Count();
+        for(uint scan = 0, count = serializer->pointers.Count(); scan < count; ++scan) {
             uint64 offset = pointer_data_offset + serializer->pointers[scan].pointerDataOffset;
 
             uint64* ptr = reinterpret_cast<uint64*>(&serializer->rawData[serializer->pointers[scan].pointerOffset]);
@@ -57,8 +57,8 @@ namespace Selas
         }
 
         // Write the raw data
-        fwrite(&serializer->rawData[0], 1, serializer->rawData.Length(), static_cast<FILE*>(file));
-        fwrite(&serializer->pointerData[0], 1, serializer->pointerData.Length(), static_cast<FILE*>(file));
+        fwrite(&serializer->rawData[0], 1, serializer->rawData.Count(), static_cast<FILE*>(file));
+        fwrite(&serializer->pointerData[0], 1, serializer->pointerData.Count(), static_cast<FILE*>(file));
 
         int ret = fclose(static_cast<FILE*>(file));
         if(ret != 0) {
@@ -75,12 +75,12 @@ namespace Selas
         
         // JSTODO -- Ahhhh! Burn this whole file!
 
-        dataSize = serializer->rawData.Length() + serializer->pointerData.Length();
+        dataSize = serializer->rawData.Count() + serializer->pointerData.Count();
         data = Alloc_(dataSize);
 
         // Fixup all of the pointers to their actual offsets
-        uint64 pointer_data_offset = serializer->rawData.Length();
-        for(uint scan = 0, count = serializer->pointers.Length(); scan < count; ++scan) {
+        uint64 pointer_data_offset = serializer->rawData.Count();
+        for(uint scan = 0, count = serializer->pointers.Count(); scan < count; ++scan) {
             uint64 offset = pointer_data_offset + serializer->pointers[scan].pointerDataOffset;
 
             uint64* ptr = reinterpret_cast<uint64*>(&serializer->rawData[serializer->pointers[scan].pointerOffset]);
@@ -125,8 +125,8 @@ namespace Selas
         Assert_(serializer);
 
         PointerDesc desc;
-        desc.pointerOffset = serializer->rawData.Length();
-        desc.pointerDataOffset = serializer->pointerData.Length();
+        desc.pointerOffset = serializer->rawData.Count();
+        desc.pointerDataOffset = serializer->pointerData.Count();
         serializer->pointers.Add(desc);
 
         uint64 null = 0;
