@@ -25,6 +25,9 @@ namespace Selas
 
         float   UniformFloat();
         uint32  UniformUInt32();
+
+        float3 UniformSphere();
+        static float UniformSpherePdf();
     };
 
 }

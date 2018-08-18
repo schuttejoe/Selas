@@ -17,20 +17,6 @@ namespace Selas
     namespace Isotropic
     {
         //=========================================================================================================================
-        // JSTODO - Find a home for this...
-        static float3 UniformSampleSphere(CSampler* sampler)
-        {
-            float r0 = sampler->UniformFloat();
-            float r1 = sampler->UniformFloat();
-
-            float u = 2.0f * r1 - 1.0f;
-            float norm = Math::Sqrtf(Max(0.0f, 1.0f - u * u));
-            float theta = Math::TwoPi_ * r0;
-
-            return float3(norm * Math::Cosf(theta), u, norm * Math::Sinf(theta));
-        }
-
-        //=========================================================================================================================
         float SampleDistance(CSampler* sampler, const MediumParameters& medium, float* pdf)
         {
             float ps = Dot(medium.extinction, float3::One_);
@@ -65,13 +51,13 @@ namespace Selas
         //=========================================================================================================================
         float3 SampleScatterDirection(CSampler* sampler, const MediumParameters& medium, float3 wo, float* pdf)
         {
-            return UniformSampleSphere(sampler);;
+            return sampler->UniformSphere();
         }
 
         //=========================================================================================================================
         float ScatterDirectionPdf(const MediumParameters& medium, float3 wo, float3 wi)
         {
-            return Math::Inv4Pi_;
+            return CSampler::UniformSpherePdf();
         }
 
         //=========================================================================================================================
