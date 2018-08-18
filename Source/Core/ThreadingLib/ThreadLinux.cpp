@@ -32,13 +32,15 @@ namespace Selas
     //=============================================================================================================================
     ThreadHandle CreateThread(ThreadFunction function, void* userData)
     {
-        // JSTODO - This should return an error when it fails
         ThreadData* threadData = AllocArray_(ThreadData, 1);
         threadData->function = function;
         threadData->userData = userData;
 
         int32 result = pthread_create(&threadData->threadid, nullptr, ThreadTrampoline, threadData);
-        Assert_(result == 0);
+        if(result != 0) {
+            Free_(threadData);
+            return InvalidThreadHandle;
+        }
 
         return (void*)threadData;
     }
