@@ -38,6 +38,8 @@ namespace Selas
         bool ReadFloat3(const rapidjson::Value& element, cpointer key, float3& value, float3 defaultValue);
         bool ReadFloat4(const rapidjson::Value& element, cpointer key, float4& value, float4 defaultValue);
 
+        bool ReadMatrix4x4(const rapidjson::Value& element, float4x4& value);
+
         // default is "". Returns false when the string does not fit.
         template<int size>
         bool ReadFixedString(const rapidjson::Value& element, cpointer key, FixedString<size>& value)
@@ -57,5 +59,6 @@ namespace Selas
             StringUtil::Copy(value.Ascii(), (uint32)value.Capacity(), element[key].GetString());
             return true;
         }
+
     }
 }
