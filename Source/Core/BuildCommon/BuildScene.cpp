@@ -24,8 +24,7 @@ namespace Selas
     {
         static const char* shaderNames[] = {
             "DisneyThin",
-            "DisneySolid",
-            "TransparentGGX"
+            "DisneySolid"
         };
         static_assert(CountOf_(shaderNames) == eShaderCount, "Missing shader name");
 
@@ -217,9 +216,6 @@ namespace Selas
 
             if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
                 material.flags |= eDisplacementEnabled;
-            }
-            if(material.shader == eTransparentGgx) {
-                material.flags |= eTransparent;
             }
             if(material.shader == eDisneySolid) {
                 if(material.scalarAttributeValues[eDiffuseTrans] > 0.0f || material.scalarAttributeValues[eSpecTrans] > 0.0f) {
