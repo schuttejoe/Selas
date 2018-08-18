@@ -80,5 +80,12 @@ namespace Selas
         {
             EnsureAssetDirectory(Type_::kDataType, Type_::kDataVersion);
         }
+
+        template<typename Type_>
+        void IndependentPathSeperators(Type_& filepath)
+        {
+            StringUtil::ReplaceAll(filepath.Ascii(), '\\', PlatformIndependentPathSep_);
+            StringUtil::ReplaceAll(filepath.Ascii(), '/', PlatformIndependentPathSep_);
+        }
     }
 }
