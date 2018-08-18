@@ -287,8 +287,6 @@ namespace Selas
     //=============================================================================================================================
     Error InitializeSceneResource(SceneResource* scene)
     {
-        // -- JSTODO - Should be fetching other resource data from some asset mgr here rather than directly loading it
-
         uint textureCount = scene->data->textureCount;
         scene->textures = AllocArray_(TextureResource, textureCount);
 

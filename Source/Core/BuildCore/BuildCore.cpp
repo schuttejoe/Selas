@@ -242,7 +242,6 @@ namespace Selas
 
         dependencies->version = jobData->processor->Version();
 
-        // JSTODO - verify uniqueness. Replace Arrays in context with CSet class.
         dependencies->outputs.Append(jobData->context.outputs);
         dependencies->processDependencies.Append(jobData->context.processDependencies);
         dependencies->contentDependencies.Append(jobData->context.contentDependencies);
