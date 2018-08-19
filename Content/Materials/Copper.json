@@ -1,0 +1,16 @@
+{
+    "shaderName": "DisneySolid",
+    "baseColor": [0.955008, 0.637427, 0.538163],
+    "ior": 1.5,
+    "metallic": 1.0,
+    "specularTint": 0.3,
+    "roughness": 0.01,
+    "anisotropic": 0.0,
+    "sheen": 0.0,
+    "sheenTint": 0.0,
+    "clearcoat": 0.0,
+    "clearcoatGloss": 1.0,
+    "specTrans": 0.0,
+    "diffTrans": 0.0,
+    "flatness": 0.0
+}

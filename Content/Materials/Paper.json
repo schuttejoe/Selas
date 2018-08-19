@@ -1,0 +1,6 @@
+{
+    "shaderName": "DisneySolid",
+    "baseColor": "Textures~Paper~paper02_col.jpg",
+    "metallic": 0.0,
+    "roughness": 0.8
+}

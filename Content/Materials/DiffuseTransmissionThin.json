@@ -1,0 +1,16 @@
+{
+    "shaderName": "DisneyThin",
+    "baseColor": [0.9, 0.62, 0.9],
+    "ior": 1.5,
+    "metallic": 0.0,
+    "specularTint": 0.0,
+    "roughness": 0.4,
+    "anisotropic": 0.0,
+    "sheen": 0.0,
+    "sheenTint": 0.0,
+    "clearcoat": 0.0,
+    "clearcoatGloss": 1.0,
+    "specTrans": 0.0,
+    "diffTrans": 1.0,
+    "flatness": 0.0
+}
