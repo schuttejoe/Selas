@@ -52,7 +52,7 @@ namespace Selas
             if(cosThetaI < 0.0f) {
                 float temp = relativeIorI;
                 relativeIorI = relativeIorT;
-                relativeIorT = relativeIorI;
+                relativeIorT = temp;
 
                 cosThetaI = -cosThetaI;
             }

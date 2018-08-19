@@ -12,7 +12,7 @@
 #include "SystemLib/OSThreading.h"
 #include "SystemLib/JsAssert.h"
 #include "SystemLib/MemoryAllocation.h"
-#include <SystemLib/MinMax.h>
+#include "SystemLib/MinMax.h"
 
 #include <map>
 

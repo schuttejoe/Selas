@@ -25,8 +25,8 @@
 #include "SystemLib/SystemTime.h"
 #include "SystemLib/Logging.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #include "xmmintrin.h"
 #include "pmmintrin.h"

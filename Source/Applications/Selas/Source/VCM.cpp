@@ -22,8 +22,8 @@
 #include "SystemLib/Profiling.h"
 #include "SystemLib/Logging.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #define MaxBounceCount_         10
 
@@ -201,7 +201,6 @@ namespace Selas
             float distance = Length(toPosition);
             toPosition = (1.0f / distance) * toPosition;
 
-            float cosThetaSurface = Math::Absf(Dot(GeometricNormal(surface), -toPosition));
             float cosThetaCamera = Dot(camera->forward, toPosition);
 
             float imagePointToCameraDistance = camera->virtualImagePlaneDistance / cosThetaCamera;

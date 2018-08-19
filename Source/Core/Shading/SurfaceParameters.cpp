@@ -13,8 +13,8 @@
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/ColorSpace.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #define ForceNoMips_ true
 #define EnableEWA_ true

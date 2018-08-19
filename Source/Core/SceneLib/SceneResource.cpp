@@ -5,7 +5,7 @@
 #include "SceneLib/SceneResource.h"
 #include "TextureLib/TextureResource.h"
 #include "Shading/SurfaceParameters.h"
-#include <UtilityLib/BinarySearch.h>
+#include "UtilityLib/BinarySearch.h"
 #include "Assets/AssetFileUtils.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/FloatStructs.h"
@@ -13,8 +13,8 @@
 #include "IoLib/File.h"
 #include "SystemLib/BasicTypes.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #define EnableDisplacement_ 0
 #define TessellationRate_ 64.0f
@@ -71,7 +71,7 @@ namespace Selas
         uint32 geomId = 0;// (args->geometry == scene->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
 
         for(unsigned int i = 0; i < N; i++) {
-            float3 position = float3(px[i], py[i], pz[i]);
+            //float3 position = float3(px[i], py[i], pz[i]);
             float3 normal = float3(nx[i], ny[i], nz[i]);
             float2 barys = float2(us[i], vs[i]);
 

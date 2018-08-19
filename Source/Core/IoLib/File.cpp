@@ -44,7 +44,7 @@ namespace Selas
             }
 
             fseek(file, 0, SEEK_END);
-            *fileSize = ftell(file);
+            *fileSize = (uint32)ftell(file);
             fseek(file, 0, SEEK_SET);
 
             *fileData = AllocAligned_(*fileSize, 16);
@@ -70,7 +70,7 @@ namespace Selas
             }
 
             fseek(file, 0, SEEK_END);
-            int32 fileSize = ftell(file);
+            int32 fileSize = (int32)ftell(file);
             fseek(file, 0, SEEK_SET);
 
             *string = (char*)AllocAligned_(fileSize + 1, 16);

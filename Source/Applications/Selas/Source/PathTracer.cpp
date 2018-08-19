@@ -36,8 +36,8 @@
 #include "SystemLib/Logging.h"
 #include "SystemLib/CountOf.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #define MaxBounceCount_         2048
 
@@ -311,7 +311,6 @@ namespace Selas
         void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
             const SceneResource* scene = context.scene;
-            SceneMetaData* sceneData = scene->data;
 
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, LayerCount_);

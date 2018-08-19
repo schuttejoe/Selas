@@ -1,2 +1,2 @@
 echo "Creating Selas Project"
-../../../Middleware/Premake/premake5 gmake osx
+../../../Middleware/Premake/premake5 xcode4 osx

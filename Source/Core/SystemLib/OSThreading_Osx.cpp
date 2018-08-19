@@ -132,7 +132,7 @@ namespace Selas
     //=============================================================================================================================
     void Sleep(uint sleepTimeMs)
     {
-        usleep(sleepTimeMs * 1000);
+        usleep((useconds_t)(sleepTimeMs * 1000));
     }
 }
 

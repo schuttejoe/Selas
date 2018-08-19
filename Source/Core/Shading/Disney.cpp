@@ -316,8 +316,6 @@ namespace Selas
 
         float dotNH = CosTheta(wm);
         float dotLH = Dot(wm, wi);
-        float absDotNL = Absf(CosTheta(wi));
-        float absDotNV = Absf(CosTheta(wo));
 
         float d = GTR1(Absf(dotNH), Lerp(0.1f, 0.001f, clearcoatGloss));
         float f = Fresnel::Schlick(0.04f, dotLH);
@@ -337,10 +335,6 @@ namespace Selas
     static float3 CalculateExtinction(float3 apparantColor, float scatterDistance)
     {
         float3 a = apparantColor;
-        float3 a2 = a * a;
-        float3 a3 = a2 * a;
-
-        float3 alpha = float3(1.0f) - Exp(-5.09406f * a + 2.61188f * a2 - 4.31805f * a3);
         float3 s = float3(1.0f) - a + 3.5f * (a - float3(0.8f)) * (a - float3(0.8f));
 
         return 1.0f / (s * scatterDistance);
@@ -448,7 +442,6 @@ namespace Selas
 
         float dotNL = CosTheta(wi);
         float dotNV = CosTheta(wo);
-        float absDotHL = Dot(wm, wo);
 
         float pdf;
 
@@ -503,10 +496,8 @@ namespace Selas
         float pBRDF, pDiffuse, pClearcoat, pSpecTrans;
         CalculateLobePdfs(surface, pBRDF, pDiffuse, pClearcoat, pSpecTrans);
 
-        float3 baseColor = surface.baseColor;
         float metallic = surface.metallic;
         float specTrans = surface.specTrans;
-        float roughness = surface.roughness;
 
         // calculate all of the anisotropic params
         float ax, ay;
@@ -587,7 +578,7 @@ namespace Selas
         float pTransmission;
         CalculateLobePdfs(surface, pSpecular, pDiffuse, pClearcoat, pTransmission);
 
-        float pLobe;
+        float pLobe = 0.0f;
         float p = sampler->UniformFloat();
         if(p <= pSpecular) {
             SampleDisneyBRDF(sampler, surface, v, sample);

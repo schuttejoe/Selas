@@ -72,9 +72,9 @@ namespace Selas
     //=============================================================================================================================
     CAllocationTracking::~CAllocationTracking()
     {
-        char logstring[2048];
-
         #if IsWindows_
+            char logstring[2048];
+        
             for(uint scan = 0; scan < used; ++scan) {
                 // -- log each leaked allocation
                 if(allocations[scan].name != nullptr) {

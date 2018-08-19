@@ -11,8 +11,8 @@
 #include "ContainersLib/CArray.h"
 #include "SystemLib/BasicTypes.h"
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_ray.h>
+#include "embree3/rtcore.h"
+#include "embree3/rtcore_ray.h"
 
 #define PathStateIndexBitCount_         26
 #define PathStatePathLengthBitCount_    5
