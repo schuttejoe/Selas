@@ -205,12 +205,12 @@ namespace Selas
                 material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTexture);
             }
 
-            for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
-                material.scalarAttributeValues[scan] = importedMaterialData.scalarAttributes[scan];
+            for(uint property = 0; property < eMaterialPropertyCount; ++property) {
+                material.scalarAttributeValues[property] = importedMaterialData.scalarAttributes[property];
                 
-                const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[scan];
+                const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[property];
                 if(StringUtil::Length(textureName.Ascii())) {
-                    material.scalarAttributeTextureIndices[scan] = AddTexture(built, textureName);
+                    material.scalarAttributeTextureIndices[property] = AddTexture(built, textureName);
                 }
             }
 

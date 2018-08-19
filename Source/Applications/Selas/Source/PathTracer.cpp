@@ -220,8 +220,8 @@ namespace Selas
                 }
                 else if(currentMedium.phaseFunction != MediumPhaseFunction::eVacuum) {
                     float3 origin = ray.origin + rayDistance * ray.direction;
-                    float pdf;
-                    float3 direction = SampleScatterDirection(&context->sampler, currentMedium, ray.direction, &pdf);
+                    float mediumPdf;
+                    float3 direction = SampleScatterDirection(&context->sampler, currentMedium, ray.direction, &mediumPdf);
                     ray = MakeRay(origin, direction);
                 }
                 else {
