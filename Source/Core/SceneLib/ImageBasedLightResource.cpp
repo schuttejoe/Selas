@@ -4,7 +4,8 @@
 
 #include "SceneLib/ImageBasedLightResource.h"
 #include "Assets/AssetFileUtils.h"
-#include "IoLib/BinarySerializer.h"
+#include "IoLib/BinaryStreamSerializer.h"
+#include "IoLib/Serializer.h"
 #include "IoLib/File.h"
 #include "MathLib/Projection.h"
 #include "MathLib/Trigonometric.h"
@@ -15,6 +16,24 @@
 namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
+    const uint64 ImageBasedLightResource::kDataVersion = 1534822944ul;
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, const ImageBasedLightResourceData& data)
+    {
+        Serialize(serializer, data.densityfunctions.width);
+        Serialize(serializer, data.densityfunctions.height);
+
+        uint width = data.densityfunctions.width;
+        uint height = data.densityfunctions.height;
+        uint mdfSize = sizeof(float) * CalculateMarginalDensityFunctionCount(width, height);
+        uint cdfsSize= sizeof(float) * CalculateConditionalDensityFunctionsCount(width, height);
+        uint hdrDataSize = sizeof(float3) * width * height;
+
+        serializer->SerializePtr(data.densityfunctions.marginalDensityFunction, mdfSize, 0);
+        serializer->SerializePtr(data.densityfunctions.conditionalDensityFunctions, cdfsSize, 0);
+        serializer->SerializePtr(data.hdrData, hdrDataSize, 0);
+    }
 
     //=============================================================================================================================
     ImageBasedLightResource::ImageBasedLightResource()
@@ -40,16 +59,7 @@ namespace Selas
         uint32 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        BinaryReader reader;
-        SerializerStart(&reader, fileData, fileSize);
-
-        SerializerAttach(&reader, reinterpret_cast<void**>(&resource->data), fileSize);
-
-        FixupPointerX64(fileData, resource->data->densityfunctions.marginalDensityFunction);
-        FixupPointerX64(fileData, resource->data->densityfunctions.conditionalDensityFunctions);
-        FixupPointerX64(fileData, resource->data->hdrData);
-
-        SerializerEnd(&reader);
+        AttachToBinary(resource->data, (uint8*)fileData, fileSize);
 
         return Success_;;
     }

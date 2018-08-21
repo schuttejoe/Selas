@@ -11,6 +11,8 @@
 
 namespace Selas
 {
+    class CSerializer;
+
     struct IblDensityFunctions
     {
         uint64 width;
@@ -24,11 +26,12 @@ namespace Selas
         IblDensityFunctions densityfunctions;
         float3* hdrData;
     };
+    void Serialize(CSerializer* serializer, const ImageBasedLightResourceData& data);
 
     struct ImageBasedLightResource
     {
         static cpointer kDataType;
-        static const uint64 kDataVersion = 1528783850ul;
+        static const uint64 kDataVersion;
 
         ImageBasedLightResourceData* data;
 
