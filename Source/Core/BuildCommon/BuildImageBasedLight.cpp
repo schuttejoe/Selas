@@ -22,7 +22,7 @@ namespace Selas
     //=============================================================================================================================
     static float* CalculateIntensityMap(uint width, uint height, float3* __restrict hdr)
     {
-        float* intensities = AllocArray_(float, width * height);
+        float* intensities = AllocArrayAligned_(float, width * height, 16);
 
         for(uint y = 0; y < height; ++y) {
             for(uint x = 0; x < width; ++x) {

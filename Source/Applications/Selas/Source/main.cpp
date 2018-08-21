@@ -34,9 +34,9 @@
 
 using namespace Selas;
 
-//tatic cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
+static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
 //static cpointer sceneName = "Scenes~island~island.json";
-static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
+//static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
 static cpointer sceneType = "model";
 static cpointer iblName = "";// HDR~flower_road_4k.hdr";
 

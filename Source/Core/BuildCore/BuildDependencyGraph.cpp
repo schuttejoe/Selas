@@ -7,8 +7,11 @@
 #include "StringLib/StringUtil.h"
 #include "IoLib/Environment.h"
 #include "IoLib/File.h"
+#include "IoLib/Directory.h"
 #include "IoLib/FileTime.h"
-#include "IoLib/BinarySerializer.h"
+#include "IoLib/Serializer.h"
+#include "IoLib/SizeSerializer.h"
+#include "IoLib/BinarySerializers.h"
 
 #include <map>
 
@@ -19,7 +22,7 @@ namespace Selas
     typedef std::map<AssetId, BuildProcessDependencies*>::iterator DependencyIterator;
 
     #define BuildDependencyGraphType_ "builddependencygraph"
-    #define BuildDependencyGraphVersion_ 1528779796ul
+    #define BuildDependencyGraphVersion_ 1534874403ul
 
     //=============================================================================================================================
     struct BuildGraphData
@@ -35,48 +38,16 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    template<typename Type_>
-    void WriteArray(BinaryWriter* writer, CArray<Type_>& array)
+    void Serialize(CSerializer* serializer, BuildProcessDependencies& data)
     {
-        uint32 count = array.Count();
-        SerializerWrite(writer, &count, sizeof(count));
-        SerializerWrite(writer, array.DataPointer(), array.DataSize());
-    }
+        Serialize(serializer, data.source);
+        Serialize(serializer, data.id);
+        Serialize(serializer, data.version);
 
-    //=============================================================================================================================
-    template<typename Type_>
-    void ReadArray(BinaryReader* reader, CArray<Type_>& array)
-    {
-        uint32 count;
-        SerializerRead(reader, &count, sizeof(count));
-        array.Resize(count);
-        SerializerRead(reader, array.DataPointer(), array.DataSize());
-    }
-
-    //=============================================================================================================================
-    static void WriteBuildProcessDependency(BinaryWriter* writer, BuildProcessDependencies* deps)
-    {
-        SerializerWrite(writer, &deps->source, sizeof(deps->source));
-        SerializerWrite(writer, &deps->id, sizeof(deps->id));
-        SerializerWrite(writer, &deps->version, sizeof(deps->version));
-
-        WriteArray(writer, deps->contentDependencies);
-        WriteArray(writer, deps->processDependencies);
-        //WriteArray(writer, deps->buildDependencies);
-        WriteArray(writer, deps->outputs);
-    }
-
-    //=============================================================================================================================
-    static void ReadBuildProcessDependency(BinaryReader* reader, BuildProcessDependencies* deps)
-    {
-        SerializerRead(reader, &deps->source, sizeof(deps->source));
-        SerializerRead(reader, &deps->id, sizeof(deps->id));
-        SerializerRead(reader, &deps->version, sizeof(deps->version));
-
-        ReadArray(reader, deps->contentDependencies);
-        ReadArray(reader, deps->processDependencies);
-        //ReadArray(reader, deps->buildDependencies);
-        ReadArray(reader, deps->outputs);
+        Serialize(serializer, data.contentDependencies);
+        Serialize(serializer, data.processDependencies);
+        //Serialize(serializer, data.buildDependencies);
+        Serialize(serializer, data.outputs);
     }
 
     //=============================================================================================================================
@@ -93,21 +64,19 @@ namespace Selas
         uint32 fileSize;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        BinaryReader reader;
-        SerializerStart(&reader, fileData, fileSize);
+        CBinaryReadSerializer* serializer = New_(CBinaryReadSerializer);
+        serializer->Initialize((uint8*)fileData, fileSize);
 
-        uint32 count;
-        SerializerRead(&reader, &count, sizeof(count));
-
+        uint32 count = 0;
+        Serialize(serializer, count);
         for(uint32 scan = 0; scan < count; ++scan) {
             BuildProcessDependencies* deps = New_(BuildProcessDependencies);
-
-            ReadBuildProcessDependency(&reader, deps);
+            Serialize(serializer, *deps);
 
             data->dependencyGraph.insert(DependencyKeyValue(deps->id, deps));
         }
 
-        SerializerEnd(&reader);
+        Delete_(serializer);
         FreeAligned_(fileData);
 
         return Success_;
@@ -116,20 +85,41 @@ namespace Selas
     //=============================================================================================================================
     static Error SaveDependencyGraph(BuildGraphData* data)
     {
+        // -- we can't use SerializeToBinary here since we don't have access to the internals of std::map to write a Serialize
+        // -- function for `DependencyMap dependencyGraph`
+
         FilePathString filepath;
         BuildGraphFilePath(filepath);
 
-        BinaryWriter writer;
-        SerializerStart(&writer, 1024 * 1024, 1024 * 1024);
-
         uint32 count = (uint32)data->dependencyGraph.size();
-        SerializerWrite(&writer, &count, sizeof(count));
-
+        
+        CSizeSerializer* sizeSerializer = New_(CSizeSerializer);      
+        Serialize(sizeSerializer, count);
         for(DependencyIterator it = data->dependencyGraph.begin(); it != data->dependencyGraph.end(); ++it) {
-            WriteBuildProcessDependency(&writer, it->second);
+            Serialize(sizeSerializer, *it->second);
+        }
+        uint totalSize = sizeSerializer->TotalSize();
+        Delete_(sizeSerializer);
+
+        uint8* memory = AllocArrayAligned_(uint8, totalSize, 16);
+
+        CBinaryWriteSerializer* writeSerializer = New_(CBinaryWriteSerializer);
+        writeSerializer->Initialize(memory, totalSize);
+
+        Serialize(writeSerializer, count);
+        for(DependencyIterator it = data->dependencyGraph.begin(); it != data->dependencyGraph.end(); ++it) {
+            Serialize(writeSerializer, *it->second);
+        }
+        writeSerializer->SwitchToPtrWrites();
+        Serialize(writeSerializer, count);
+        for(DependencyIterator it = data->dependencyGraph.begin(); it != data->dependencyGraph.end(); ++it) {
+            Serialize(writeSerializer, *it->second);
         }
 
-        ReturnError_(SerializerEnd(&writer, filepath.Ascii()));
+        Directory::EnsureDirectoryExists(filepath.Ascii());
+        ReturnError_(File::WriteWholeFile(filepath.Ascii(), memory, (uint32)totalSize));
+        FreeAligned_(memory);
+        Delete_(writeSerializer);
 
         return Success_;
     }
@@ -216,7 +206,7 @@ namespace Selas
 
     //=============================================================================================================================
     BuildProcessDependencies* CBuildDependencyGraph::Create(ContentId source)
-    {       
+    {
         AssetId id(source.type.Ascii(), source.name.Ascii());
 
         Assert_(_data->dependencyGraph.find(id) == _data->dependencyGraph.end());

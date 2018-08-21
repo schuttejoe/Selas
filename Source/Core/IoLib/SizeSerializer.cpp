@@ -8,7 +8,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    void CSizeSerializer::Serialize(const void* data, uint size_)
+    void CSizeSerializer::Serialize(void* data, uint size_)
     {
         Unused_(data);
 
@@ -16,7 +16,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void CSizeSerializer::SerializePtr(const void* data, uint size_, uint alignment)
+    void CSizeSerializer::SerializePtr(void*& data, uint size_, uint alignment)
     {
         AssertMsg_((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
 

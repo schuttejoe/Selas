@@ -41,8 +41,8 @@ namespace Selas
         ImportedModel importedModel;
         ReturnError_(ImportModel(context, &importedModel));
 
-        //cpointer materialprefix = "Scenes~SanMiguel~Materials~";
-        cpointer materialprefix = "Materials~";
+        cpointer materialprefix = "Scenes~SanMiguel~Materials~";
+        //cpointer materialprefix = "Materials~";
 
         BuiltScene builtScene;
         ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));

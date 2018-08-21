@@ -7,7 +7,7 @@
 namespace Selas
 {
     #define BasicTypeSerializerImpl_(Type_)                      \
-        void Serialize(CSerializer* serializer, Type_ v)         \
+        void Serialize(CSerializer* serializer, Type_& v)         \
         {                                                        \
             serializer->Serialize(&v, sizeof(v));                \
         }

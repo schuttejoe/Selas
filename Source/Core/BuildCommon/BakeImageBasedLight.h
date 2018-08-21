@@ -13,5 +13,5 @@ namespace Selas
     struct BuildProcessorContext;
 
     //=============================================================================================================================
-    Error BakeImageBasedLight(BuildProcessorContext* context, const ImageBasedLightResourceData* data);
+    Error BakeImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* data);
 }

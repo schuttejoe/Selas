@@ -7,6 +7,7 @@
 #include "StringLib/StringUtil.h"
 #include "IoLib/Environment.h"
 #include "IoLib/Directory.h"
+#include "IoLib/Serializer.h"
 
 #define AssetsDirectoryName_ "_Assets"
 #define ContentDirectoryName_ "Content"
@@ -43,6 +44,20 @@ namespace Selas
         , name(name_)
     {
 
+    }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, ContentId& data)
+    {
+        Serialize(serializer, data.type);
+        Serialize(serializer, data.name);
+    }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, AssetId& data)
+    {
+        Serialize(serializer, (uint32)data.type);
+        Serialize(serializer, (uint32)data.name);
     }
 
     namespace AssetFileUtils

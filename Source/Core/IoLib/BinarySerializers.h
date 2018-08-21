@@ -31,8 +31,26 @@ namespace Selas
         void Initialize(uint8* memory, uint memorySize);
         void SwitchToPtrWrites();
 
-        void Serialize(const void* data, uint size) override;
-        void SerializePtr(const void* data, uint size, uint alignment) override;
+        void Serialize(void* data, uint size) override;
+        void SerializePtr(void*& data, uint size, uint alignment) override;
+    };
+
+    //=============================================================================================================================
+    class CBinaryReadSerializer : public CSerializer
+    {
+    private:
+        uint8* rootAddr = nullptr;
+        uint8* memory = nullptr;
+        uint memorySize = 0;
+
+        uint offset = 0;
+
+    public:
+
+        void Initialize(uint8* memory, uint memorySize);
+
+        void Serialize(void* data, uint size) override;
+        void SerializePtr(void*& data, uint size, uint alignment) override;
     };
 
     //=============================================================================================================================
@@ -48,7 +66,7 @@ namespace Selas
 
         void Initialize(uint8* memory, uint memorySize);
 
-        void Serialize(const void* data, uint size) override;
-        void SerializePtr(const void* data, uint size, uint alignment) override;
+        void Serialize(void* data, uint size) override;
+        void SerializePtr(void*& data, uint size, uint alignment) override;
     };
 }

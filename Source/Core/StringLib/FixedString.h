@@ -2,6 +2,7 @@
 
 #include "StringLib/StringUtil.h"
 #include "IoLib/File.h"
+#include "IoLib/Serializer.h"
 
 //=================================================================================================================================
 // Joe Schutte
@@ -34,5 +35,12 @@ namespace Selas
 
     #define FixedStringSprintf(str, msg, ...) StringUtil::Sprintf(str.Ascii(), str.Capacity(), msg, ##__VA_ARGS__)
 
+    template <int T>
+    void Serialize(CSerializer* serializer, FixedString<T>& data)
+    {
+        for(uint scan = 0; scan < T; ++scan) {
+            Serialize(serializer, (int8&)data.str[scan]);
+        }
+    }
 }
 

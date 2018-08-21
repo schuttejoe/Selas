@@ -25,7 +25,7 @@ namespace Selas
         Error CreateOutput(cpointer type, uint64 version, cpointer name, const void* data, uint64 dataSize);
         
         template<typename OutputType_>
-        Error CreateOutput(cpointer type, uint64 version, cpointer name, const OutputType_& serializable);
+        Error CreateOutput(cpointer type, uint64 version, cpointer name, OutputType_& serializable);
 
     private:
         friend class CBuildCore;
@@ -38,7 +38,7 @@ namespace Selas
     };
 
     template <typename OutputType_>
-    Error BuildProcessorContext::CreateOutput(cpointer type, uint64 version, cpointer name, const OutputType_& serializable)
+    Error BuildProcessorContext::CreateOutput(cpointer type, uint64 version, cpointer name, OutputType_& serializable)
     {
         uint8* data;
         uint dataSize;

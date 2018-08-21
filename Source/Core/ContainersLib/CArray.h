@@ -4,6 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
+#include "IoLib/Serializer.h"
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/Memory.h"
 #include "SystemLib/JsAssert.h"
@@ -40,6 +41,8 @@ namespace Selas
 
         bool Remove(const Type_& item);
         void RemoveFast(uint index);
+
+        void Serialize(CSerializer* serializer);
 
     private:
         void ReallocateArray(uint32 newLength, uint32 newCapacity);
@@ -204,5 +207,19 @@ namespace Selas
         else {
             ReallocateArray(_count, _capacity + 128);
         }
+    }
+
+    template<typename Type_>
+    void CArray<Type_>::Serialize(CSerializer* serializer)
+    {
+        serializer->Serialize(&_count, sizeof(_count));
+        serializer->Serialize(&_capacity, sizeof(_capacity));
+        serializer->SerializePtr((void*&)_data, DataSize(), 0);
+    }
+
+    template<typename Type_>
+    void Serialize(CSerializer* serializer, CArray<Type_>& data)
+    {
+        data.Serialize(serializer);
     }
 }

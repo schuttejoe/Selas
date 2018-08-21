@@ -4,6 +4,7 @@
 
 #include "IoLib/BinarySerializers.h"
 #include "SystemLib/JsAssert.h"
+#include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/Memory.h"
 
 namespace Selas
@@ -35,7 +36,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void CBinaryWriteSerializer::Serialize(const void* data, uint size_)
+    void CBinaryWriteSerializer::Serialize(void* data, uint size_)
     {
         Assert_(offset + size_ <= memorySize);
 
@@ -46,7 +47,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void CBinaryWriteSerializer::SerializePtr(const void* data, uint size_, uint alignment)
+    void CBinaryWriteSerializer::SerializePtr(void*& data, uint size_, uint alignment)
     {
         AssertMsg_(alignment == 0 || (alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
         Assert_(offset + sizeof(ptrOffset) <= memorySize);
@@ -75,6 +76,37 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    void CBinaryReadSerializer::Initialize(uint8* memory_, uint memorySize_)
+    {
+        rootAddr = memory_;
+        memory = memory_;
+        memorySize_ = memorySize_;
+        offset = 0;
+    }
+
+    //=============================================================================================================================
+    void CBinaryReadSerializer::Serialize(void* data, uint size_)
+    {
+        Memory::Copy(data, memory + offset, size_);
+        offset += size_;
+    }
+
+    //=============================================================================================================================
+    void CBinaryReadSerializer::SerializePtr(void*& data, uint size_, uint alignment)
+    {
+        uint64 ptrOffset = *(uint64*)(memory + offset);
+        uint64* address = reinterpret_cast<uint64*>(reinterpret_cast<uint8*>(rootAddr) + ptrOffset);
+
+        uint8* dataAddr = alignment == 0 ? AllocArray_(uint8, size_) : AllocArrayAligned_(uint8, size_, alignment);
+
+        Memory::Copy(dataAddr, address, size_);
+        // -- only advance by the size of the pointer
+        offset += sizeof(address);
+
+        data = (void*&)dataAddr;
+    }
+
+    //=============================================================================================================================
     void CBinaryAttachSerializer::Initialize(uint8* memory_, uint memorySize_)
     {
         rootAddr = memory_;
@@ -84,14 +116,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void CBinaryAttachSerializer::Serialize(const void* data, uint size_)
+    void CBinaryAttachSerializer::Serialize(void* data, uint size_)
     {
         Unused_(data);
         offset += size_;
     }
 
     //=============================================================================================================================
-    void CBinaryAttachSerializer::SerializePtr(const void* data, uint size_, uint alignment)
+    void CBinaryAttachSerializer::SerializePtr(void*& data, uint size_, uint alignment)
     {
         Unused_(data);
         Unused_(size_);

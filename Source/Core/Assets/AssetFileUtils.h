@@ -10,6 +10,8 @@
 
 namespace Selas
 {
+    class CSerializer;
+
     #define InvalidAsset_ 0xFFFFFFFF
     #define PlatformIndependentPathSep_ '~'
 
@@ -60,6 +62,10 @@ namespace Selas
 
         return false;
     }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, ContentId& data);
+    void Serialize(CSerializer* serializer, AssetId& data);
 
     namespace AssetFileUtils
     {

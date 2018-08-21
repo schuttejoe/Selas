@@ -19,7 +19,7 @@ namespace Selas
     const uint64 ImageBasedLightResource::kDataVersion = 1534822944ul;
 
     //=============================================================================================================================
-    void Serialize(CSerializer* serializer, const ImageBasedLightResourceData& data)
+    void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data)
     {
         Serialize(serializer, data.densityfunctions.width);
         Serialize(serializer, data.densityfunctions.height);
@@ -30,9 +30,9 @@ namespace Selas
         uint cdfsSize= sizeof(float) * CalculateConditionalDensityFunctionsCount(width, height);
         uint hdrDataSize = sizeof(float3) * width * height;
 
-        serializer->SerializePtr(data.densityfunctions.marginalDensityFunction, mdfSize, 0);
-        serializer->SerializePtr(data.densityfunctions.conditionalDensityFunctions, cdfsSize, 0);
-        serializer->SerializePtr(data.hdrData, hdrDataSize, 0);
+        serializer->SerializePtr((void*&)data.densityfunctions.marginalDensityFunction, mdfSize, 0);
+        serializer->SerializePtr((void*&)data.densityfunctions.conditionalDensityFunctions, cdfsSize, 0);
+        serializer->SerializePtr((void*&)data.hdrData, hdrDataSize, 0);
     }
 
     //=============================================================================================================================

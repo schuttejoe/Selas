@@ -11,7 +11,7 @@
 namespace Selas
 {
     template<typename Type_>
-    void SerializeToBinary(const Type_& object, uint8*& data, uint& dataSize)
+    void SerializeToBinary(Type_& object, uint8*& data, uint& dataSize)
     {
         CSizeSerializer* sizeSerializer = New_(CSizeSerializer);
         Serialize(sizeSerializer, object);

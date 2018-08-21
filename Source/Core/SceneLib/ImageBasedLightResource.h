@@ -26,7 +26,7 @@ namespace Selas
         IblDensityFunctions densityfunctions;
         float3* hdrData;
     };
-    void Serialize(CSerializer* serializer, const ImageBasedLightResourceData& data);
+    void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data);
 
     struct ImageBasedLightResource
     {
