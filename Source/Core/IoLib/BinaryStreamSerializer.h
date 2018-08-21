@@ -4,6 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
+#include "IoLib/Serializer.h"
 #include "IoLib/SizeSerializer.h"
 #include "IoLib/BinarySerializers.h"
 #include "SystemLib/MemoryAllocation.h"

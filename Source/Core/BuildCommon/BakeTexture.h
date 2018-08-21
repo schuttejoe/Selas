@@ -13,6 +13,6 @@ namespace Selas
     struct BuildProcessorContext;
 
     //=============================================================================================================================
-    Error BakeTexture(BuildProcessorContext* context, const TextureResourceData* data);
+    Error BakeTexture(BuildProcessorContext* context, TextureResourceData* data);
 
 }

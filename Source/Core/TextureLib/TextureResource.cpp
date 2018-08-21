@@ -7,7 +7,7 @@
 #include "Assets/AssetFileUtils.h"
 #include "StringLib/FixedString.h"
 #include "StringLib/StringUtil.h"
-#include "IoLib/BinarySerializer.h"
+#include "IoLib/BinaryStreamSerializer.h"
 #include "IoLib/File.h"
 #include "IoLib/Directory.h"
 #include "SystemLib/BasicTypes.h"
@@ -17,9 +17,32 @@
 namespace Selas
 {
     cpointer TextureResource::kDataType = "Textures";
+    const uint64 TextureResource::kDataVersion = 1534887410ul;
 
     //=============================================================================================================================
-    Error ReadTextureResource(cpointer textureName, TextureResource* texture)
+    void Serialize(CSerializer* serializer, TextureResourceData& data)
+    {
+        Serialize(serializer, data.mipCount);
+        Serialize(serializer, data.dataSize);
+
+        for(uint scan = 0; scan < TextureResourceData::MaxMipCount; ++scan) {
+            Serialize(serializer, data.mipWidths[scan]);
+        }
+        for(uint scan = 0; scan < TextureResourceData::MaxMipCount; ++scan) {
+            Serialize(serializer, data.mipHeights[scan]);
+        }
+        for(uint scan = 0; scan < TextureResourceData::MaxMipCount; ++scan) {
+            Serialize(serializer, data.mipOffsets[scan]);
+        }
+
+        Serialize(serializer, (uint32&)data.format);
+        Serialize(serializer, data.pad);
+
+        serializer->SerializePtr((void*&)data.texture, data.dataSize, 0);
+    }
+
+    //=============================================================================================================================
+    Error ReadTextureResource(cpointer textureName, TextureResource* resource)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(TextureResource::kDataType, TextureResource::kDataVersion, textureName, filepath);
@@ -28,13 +51,8 @@ namespace Selas
         uint32 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        BinaryReader reader;
-        SerializerStart(&reader, fileData, fileSize);
+        AttachToBinary(resource->data, (uint8*)fileData, fileSize);
 
-        SerializerAttach(&reader, reinterpret_cast<void**>(&texture->data), fileSize);
-        SerializerEnd(&reader);
-
-        FixupPointerX64(fileData, texture->data->texture);
         return Success_;
     }
 

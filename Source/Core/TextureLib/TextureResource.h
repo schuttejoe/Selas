@@ -10,6 +10,8 @@
 
 namespace Selas
 {
+    class CSerializer;
+
     struct TextureResourceData
     {
         enum TextureDataType
@@ -35,11 +37,12 @@ namespace Selas
 
         uint8* texture;
     };
+    void Serialize(CSerializer* serializer, TextureResourceData& data);
 
     struct TextureResource
     {
         static cpointer kDataType;
-        static const uint64 kDataVersion = 1531601546ul;
+        static const uint64 kDataVersion;
 
         TextureResourceData* data;
     };
