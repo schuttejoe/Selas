@@ -4,11 +4,23 @@
 
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
+#include "IoLib/Serializer.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/Sampler.h"
 
 namespace Selas
 {
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, CameraSettings& data)
+    {
+        Serialize(serializer, data.position);
+        Serialize(serializer, data.fov);
+        Serialize(serializer, data.lookAt);
+        Serialize(serializer, data.znear);
+        Serialize(serializer, data.up);
+        Serialize(serializer, data.zfar);
+    }
+
     //=============================================================================================================================
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world)
     {

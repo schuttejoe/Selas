@@ -21,6 +21,7 @@ namespace Selas
     BasicTypeSerializerImpl_(uint16);
     BasicTypeSerializerImpl_(uint32);
     BasicTypeSerializerImpl_(uint64);
+    BasicTypeSerializerImpl_(float);
     BasicTypeSerializerImpl_(float2);
     BasicTypeSerializerImpl_(float3);
     BasicTypeSerializerImpl_(float4);

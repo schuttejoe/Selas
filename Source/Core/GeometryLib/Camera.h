@@ -10,6 +10,7 @@
 
 namespace Selas
 {
+    class CSerializer;
     class CSampler;
 
     struct CameraSettings
@@ -37,6 +38,8 @@ namespace Selas
         // -- the distance from the camera that you'd have to travel before the area of a single pixel is 1.
         float    virtualImagePlaneDistance;
     };
+
+    void Serialize(CSerializer* serializer, CameraSettings& data);
 
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world);
     float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y);

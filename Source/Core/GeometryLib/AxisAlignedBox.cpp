@@ -3,11 +3,19 @@
 //=================================================================================================================================
 
 #include "GeometryLib/AxisAlignedBox.h"
+#include "IoLib/Serializer.h"
 #include "MathLib/FloatFuncs.h"
 #include "SystemLib/MinMax.h"
 
 namespace Selas
 {
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, AxisAlignedBox& v)
+    {
+        Serialize(serializer, v.min);
+        Serialize(serializer, v.max);
+    }
+
     //=============================================================================================================================
     void MakeInvalid(AxisAlignedBox* box)
     {

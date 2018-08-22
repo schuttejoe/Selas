@@ -6,7 +6,6 @@
 #include "BuildCore/BuildContext.h"
 #include "TextureLib/TextureResource.h"
 #include "StringLib/FixedString.h"
-#include "IoLib/BinarySerializer.h"
 
 #include <stdio.h>
 

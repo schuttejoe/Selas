@@ -9,8 +9,8 @@
 #include "Assets/AssetFileUtils.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/FloatStructs.h"
-#include "IoLib/BinarySerializer.h"
 #include "IoLib/File.h"
+#include "IoLib/BinaryStreamSerializer.h"
 #include "SystemLib/BasicTypes.h"
 
 #include "embree3/rtcore.h"
@@ -24,10 +24,51 @@ namespace Selas
     cpointer SceneResource::kDataType = "Scene";
     cpointer SceneResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1533865499ul;
+    const uint64 SceneResource::kDataVersion = 1534897412ul;
     const uint32 SceneResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(SceneGeometryData) % SceneResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(SceneResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
+
+    //=============================================================================================================================
+    // Serialization
+    //=============================================================================================================================
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, SceneResourceData& data)
+    {
+        Serialize(serializer, data.camera);
+        Serialize(serializer, data.aaBox);
+        Serialize(serializer, data.boundingSphere);
+        Serialize(serializer, data.backgroundIntensity);
+        Serialize(serializer, data.meshCount);
+        Serialize(serializer, data.totalVertexCount);
+        Serialize(serializer, data.indexCount);
+        Serialize(serializer, data.textureCount);
+        Serialize(serializer, data.materialCount);
+
+        serializer->SerializePtr((void*&)data.textureResourceNames, data.textureCount * sizeof(FilePathString), 0);
+        serializer->SerializePtr((void*&)data.materials, data.materialCount * sizeof(Material), 0);
+        serializer->SerializePtr((void*&)data.materialHashes, data.materialCount * sizeof(Hash32), 0);
+        serializer->SerializePtr((void*&)data.meshData, data.meshCount * sizeof(MeshMetaData), 0);
+    }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, SceneGeometryData& data)
+    {
+        Serialize(serializer, data.indexSize);
+        Serialize(serializer, data.faceIndexSize);
+        Serialize(serializer, data.positionSize);
+        Serialize(serializer, data.normalsSize);
+        Serialize(serializer, data.tangentsSize);
+        Serialize(serializer, data.uvsSize);
+        
+        serializer->SerializePtr((void*&)data.indices, data.indexSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.faceIndexCounts, data.faceIndexSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.positions, data.positionSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.normals, data.normalsSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.tangents, data.tangentsSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.uvs, data.uvsSize, SceneResource::kGeometryDataAlignment);
+    }
 
     //=============================================================================================================================
     // Embree Setup
@@ -98,7 +139,7 @@ namespace Selas
     //=============================================================================================================================
     static void SetVertexAttributes(RTCGeometry geom, SceneResource* scene)
     {
-        SceneMetaData* metadata = scene->data;
+        SceneResourceData* metadata = scene->data;
         SceneGeometryData* geometry = scene->geometry;
 
         Assert_(((uint)geometry->positions & (SceneResource::kGeometryDataAlignment - 1)) == 0);
@@ -145,7 +186,7 @@ namespace Selas
     //=============================================================================================================================
     static void PopulateEmbreeScene(SceneResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
     {
-        SceneMetaData* sceneData = scene->data;
+        SceneResourceData* sceneData = scene->data;
         SceneGeometryData* geometry = scene->geometry;
 
         Assert_(((uint)geometry->indices & (SceneResource::kGeometryDataAlignment - 1)) == 0);
@@ -236,16 +277,7 @@ namespace Selas
         uint32 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        BinaryReader reader;
-        SerializerStart(&reader, fileData, fileSize);
-
-        SerializerAttach(&reader, reinterpret_cast<void**>(&data->data), fileSize);
-        SerializerEnd(&reader);
-
-        FixupPointerX64(fileData, data->data->textureResourceNames);
-        FixupPointerX64(fileData, data->data->materialHashes);
-        FixupPointerX64(fileData, data->data->materials);
-        FixupPointerX64(fileData, data->data->meshData);
+        AttachToBinary(data->data, (uint8*)fileData, fileSize);
 
         return Success_;
     }
@@ -260,17 +292,7 @@ namespace Selas
         uint32 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        BinaryReader reader;
-        SerializerStart(&reader, fileData, fileSize);
-        SerializerAttach(&reader, reinterpret_cast<void**>(&data->geometry), fileSize);
-        SerializerEnd(&reader);
-
-        FixupPointerX64(fileData, data->geometry->indices);
-        FixupPointerX64(fileData, data->geometry->faceIndexCounts);
-        FixupPointerX64(fileData, data->geometry->positions);
-        FixupPointerX64(fileData, data->geometry->normals);
-        FixupPointerX64(fileData, data->geometry->tangents);
-        FixupPointerX64(fileData, data->geometry->uvs);
+        AttachToBinary(data->geometry, (uint8*)fileData, fileSize);
 
         return Success_;
     }

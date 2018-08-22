@@ -27,6 +27,7 @@ namespace Selas
     void Serialize(CSerializer* serializer, uint16& v);
     void Serialize(CSerializer* serializer, uint32& v);
     void Serialize(CSerializer* serializer, uint64& v);
+    void Serialize(CSerializer* serializer, float& v);
     void Serialize(CSerializer* serializer, float2& v);
     void Serialize(CSerializer* serializer, float3& v);
     void Serialize(CSerializer* serializer, float4& v);

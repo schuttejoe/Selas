@@ -23,8 +23,7 @@ namespace Selas
         Unused_(data);
 
         size += sizeof(void*);
-        size += size_;
-        size += (size_ + alignment - 1) & ~(alignment - 1);
+        size += alignment == 0 ? size_ : ((size_ + alignment - 1) & ~(alignment - 1));
     }
 
     //=============================================================================================================================

@@ -24,7 +24,7 @@ namespace Selas
         void Resize(uint32 length);
 
         const Type_* DataPointer(void) const { return _data; }
-        Type_* DataPointer(void) { return _data; }
+              Type_* DataPointer(void) { return _data; }
 
         inline Type_&       operator[] (uint index) { return _data[index]; }
         inline const Type_& operator[] (uint index) const { return _data[index]; }

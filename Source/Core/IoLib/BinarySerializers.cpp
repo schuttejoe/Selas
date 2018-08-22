@@ -66,7 +66,7 @@ namespace Selas
             Memory::Copy(memory + ptrOffset, data, size_);
             ptrOffset += size_;
                 
-            uint64 alignedSize = alignment == 0 ? 0 : (size_ + alignment - 1) & ~(alignment - 1);
+            uint64 alignedSize = alignment == 0 ? 0 : ((size_ + alignment - 1) & ~(alignment - 1)) - size_;
             if(alignedSize > 0) {
                 Assert_(ptrOffset + alignedSize <= memorySize);
                 Memory::Zero(memory + ptrOffset, alignedSize);

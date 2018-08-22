@@ -745,7 +745,7 @@ namespace Selas
         void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
             const SceneResource* scene = context.scene;
-            SceneMetaData* sceneData = scene->data;
+            SceneResourceData* sceneData = scene->data;
 
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, 1);

@@ -96,7 +96,7 @@ namespace Selas
         uint32 indicesPerFace;
     };
 
-    struct SceneMetaData
+    struct SceneResourceData
     {
         // -- camera information
         CameraSettings  camera;
@@ -107,26 +107,29 @@ namespace Selas
         
         // -- only used when no ibl is provided for the scene
         float3          backgroundIntensity;
-        uint32          padding;
 
-        // -- material information
-        uint32          textureCount;
-        uint32          materialCount;
-        // -- long run plan is to have texture header in the scene and then the texture data will be loaded in via caching.
-        // -- for now I'm just making textures as a separate resource.
-        FilePathString* textureResourceNames;
-        Hash32*         materialHashes;
-        Material*       materials;
-        MeshMetaData*   meshData;
-
-        // -- mesh information
+        // -- object counts
         uint32          meshCount;
         uint32          totalVertexCount;
         uint32          indexCount;
+        uint32          textureCount;
+        uint32          materialCount;
+
+        FilePathString* textureResourceNames;
+        Material*       materials;
+        Hash32*         materialHashes;
+        MeshMetaData*   meshData;
     };
 
     struct SceneGeometryData
     {
+        uint64 indexSize;
+        uint64 faceIndexSize;
+        uint64 positionSize;
+        uint64 normalsSize;
+        uint64 tangentsSize;
+        uint64 uvsSize;
+
         uint32* indices;
         uint32* faceIndexCounts;
         float3* positions;
@@ -142,7 +145,7 @@ namespace Selas
         static const uint64 kDataVersion;
         static const uint32 kGeometryDataAlignment;
 
-        SceneMetaData* data;
+        SceneResourceData* data;
         SceneGeometryData* geometry;
 
         TextureResource* textures;
@@ -156,6 +159,9 @@ namespace Selas
         SceneResource();
         ~SceneResource();
     };
+
+    void Serialize(CSerializer* serializer, SceneResourceData& data);
+    void Serialize(CSerializer* serializer, SceneGeometryData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
     Error InitializeSceneResource(SceneResource* scene);
