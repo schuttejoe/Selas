@@ -12,15 +12,15 @@ namespace Selas
     Error BakeModel(BuildProcessorContext* context, const BuiltModel& model)
     {
         ModelResourceData data;
-        data.camera               = model.camera;
         data.aaBox                = model.aaBox;
         data.boundingSphere       = model.boundingSphere;
-        data.backgroundIntensity  = model.backgroundIntensity;
+        data.cameraCount          = model.cameras.Count();
         data.meshCount            = model.meshes.Count();
         data.totalVertexCount     = model.positions.Count();
         data.indexCount           = model.indices.Count();
         data.textureCount         = model.textures.Count();
         data.materialCount        = model.materials.Count();
+        data.cameras              = (CameraSettings*)model.cameras.DataPointer();
         data.textureResourceNames = (FilePathString*)model.textures.DataPointer();
         data.materials            = (Material*)model.materials.DataPointer();
         data.materialHashes       = (Hash32*)model.materialHashes.DataPointer();

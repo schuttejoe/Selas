@@ -308,15 +308,12 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
+        void GenerateImage(SceneContext& context, cpointer imageName, const RayCastCameraSettings& camera)
         {
             const ModelResource* scene = context.scene;
 
             Framebuffer frame;
-            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, LayerCount_);
-
-            RayCastCameraSettings camera;
-            InitializeRayCastCamera(scene->data->camera, width, height, camera);
+            FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, LayerCount_);
 
             int64 completedThreads = 0;
             int64 kernelIndex = 0;
@@ -333,8 +330,8 @@ namespace Selas
             PathTracingKernelData integratorContext;
             integratorContext.sceneData              = &context;
             integratorContext.camera                 = camera;
-            integratorContext.width                  = width;
-            integratorContext.height                 = height;
+            integratorContext.width                  = (uint)camera.viewportWidth;
+            integratorContext.height                 = (uint)camera.viewportHeight;
             integratorContext.maxBounceCount         = MaxBounceCount_;
             integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
             integratorContext.integrationStartTime   = SystemTime::Now();

@@ -299,7 +299,7 @@ namespace Selas
 
         sample.distance = 1e36f;
         sample.direction = direction;
-        sample.radiance = context->sceneData->scene->data->backgroundIntensity;
+        sample.radiance = float3(1.0f, 1.0f, 1.0f);// context->sceneData->scene->data->backgroundIntensity;
         sample.emissionPdfW = Math::Inv4Pi_;
         sample.directionPdfA = Math::Inv4Pi_;
 
@@ -338,7 +338,7 @@ namespace Selas
             return SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, wi, pdf);
         }
         else {
-            return context->sceneData->scene->data->backgroundIntensity;
+            return float3(1.0f, 1.0f, 1.0f);// context->sceneData->scene->data->backgroundIntensity;
         }
     }
 }

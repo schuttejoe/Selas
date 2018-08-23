@@ -38,7 +38,7 @@ static cpointer modelName = "Scenes~SanMiguel~SanMiguel.fbx";
 //static cpointer modelName = "Scenes~island~island.json";
 //static cpointer modelName = "Meshes~PlaneWithDragon.fbx";
 static cpointer sceneType = "model";
-static cpointer iblName = "HDR~flower_road_4k.hdr";
+static cpointer iblName = "";// HDR~flower_road_4k.hdr";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()
@@ -107,16 +107,32 @@ int main(int argc, char *argv[])
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
 
-    Selas::uint width = 1400;
-    Selas::uint height = 800;
-
     SceneContext context;
     context.rtcScene = (RTCScene)modelResource.rtcScene;
     context.scene = &modelResource;
     context.ibl = iblResouce.data;
 
+    Selas::uint width = 1400;
+    Selas::uint height = 800;
+
+    RayCastCameraSettings camera;
+    if(modelResource.data->cameraCount > 0) {
+        InitializeRayCastCamera(modelResource.data->cameras[0], width, height, camera);
+    }
+    else {
+        CameraSettings defaultCamera;
+        defaultCamera.position = float3(0.0f, 0.0f, 5.0f);
+        defaultCamera.lookAt   = float3(0.0f, 0.0f, 0.0f);
+        defaultCamera.up       = float3(0.0f, 1.0f, 0.0f);
+        defaultCamera.fov      = 45.0f * Math::DegreesToRadians_;
+        defaultCamera.znear    = 0.1f;
+        defaultCamera.zfar     = 500.0f;
+
+        InitializeRayCastCamera(defaultCamera, width, height, camera);
+    }
+
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", width, height);
+    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", camera);
     //VCM::GenerateImage(context, "vcmTemp", width, height);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);

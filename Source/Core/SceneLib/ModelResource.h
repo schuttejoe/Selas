@@ -98,23 +98,19 @@ namespace Selas
 
     struct ModelResourceData
     {
-        // -- camera information
-        CameraSettings  camera;
-
         // -- misc scene info
         AxisAlignedBox  aaBox;
         float4          boundingSphere;
-        
-        // -- only used when no ibl is provided for the scene
-        float3          backgroundIntensity;
 
         // -- object counts
+        uint32          cameraCount;
         uint32          meshCount;
         uint32          totalVertexCount;
         uint32          indexCount;
         uint32          textureCount;
         uint32          materialCount;
 
+        CameraSettings* cameras;
         FilePathString* textureResourceNames;
         Material*       materials;
         Hash32*         materialHashes;

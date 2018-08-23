@@ -24,7 +24,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "Scene";
     cpointer ModelResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 ModelResource::kDataVersion = 1534897412ul;
+    const uint64 ModelResource::kDataVersion = 1534996046ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -36,16 +36,16 @@ namespace Selas
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, ModelResourceData& data)
     {
-        Serialize(serializer, data.camera);
         Serialize(serializer, data.aaBox);
         Serialize(serializer, data.boundingSphere);
-        Serialize(serializer, data.backgroundIntensity);
+        Serialize(serializer, data.cameraCount);
         Serialize(serializer, data.meshCount);
         Serialize(serializer, data.totalVertexCount);
         Serialize(serializer, data.indexCount);
         Serialize(serializer, data.textureCount);
         Serialize(serializer, data.materialCount);
 
+        serializer->SerializePtr((void*&)data.cameras, data.cameraCount * sizeof(CameraSettings), 0);
         serializer->SerializePtr((void*&)data.textureResourceNames, data.textureCount * sizeof(FilePathString), 0);
         serializer->SerializePtr((void*&)data.materials, data.materialCount * sizeof(Material), 0);
         serializer->SerializePtr((void*&)data.materialHashes, data.materialCount * sizeof(Hash32), 0);

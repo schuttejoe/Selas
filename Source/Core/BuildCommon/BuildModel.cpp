@@ -236,7 +236,7 @@ namespace Selas
 
         const float intensityScale = 1.2f;
         built->backgroundIntensity = intensityScale * float3(0.9f, 0.84f, 0.78f);
-        built->camera = imported->camera;
+        built->cameras.Append(imported->cameras);
 
         return Success_;
     }

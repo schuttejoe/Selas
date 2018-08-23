@@ -188,23 +188,15 @@ namespace Selas
     //=============================================================================================================================
     static Error ExtractCamera(const aiScene* aiscene, ImportedModel* model)
     {
-        // -- prepare defaults
-        model->camera.position = float3(0.0f, 0.0f, 5.0f);
-        model->camera.lookAt   = float3(0.0f, 0.0f, 0.0f);
-        model->camera.up       = float3(0.0f, 1.0f, 0.0f);
-        model->camera.fov      = 45.0f * Math::DegreesToRadians_;
-        model->camera.znear    = 0.1f;
-        model->camera.zfar     = 500.0f;
-
-        // -- just grabbing the first camera for now
-        if(aiscene->mNumCameras > 0) {
-
-            model->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
-            model->camera.lookAt = model->camera.position + AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
-            model->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
-            model->camera.fov = aiscene->mCameras[0]->mHorizontalFOV;
-            model->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;
-            model->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
+        model->cameras.Resize(aiscene->mNumCameras);
+        for(uint scan = 0; scan < aiscene->mNumCameras; ++scan)
+        {
+            model->cameras[scan].position = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mPosition);
+            model->cameras[scan].lookAt = model->cameras[scan].position + AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mLookAt);
+            model->cameras[scan].up = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mUp);
+            model->cameras[scan].fov = aiscene->mCameras[scan]->mHorizontalFOV;
+            model->cameras[scan].znear = aiscene->mCameras[scan]->mClipPlaneNear;
+            model->cameras[scan].zfar = aiscene->mCameras[scan]->mClipPlaneFar;
         }
 
         return Success_;

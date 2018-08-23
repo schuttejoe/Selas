@@ -51,14 +51,14 @@ namespace Selas
         CArray<ImportedMesh*> meshes;
         CArray<FixedString256> materials;
         CArray<Hash32> materialHashes;
-        CameraSettings camera;
+        CArray<CameraSettings> cameras;
     };
 
     //== Build =====================================================================
     struct BuiltModel
     {
         // -- meta data
-        CameraSettings camera;
+        CArray<CameraSettings> cameras;
         AxisAlignedBox aaBox;
         float4 boundingSphere;
         float3 backgroundIntensity;

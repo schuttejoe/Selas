@@ -742,16 +742,13 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
+        void GenerateImage(SceneContext& context, cpointer imageName, const RayCastCameraSettings& camera)
         {
             const ModelResource* scene = context.scene;
             ModelResourceData* sceneData = scene->data;
 
             Framebuffer frame;
-            FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, 1);
-
-            RayCastCameraSettings camera;
-            InitializeRayCastCamera(scene->data->camera, width, height, camera);
+            FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, 1);
 
             int64 completedThreads = 0;
             int64 kernelIndex = 0;
@@ -768,8 +765,8 @@ namespace Selas
             sharedData.sceneData              = &context;
             sharedData.camera                 = camera;
             sharedData.frame                  = &frame;
-            sharedData.width                  = width;
-            sharedData.height                 = height;
+            sharedData.width                  = (uint)camera.viewportWidth;
+            sharedData.height                 = (uint)camera.viewportHeight;
             sharedData.maxBounceCount         = MaxBounceCount_;
             sharedData.integrationStartTime   = SystemTime::Now();
             sharedData.integrationSeconds     = IntegrationSeconds_;
