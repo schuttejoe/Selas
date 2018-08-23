@@ -4,7 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/Framebuffer.h"
 #include "GeometryLib/Camera.h"
@@ -17,7 +17,7 @@ typedef struct RTCSceneTy* RTCScene;
 
 namespace Selas
 {
-    struct SceneResource;
+    struct ModelResource;
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
     struct SurfaceParameters;
@@ -27,7 +27,7 @@ namespace Selas
     struct SceneContext
     {
         RTCScene rtcScene;
-        const SceneResource* scene;
+        const ModelResource* scene;
         const ImageBasedLightResourceData* ibl;
     };
 

@@ -5,10 +5,10 @@
 #include "BuildCommon/CModelBuildProcessor.h"
 
 #include "BuildCommon/ImportModel.h"
-#include "BuildCommon/BuildScene.h"
-#include "BuildCommon/BakeScene.h"
+#include "BuildCommon/BuildModel.h"
+#include "BuildCommon/BakeModel.h"
 #include "BuildCore/BuildContext.h"
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "Assets/AssetFileUtils.h"
 #include "SystemLib/MemoryAllocation.h"
 
@@ -17,8 +17,8 @@ namespace Selas
     //=============================================================================================================================
     Error CModelBuildProcessor::Setup()
     {
-        AssetFileUtils::EnsureAssetDirectory<SceneResource>();
-        AssetFileUtils::EnsureAssetDirectory(SceneResource::kGeometryDataType, SceneResource::kDataVersion);
+        AssetFileUtils::EnsureAssetDirectory<ModelResource>();
+        AssetFileUtils::EnsureAssetDirectory(ModelResource::kGeometryDataType, ModelResource::kDataVersion);
 
         return Success_;
     }
@@ -32,7 +32,7 @@ namespace Selas
     //=============================================================================================================================
     uint64 CModelBuildProcessor::Version()
     {
-        return SceneResource::kDataVersion;
+        return ModelResource::kDataVersion;
     }
 
     //=============================================================================================================================
@@ -44,7 +44,7 @@ namespace Selas
         cpointer materialprefix = "Scenes~SanMiguel~Materials~";
         //cpointer materialprefix = "Materials~";
 
-        BuiltScene builtScene;
+        BuiltModel builtScene;
         ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));
         ShutdownImportedModel(&importedModel);
 
@@ -53,7 +53,7 @@ namespace Selas
             context->AddProcessDependency("Texture", textureName);
         }
 
-        BakeScene(context, builtScene);
+        BakeModel(context, builtScene);
 
         return Success_;
     }

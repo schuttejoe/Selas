@@ -8,7 +8,7 @@
 #include "Shading/SurfaceScattering.h"
 #include "Shading/IntegratorContexts.h"
 
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "GeometryLib/RectangulerLightSampler.h"
 #include "GeometryLib/CoordinateSystem.h"
 #include "GeometryLib/Disc.h"
@@ -24,7 +24,7 @@
 namespace Selas
 {
     #define MaxBounceCount_    10
-    #define SkyIntensityScale_ 0.5f
+    #define SkyIntensityScale_ 1.0f
 
     //=============================================================================================================================
     //float3 IntegrateRectangleLightWithArea(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,

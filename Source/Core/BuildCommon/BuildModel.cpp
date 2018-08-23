@@ -2,8 +2,8 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "BuildCommon/BuildScene.h"
-#include "BuildCommon/SceneBuildPipeline.h"
+#include "BuildCommon/BuildModel.h"
+#include "BuildCommon/ModelBuildPipeline.h"
 #include "BuildCommon/ImportMaterial.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/Color.h"
@@ -46,7 +46,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void BuildMeshes(ImportedModel* imported, BuiltScene* built)
+    static void BuildMeshes(ImportedModel* imported, BuiltModel* built)
     {
         uint32 totalVertexCount = 0;
         uint32 totalIndexCount = 0;
@@ -155,7 +155,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static uint32 AddTexture(BuiltScene* builtScene, const FilePathString& path)
+    static uint32 AddTexture(BuiltModel* builtScene, const FilePathString& path)
     {
         // JSTODO - Implement a hash set
         for(uint scan = 0, count = builtScene->textures.Count(); scan < count; ++scan) {
@@ -169,7 +169,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltScene* built)
+    static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltModel* built)
     {
         built->materials.Reserve(imported->materials.Count());
         for(uint scan = 0, count = imported->materials.Count(); scan < count; ++scan) {
@@ -229,7 +229,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltScene* built)
+    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built)
     {
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
         BuildMeshes(imported, built);

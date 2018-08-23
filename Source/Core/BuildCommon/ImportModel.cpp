@@ -54,33 +54,33 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void ExtractMaterials(const aiScene* aiscene, ImportedModel* scene)
+    static void ExtractMaterials(const aiScene* aiscene, ImportedModel* model)
     {
         uint32 materialCount = aiscene->mNumMaterials;
 
-        scene->materials.Resize(materialCount);
-        scene->materialHashes.Resize(materialCount);
+        model->materials.Resize(materialCount);
+        model->materialHashes.Resize(materialCount);
         for(uint scan = 0; scan < materialCount; ++scan) {
             aiMaterial* material = aiscene->mMaterials[scan];
             aiString name;
             material->Get(AI_MATKEY_NAME, name);
 
-            scene->materials[scan].Copy(name.data);
-            scene->materialHashes[scan] = MurmurHash3_x86_32(name.data, StringUtil::Length(name.data), 0);
+            model->materials[scan].Copy(name.data);
+            model->materialHashes[scan] = MurmurHash3_x86_32(name.data, StringUtil::Length(name.data), 0);
         }
     }
 
     //=============================================================================================================================
-    static Error ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* scene, uint& meshIndex)
+    static Error ExtractMeshes(const aiScene* aiscene, const aiNode* node, ImportedModel* model, uint& meshIndex)
     {
         for(uint meshscan = 0, meshcount = node->mNumMeshes; meshscan < meshcount; ++meshscan) {
             const struct aiMesh* aimesh = aiscene->mMeshes[node->mMeshes[meshscan]];
 
-            ImportedMesh* mesh = scene->meshes[meshIndex++];
+            ImportedMesh* mesh = model->meshes[meshIndex++];
 
             bool hasNans = false;
 
-            mesh->materialHash = scene->materialHashes[aimesh->mMaterialIndex];
+            mesh->materialHash = model->materialHashes[aimesh->mMaterialIndex];
 
             // -- extract vertices
             uint vertexcount = aimesh->mNumVertices;
@@ -179,39 +179,39 @@ namespace Selas
         }
 
         for(uint scan = 0; scan < node->mNumChildren; ++scan) {
-            ReturnError_(ExtractMeshes(aiscene, node->mChildren[scan], scene, meshIndex));
+            ReturnError_(ExtractMeshes(aiscene, node->mChildren[scan], model, meshIndex));
         }
 
         return Success_;
     }
 
     //=============================================================================================================================
-    static Error ExtractCamera(const aiScene* aiscene, ImportedModel* scene)
+    static Error ExtractCamera(const aiScene* aiscene, ImportedModel* model)
     {
         // -- prepare defaults
-        scene->camera.position = float3(0.0f, 0.0f, 5.0f);
-        scene->camera.lookAt   = float3(0.0f, 0.0f, 0.0f);
-        scene->camera.up       = float3(0.0f, 1.0f, 0.0f);
-        scene->camera.fov      = 45.0f * Math::DegreesToRadians_;
-        scene->camera.znear    = 0.1f;
-        scene->camera.zfar     = 500.0f;
+        model->camera.position = float3(0.0f, 0.0f, 5.0f);
+        model->camera.lookAt   = float3(0.0f, 0.0f, 0.0f);
+        model->camera.up       = float3(0.0f, 1.0f, 0.0f);
+        model->camera.fov      = 45.0f * Math::DegreesToRadians_;
+        model->camera.znear    = 0.1f;
+        model->camera.zfar     = 500.0f;
 
         // -- just grabbing the first camera for now
         if(aiscene->mNumCameras > 0) {
 
-            scene->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
-            scene->camera.lookAt = scene->camera.position + AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
-            scene->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
-            scene->camera.fov = aiscene->mCameras[0]->mHorizontalFOV;
-            scene->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;
-            scene->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
+            model->camera.position = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mPosition);
+            model->camera.lookAt = model->camera.position + AssImpVec3ToFloat3_(aiscene->mCameras[0]->mLookAt);
+            model->camera.up = AssImpVec3ToFloat3_(aiscene->mCameras[0]->mUp);
+            model->camera.fov = aiscene->mCameras[0]->mHorizontalFOV;
+            model->camera.znear = aiscene->mCameras[0]->mClipPlaneNear;
+            model->camera.zfar = aiscene->mCameras[0]->mClipPlaneFar;
         }
 
         return Success_;
     }
 
     //=============================================================================================================================
-    Error ImportModel(BuildProcessorContext* context, ImportedModel* scene)
+    Error ImportModel(BuildProcessorContext* context, ImportedModel* model)
     {
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
@@ -233,28 +233,28 @@ namespace Selas
         uint meshcount = 0;
         ReturnError_(CountMeshes(aiscene, aiscene->mRootNode, meshcount));
 
-        scene->meshes.Resize((uint32)meshcount);
+        model->meshes.Resize((uint32)meshcount);
         for(uint scan = 0; scan < meshcount; ++scan) {
-            scene->meshes[scan] = New_(ImportedMesh);
+            model->meshes[scan] = New_(ImportedMesh);
         }
 
-        ExtractMaterials(aiscene, scene);
+        ExtractMaterials(aiscene, model);
 
         uint usedMeshCount = 0;
-        ReturnError_(ExtractMeshes(aiscene, aiscene->mRootNode, scene, usedMeshCount));
-        ReturnError_(ExtractCamera(aiscene, scene));
+        ReturnError_(ExtractMeshes(aiscene, aiscene->mRootNode, model, usedMeshCount));
+        ReturnError_(ExtractCamera(aiscene, model));
 
         // aiscene is cleaned up by the importer's destructor
         return Success_;
     }
 
     //=============================================================================================================================
-    void ShutdownImportedModel(ImportedModel* scene)
+    void ShutdownImportedModel(ImportedModel* model)
     {
-        for(uint scan = 0, meshcount = scene->meshes.Count(); scan < meshcount; ++scan) {
-            Delete_(scene->meshes[scan]);
+        for(uint scan = 0, meshcount = model->meshes.Count(); scan < meshcount; ++scan) {
+            Delete_(model->meshes[scan]);
         }
 
-        scene->meshes.Shutdown();
+        model->meshes.Shutdown();
     }
 }

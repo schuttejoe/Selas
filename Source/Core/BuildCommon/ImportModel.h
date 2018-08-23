@@ -4,7 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "BuildCommon/SceneBuildPipeline.h"
+#include "BuildCommon/ModelBuildPipeline.h"
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
 

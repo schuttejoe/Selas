@@ -4,7 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "MathLib/FloatStructs.h"
 #include "SystemLib/BasicTypes.h"
 
@@ -12,7 +12,7 @@ namespace Selas
 {
     struct GIIntegrationContext;
     struct HitParameters;
-    struct SceneResource;
+    struct ModelResource;
     struct Material;
 
     struct SurfaceParameters
@@ -48,8 +48,8 @@ namespace Selas
     };
 
     bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* hit, SurfaceParameters& surface);
-    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
-    float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
+    bool CalculatePassesAlphaTest(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
+    float CalculateDisplacement(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
 
     float3 GeometricTangent(const SurfaceParameters& surface);
     float3 GeometricNormal(const SurfaceParameters& surface);

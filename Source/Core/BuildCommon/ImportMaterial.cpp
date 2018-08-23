@@ -3,7 +3,7 @@
 //=================================================================================================================================
 
 #include "BuildCommon/ImportMaterial.h"
-#include "BuildCommon/SceneBuildPipeline.h"
+#include "BuildCommon/ModelBuildPipeline.h"
 #include "UtilityLib/JsonUtilities.h"
 #include "StringLib/StringUtil.h"
 #include "SystemLib/MemoryAllocation.h"

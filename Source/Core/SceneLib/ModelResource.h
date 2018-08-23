@@ -96,7 +96,7 @@ namespace Selas
         uint32 indicesPerFace;
     };
 
-    struct SceneResourceData
+    struct ModelResourceData
     {
         // -- camera information
         CameraSettings  camera;
@@ -121,7 +121,7 @@ namespace Selas
         MeshMetaData*   meshData;
     };
 
-    struct SceneGeometryData
+    struct ModelGeometryData
     {
         uint64 indexSize;
         uint64 faceIndexSize;
@@ -138,15 +138,15 @@ namespace Selas
         float2* uvs;
     };
 
-    struct SceneResource
+    struct ModelResource
     {
         static cpointer kDataType;
         static cpointer kGeometryDataType;
         static const uint64 kDataVersion;
         static const uint32 kGeometryDataAlignment;
 
-        SceneResourceData* data;
-        SceneGeometryData* geometry;
+        ModelResourceData* data;
+        ModelGeometryData* geometry;
 
         TextureResource* textures;
         void* rtcDevice;
@@ -156,15 +156,15 @@ namespace Selas
         Material* defaultMaterial;
         CArray<const Material*> materialLookup;
 
-        SceneResource();
-        ~SceneResource();
+        ModelResource();
+        ~ModelResource();
     };
 
-    void Serialize(CSerializer* serializer, SceneResourceData& data);
-    void Serialize(CSerializer* serializer, SceneGeometryData& data);
+    void Serialize(CSerializer* serializer, ModelResourceData& data);
+    void Serialize(CSerializer* serializer, ModelGeometryData& data);
 
-    Error ReadSceneResource(cpointer filepath, SceneResource* scene);
-    Error InitializeSceneResource(SceneResource* scene);
-    void InitializeEmbreeScene(SceneResource* scene);
-    void ShutdownSceneResource(SceneResource* scene);
+    Error ReadModelResource(cpointer filepath, ModelResource* scene);
+    Error InitializeModelResource(ModelResource* scene);
+    void InitializeEmbreeScene(ModelResource* scene);
+    void ShutdownModelResource(ModelResource* scene);
 }

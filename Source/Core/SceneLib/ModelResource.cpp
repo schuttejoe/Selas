@@ -2,7 +2,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "TextureLib/TextureResource.h"
 #include "Shading/SurfaceParameters.h"
 #include "UtilityLib/BinarySearch.h"
@@ -21,20 +21,20 @@
 
 namespace Selas
 {
-    cpointer SceneResource::kDataType = "Scene";
-    cpointer SceneResource::kGeometryDataType = "SceneGeometry";
+    cpointer ModelResource::kDataType = "Scene";
+    cpointer ModelResource::kGeometryDataType = "SceneGeometry";
 
-    const uint64 SceneResource::kDataVersion = 1534897412ul;
-    const uint32 SceneResource::kGeometryDataAlignment = 16;
-    static_assert(sizeof(SceneGeometryData) % SceneResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
-    static_assert(SceneResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
+    const uint64 ModelResource::kDataVersion = 1534897412ul;
+    const uint32 ModelResource::kGeometryDataAlignment = 16;
+    static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
+    static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
 
     //=============================================================================================================================
     // Serialization
     //=============================================================================================================================
 
     //=============================================================================================================================
-    void Serialize(CSerializer* serializer, SceneResourceData& data)
+    void Serialize(CSerializer* serializer, ModelResourceData& data)
     {
         Serialize(serializer, data.camera);
         Serialize(serializer, data.aaBox);
@@ -53,7 +53,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void Serialize(CSerializer* serializer, SceneGeometryData& data)
+    void Serialize(CSerializer* serializer, ModelGeometryData& data)
     {
         Serialize(serializer, data.indexSize);
         Serialize(serializer, data.faceIndexSize);
@@ -62,12 +62,12 @@ namespace Selas
         Serialize(serializer, data.tangentsSize);
         Serialize(serializer, data.uvsSize);
         
-        serializer->SerializePtr((void*&)data.indices, data.indexSize, SceneResource::kGeometryDataAlignment);
-        serializer->SerializePtr((void*&)data.faceIndexCounts, data.faceIndexSize, SceneResource::kGeometryDataAlignment);
-        serializer->SerializePtr((void*&)data.positions, data.positionSize, SceneResource::kGeometryDataAlignment);
-        serializer->SerializePtr((void*&)data.normals, data.normalsSize, SceneResource::kGeometryDataAlignment);
-        serializer->SerializePtr((void*&)data.tangents, data.tangentsSize, SceneResource::kGeometryDataAlignment);
-        serializer->SerializePtr((void*&)data.uvs, data.uvsSize, SceneResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.indices, data.indexSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.faceIndexCounts, data.faceIndexSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.positions, data.positionSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.normals, data.normalsSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.tangents, data.tangentsSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.uvs, data.uvsSize, ModelResource::kGeometryDataAlignment);
     }
 
     //=============================================================================================================================
@@ -78,7 +78,7 @@ namespace Selas
     static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
     {
         int* valid = args->valid;
-        SceneResource* scene = (SceneResource*)args->geometryUserPtr;
+        ModelResource* scene = (ModelResource*)args->geometryUserPtr;
 
         for(uint32 scan = 0; scan < args->N; ++scan) {
             if(valid[scan] != -1) {
@@ -106,7 +106,7 @@ namespace Selas
 
         unsigned int N = args->N;
 
-        SceneResource* scene = (SceneResource*)args->geometryUserPtr;
+        ModelResource* scene = (ModelResource*)args->geometryUserPtr;
 
         AssertMsg_(false, "nyi");
         uint32 geomId = 0;// (args->geometry == scene->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
@@ -137,15 +137,15 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SetVertexAttributes(RTCGeometry geom, SceneResource* scene)
+    static void SetVertexAttributes(RTCGeometry geom, ModelResource* scene)
     {
-        SceneResourceData* metadata = scene->data;
-        SceneGeometryData* geometry = scene->geometry;
+        ModelResourceData* metadata = scene->data;
+        ModelGeometryData* geometry = scene->geometry;
 
-        Assert_(((uint)geometry->positions & (SceneResource::kGeometryDataAlignment - 1)) == 0);
-        Assert_(((uint)geometry->normals & (SceneResource::kGeometryDataAlignment - 1)) == 0);
-        Assert_(((uint)geometry->tangents & (SceneResource::kGeometryDataAlignment - 1)) == 0);
-        Assert_(((uint)geometry->uvs & (SceneResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->positions & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->normals & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->tangents & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->uvs & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), 
                                    metadata->totalVertexCount);
@@ -173,7 +173,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const Material* FindMeshMaterial(SceneResource* scene, Hash32 materialHash)
+    static const Material* FindMeshMaterial(ModelResource* scene, Hash32 materialHash)
     {
         uint materialIndex = BinarySearch(scene->data->materialHashes, scene->data->materialCount, materialHash);
         if(materialIndex == (uint)-1) {
@@ -184,13 +184,13 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void PopulateEmbreeScene(SceneResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
+    static void PopulateEmbreeScene(ModelResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
     {
-        SceneResourceData* sceneData = scene->data;
-        SceneGeometryData* geometry = scene->geometry;
+        ModelResourceData* sceneData = scene->data;
+        ModelGeometryData* geometry = scene->geometry;
 
-        Assert_(((uint)geometry->indices & (SceneResource::kGeometryDataAlignment - 1)) == 0);
-        Assert_(((uint)geometry->faceIndexCounts & (SceneResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->indices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->faceIndexCounts & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
         for(uint32 scan = 0, count = sceneData->meshCount; scan < count; ++scan) {
             const MeshMetaData& meshData = sceneData->meshData[scan];
@@ -246,7 +246,7 @@ namespace Selas
     //=============================================================================================================================
 
     //=============================================================================================================================
-    SceneResource::SceneResource()
+    ModelResource::ModelResource()
         : data(nullptr)
         , geometry(nullptr)
         , textures(nullptr)
@@ -258,7 +258,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    SceneResource::~SceneResource()
+    ModelResource::~ModelResource()
     {
         Assert_(data == nullptr);
         Assert_(geometry == nullptr);
@@ -268,10 +268,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadSceneMetaData(cpointer assetname, SceneResource* data)
+    static Error ReadSceneMetaData(cpointer assetname, ModelResource* data)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(SceneResource::kDataType, SceneResource::kDataVersion, assetname, filepath);
+        AssetFileUtils::AssetFilePath(ModelResource::kDataType, ModelResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
@@ -283,10 +283,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadSceneGeometryData(cpointer assetname, SceneResource* data)
+    static Error ReadSceneGeometryData(cpointer assetname, ModelResource* data)
     {
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(SceneResource::kGeometryDataType, SceneResource::kDataVersion, assetname, filepath);
+        AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
         uint32 fileSize = 0;
@@ -298,7 +298,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error ReadSceneResource(cpointer assetname, SceneResource* data)
+    Error ReadModelResource(cpointer assetname, ModelResource* data)
     {
         ReturnError_(ReadSceneMetaData(assetname, data));
         ReturnError_(ReadSceneGeometryData(assetname, data));
@@ -307,7 +307,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeSceneResource(SceneResource* scene)
+    Error InitializeModelResource(ModelResource* scene)
     {
         uint textureCount = scene->data->textureCount;
         scene->textures = AllocArray_(TextureResource, textureCount);
@@ -322,7 +322,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(SceneResource* scene)
+    void InitializeEmbreeScene(ModelResource* scene)
     {
         RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
         RTCScene rtcScene = rtcNewScene(rtcDevice);
@@ -334,7 +334,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void ShutdownSceneResource(SceneResource* scene)
+    void ShutdownModelResource(ModelResource* scene)
     {
         if(scene->rtcScene)
             rtcReleaseScene((RTCScene)scene->rtcScene);

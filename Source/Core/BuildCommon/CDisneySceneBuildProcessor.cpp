@@ -5,11 +5,11 @@
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
 
 #include "BuildCommon/ImportModel.h"
-#include "BuildCommon/BuildScene.h"
-#include "BuildCommon/BakeScene.h"
+#include "BuildCommon/BuildModel.h"
+#include "BuildCommon/BakeModel.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/JsonUtilities.h"
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "Assets/AssetFileUtils.h"
 #include "SystemLib/MemoryAllocation.h"
 
@@ -94,8 +94,8 @@ namespace Selas
     //=============================================================================================================================
     Error CDisneySceneBuildProcessor::Setup()
     {
-        AssetFileUtils::EnsureAssetDirectory<SceneResource>();
-        AssetFileUtils::EnsureAssetDirectory(SceneResource::kGeometryDataType, SceneResource::kDataVersion);
+        AssetFileUtils::EnsureAssetDirectory<ModelResource>();
+        AssetFileUtils::EnsureAssetDirectory(ModelResource::kGeometryDataType, ModelResource::kDataVersion);
 
         return Success_;
     }
@@ -109,7 +109,7 @@ namespace Selas
     //=============================================================================================================================
     uint64 CDisneySceneBuildProcessor::Version()
     {
-        return SceneResource::kDataVersion;
+        return ModelResource::kDataVersion;
     }
 
     //=============================================================================================================================

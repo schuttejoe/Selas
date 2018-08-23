@@ -13,7 +13,7 @@
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
 #include "Shading/IntegratorContexts.h"
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/Framebuffer.h"
 #include "TextureLib/TextureFiltering.h"
@@ -34,11 +34,11 @@
 
 using namespace Selas;
 
-static cpointer sceneName = "Scenes~SanMiguel~SanMiguel.fbx";
-//static cpointer sceneName = "Scenes~island~island.json";
-//static cpointer sceneName = "Meshes~PlaneWithDragon.fbx";
+static cpointer modelName = "Scenes~SanMiguel~SanMiguel.fbx";
+//static cpointer modelName = "Scenes~island~island.json";
+//static cpointer modelName = "Meshes~PlaneWithDragon.fbx";
 static cpointer sceneType = "model";
-static cpointer iblName = "";// HDR~flower_road_4k.hdr";
+static cpointer iblName = "HDR~flower_road_4k.hdr";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()
@@ -59,7 +59,7 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CDisneySceneBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId(sceneType, sceneName));
+    buildCore.BuildAsset(ContentId(sceneType, modelName));
     if(StringUtil::Length(iblName) > 0) {
         buildCore.BuildAsset(ContentId("HDR", iblName));
     }
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
     ExitMainOnError_(ValidateAssetsAreBuilt());
 
-    SceneResource sceneResource;
+    ModelResource modelResource;
     ImageBasedLightResource iblResouce;
 
     auto timer = SystemTime::Now();
@@ -97,13 +97,13 @@ int main(int argc, char *argv[])
         ExitMainOnError_(ReadImageBasedLightResource(iblName, &iblResouce));
     }
 
-    ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
-    ExitMainOnError_(InitializeSceneResource(&sceneResource));
+    ExitMainOnError_(ReadModelResource(modelName, &modelResource));
+    ExitMainOnError_(InitializeModelResource(&modelResource));
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     timer = SystemTime::Now();
-    InitializeEmbreeScene(&sceneResource);
+    InitializeEmbreeScene(&modelResource);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
 
@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
     Selas::uint height = 800;
 
     SceneContext context;
-    context.rtcScene = (RTCScene)sceneResource.rtcScene;
-    context.scene = &sceneResource;
+    context.rtcScene = (RTCScene)modelResource.rtcScene;
+    context.scene = &modelResource;
     context.ibl = iblResouce.data;
 
     timer = SystemTime::Now();
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
     // -- delete the scene
-    ShutdownSceneResource(&sceneResource);
+    ShutdownModelResource(&modelResource);
     if(StringUtil::Length(iblName) > 0) {
         ShutdownImageBasedLightResource(&iblResouce);
     }

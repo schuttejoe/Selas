@@ -4,7 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "UtilityLib/MurmurHash.h"
 #include "StringLib/FixedString.h"
@@ -55,7 +55,7 @@ namespace Selas
     };
 
     //== Build =====================================================================
-    struct BuiltScene
+    struct BuiltModel
     {
         // -- meta data
         CameraSettings camera;

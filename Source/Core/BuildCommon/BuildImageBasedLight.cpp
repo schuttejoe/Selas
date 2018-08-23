@@ -120,7 +120,7 @@ namespace Selas
 
         CalculateStrataDistributionFunctions(width, height, intensities, &ibl->densityfunctions);
 
-        Free_(intensities);
+        FreeAligned_(intensities);
 
         return Success_;
     }

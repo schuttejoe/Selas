@@ -5,13 +5,12 @@
 //=================================================================================================================================
 
 #include "SystemLib/Error.h"
-#include "SystemLib/BasicTypes.h"
+#include "BuildCommon/ModelBuildPipeline.h"
 
 namespace Selas
 {
     struct BuildProcessorContext;
-    struct ImportedModel;
-    struct BuiltScene;
 
-    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltScene* built);
+    //=============================================================================================================================
+    Error BakeModel(BuildProcessorContext* context, const BuiltModel& model);
 }

@@ -9,7 +9,7 @@
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 #include "Shading/AreaLighting.h"
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/TextureFiltering.h"
 #include "TextureLib/TextureResource.h"
@@ -310,7 +310,7 @@ namespace Selas
         //=========================================================================================================================
         void GenerateImage(SceneContext& context, cpointer imageName, uint width, uint height)
         {
-            const SceneResource* scene = context.scene;
+            const ModelResource* scene = context.scene;
 
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)width, (uint32)height, LayerCount_);

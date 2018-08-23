@@ -7,7 +7,7 @@
 
 #include "TextureLib/TextureFiltering.h"
 #include "TextureLib/TextureResource.h"
-#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "GeometryLib/Ray.h"
 #include "GeometryLib/CoordinateSystem.h"
 #include "MathLib/FloatFuncs.h"
@@ -25,7 +25,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    static float3 SampleTextureNormal(const SceneResource* scene, float2 uvs, uint textureIndex)
+    static float3 SampleTextureNormal(const ModelResource* scene, float2 uvs, uint textureIndex)
     {
         if(textureIndex == InvalidIndex32)
             return float3::ZAxis_;
@@ -43,7 +43,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float SampleTextureOpacity(const SceneResource* scene, float2 uvs, uint textureIndex)
+    static float SampleTextureOpacity(const ModelResource* scene, float2 uvs, uint textureIndex)
     {
         if(textureIndex == InvalidIndex32) {
             return 1.0f;
@@ -62,7 +62,7 @@ namespace Selas
 
     //=============================================================================================================================
     template <typename Type_>
-    static Type_ SampleTexture(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
+    static Type_ SampleTexture(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
@@ -80,7 +80,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float SampleTextureFloat(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
+    static float SampleTextureFloat(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
@@ -105,7 +105,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float3 SampleTextureFloat3(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float3 defaultValue)
+    static float3 SampleTextureFloat3(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float3 defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return defaultValue;
@@ -130,7 +130,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float4 SampleTextureFloat4(const SceneResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
+    static float4 SampleTextureFloat4(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
         if(textureIndex == InvalidIndex32)
             return float4(defaultValue, defaultValue, defaultValue, defaultValue);
@@ -154,7 +154,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const Material* GetSurfaceMaterial(const SceneResource* scene, uint32 geomId)
+    static const Material* GetSurfaceMaterial(const ModelResource* scene, uint32 geomId)
     {
         Assert_(geomId < scene->materialLookup.Count());
         return scene->materialLookup[geomId];
@@ -164,7 +164,7 @@ namespace Selas
     bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* __restrict hit,
                                 SurfaceParameters& surface)
     {
-        const SceneResource* scene = context->sceneData->scene;
+        const ModelResource* scene = context->sceneData->scene;
 
         const Material* material = GetSurfaceMaterial(scene, hit->geomId);
 
@@ -222,7 +222,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    bool CalculatePassesAlphaTest(const SceneResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
+    bool CalculatePassesAlphaTest(const ModelResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
     {
         const Material* material = GetSurfaceMaterial(scene, geomId);
         Assert_(material->flags & MaterialFlags::eAlphaTested);
@@ -236,7 +236,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float CalculateDisplacement(const SceneResource* scene, uint32 geomId, uint32 primId, float2 uvs)
+    float CalculateDisplacement(const ModelResource* scene, uint32 geomId, uint32 primId, float2 uvs)
     {
         const Material* material = GetSurfaceMaterial(scene, geomId);
         float displacement = SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eDisplacement], false, 0.0f);
