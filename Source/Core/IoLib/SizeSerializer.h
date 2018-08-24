@@ -15,8 +15,10 @@ namespace Selas
 
     public:
 
-        void Serialize(void* data, uint size) override;
-        void SerializePtr(void*& data, uint size, uint alignment) override;
+        virtual SerializerFlags Flags() override { return eNone; }
+
+        virtual void Serialize(void* data, uint size) override;
+        virtual void SerializePtr(void*& data, uint size, uint alignment) override;
 
         uint TotalSize();
     };

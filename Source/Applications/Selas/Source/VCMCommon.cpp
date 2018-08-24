@@ -34,7 +34,7 @@ namespace Selas
     namespace VCMCommon
     {
         //=========================================================================================================================
-        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, uint index, PathState& state)
+        void GenerateLightSample(GIIntegratorContext* context, float vcWeight, uint index, PathState& state)
         {
             Assert_(index < (1 << PathStateIndexBitCount_));
 
@@ -63,7 +63,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state)
+        void GenerateCameraSample(GIIntegratorContext* context, uint x, uint y, float lightPathCount, PathState& state)
         {
             const RayCastCameraSettings* __restrict camera = context->camera;
 
@@ -82,7 +82,7 @@ namespace Selas
             state.dVM           = 0;
             state.pathLength    = 1;
             state.isAreaMeasure = 1;
-            state.index         = y * context->imageWidth + x;
+            state.index         = y * (uint32)camera->viewportWidth + x;
 
             Assert_(state.index < (1 << PathStateIndexBitCount_));
         }

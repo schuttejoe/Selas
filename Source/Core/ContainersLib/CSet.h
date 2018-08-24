@@ -19,7 +19,7 @@ namespace Selas
 
         void Shutdown(void);
         void Clear(void);
-        void Reserve(uint32 capacity);
+        void Reserve(uint64 capacity);
 
         const Type_* DataPointer(void) const { return _data; }
         Type_* DataPointer(void) { return _data; }
@@ -27,11 +27,11 @@ namespace Selas
         inline Type_&       operator[] (uint index) { return _data[index]; }
         inline const Type_& operator[] (uint index) const { return _data[index]; }
 
-        inline uint32 Count(void) const { return _count; }
-        inline uint32 Capacity(void) const { return _capacity; }
-        inline uint32 DataSize(void) const { return _count * sizeof(Type_); }
+        inline uint64 Count(void) const { return _count; }
+        inline uint64 Capacity(void) const { return _capacity; }
+        inline uint64 DataSize(void) const { return _count * sizeof(Type_); }
 
-        uint32 Add(const Type_& element);
+        uint64 Add(const Type_& element);
 
         template<typename OtherType_>
         void   Append(const OtherType_& addend);
@@ -40,13 +40,13 @@ namespace Selas
         void RemoveFast(uint index);
 
     private:
-        void ReallocateArray(uint32 newLength, uint32 newCapacity);
+        void ReallocateArray(uint64 newLength, uint64 newCapacity);
         void GrowArray(void);
 
     private:
         Type_ * _data;
-        uint32  _count;
-        uint32  _capacity;
+        uint64  _count;
+        uint64  _capacity;
     };
 
     template<typename Type_>
@@ -82,7 +82,7 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CSet<Type_>::Reserve(uint32 capacity)
+    void CSet<Type_>::Reserve(uint64 capacity)
     {
         if(capacity > _capacity) {
             ReallocateArray(_count, capacity);
@@ -90,10 +90,10 @@ namespace Selas
     }
 
     template<typename Type_>
-    uint32 CSet<Type_>::Add(const Type_& element)
+    uint64 CSet<Type_>::Add(const Type_& element)
     {
         // JSTODO - Slow...
-        for(uint32 scan = 0; scan < _count; ++scan) {
+        for(uint64 scan = 0; scan < _count; ++scan) {
             if(_data[scan] == element) {
                 return scan;
             }
@@ -112,7 +112,7 @@ namespace Selas
     template<typename OtherType_>
     void CSet<Type_>::Append(const OtherType_& addend)
     {
-        uint32 newLength = _count + addend.Length();
+        uint64 newLength = _count + addend.Length();
 
         if(_capacity < newLength)
             ReallocateArray(_count, newLength);
@@ -125,7 +125,7 @@ namespace Selas
     template<typename Type_>
     bool CSet<Type_>::Remove(const Type_& item)
     {
-        uint32 index = 0;
+        uint64 index = 0;
         for(; index < _count; ++index) {
             if(_data[index] == item) {
                 break;
@@ -156,12 +156,12 @@ namespace Selas
     }
 
     template<typename Type_>
-    void CSet<Type_>::ReallocateArray(uint32 newLength, uint32 newCapacity)
+    void CSet<Type_>::ReallocateArray(uint64 newLength, uint64 newCapacity)
     {
         Type_* newList = AllocArray_(Type_, newCapacity);
 
         if(_data) {
-            uint32 lengthToCopy = (_count < newLength) ? _count : newLength;
+            uint64 lengthToCopy = (_count < newLength) ? _count : newLength;
             if(lengthToCopy > 0) {
                 Memory::Copy(newList, _data, lengthToCopy * sizeof(Type_));
             }

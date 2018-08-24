@@ -8,7 +8,7 @@
 #include "Shading/SurfaceScattering.h"
 #include "Shading/IntegratorContexts.h"
 
-#include "SceneLib/ModelResource.h"
+#include "SceneLib/SceneResource.h"
 #include "GeometryLib/RectangulerLightSampler.h"
 #include "GeometryLib/CoordinateSystem.h"
 #include "GeometryLib/Disc.h"
@@ -201,7 +201,7 @@ namespace Selas
     //}
 
     //=============================================================================================================================
-    void EmitIblLightSample(GIIntegrationContext* __restrict context, LightEmissionSample& sample)
+    void EmitIblLightSample(GIIntegratorContext* __restrict context, LightEmissionSample& sample)
     {
         // -- http://www.iliyan.com/publications/ImplementingVCM/ImplementingVCM_TechRep2012_rev2.pdf
         // -- see section 5.1 of ^ to understand the position and emission pdf calculation
@@ -217,17 +217,20 @@ namespace Selas
         float dirPhi;
         float dirTheta;
 
+        Assert_(context->scene->iblResource != nullptr);
+        ImageBasedLightResourceData* iblData = context->scene->iblResource->data;
+
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        Ibl(&iblData->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
-        float3 radiance = SampleIbl(context->sceneData->ibl, x, y);
+        float3 radiance = SampleIbl(iblData, x, y);
 
         float3 dX, dZ;
         MakeOrthogonalCoordinateSystem(toIbl, &dX, &dZ);
 
-        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
-        float3 sceneCenter = context->sceneData->scene->data->boundingSphere.XYZ();
+        float sceneBoundingRadius = context->scene->boundingSphere.w;
+        float3 sceneCenter = context->scene->boundingSphere.XYZ();
 
         float2 discSample = SampleConcentricDisc(r2, r3);
         float discPdf = ConcentricDiscPdf();
@@ -245,11 +248,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void DirectIblLightSample(GIIntegrationContext* __restrict context, LightDirectSample& sample)
+    void DirectIblLightSample(GIIntegratorContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
         float r0 = context->sampler.UniformFloat();
         float r1 = context->sampler.UniformFloat();
+
+        Assert_(context->scene->iblResource != nullptr);
+        ImageBasedLightResourceData* iblData = context->scene->iblResource->data;
 
         uint x;
         uint y;
@@ -257,11 +263,11 @@ namespace Selas
         float dirTheta;
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(&context->sceneData->ibl->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        Ibl(&iblData->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
-        float3 radiance = SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, x, y);
+        float3 radiance = SkyIntensityScale_ * SampleIbl(iblData, x, y);
 
-        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+        float sceneBoundingRadius = context->scene->boundingSphere.w;
 
         sample.distance = 1e36f;
         sample.direction = toIbl;
@@ -271,12 +277,15 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 IblCalculateRadiance(GIIntegrationContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
+    float3 IblCalculateRadiance(GIIntegratorContext* __restrict context, float3 direction, float& directPdfA, float& emissionPdfW)
     {
-        float iblPdfA;
-        float3 radiance = SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, direction, iblPdfA);
+        Assert_(context->scene->iblResource != nullptr);
+        ImageBasedLightResourceData* iblData = context->scene->iblResource->data;
 
-        float sceneBoundingRadius = context->sceneData->scene->data->boundingSphere.w;
+        float iblPdfA;
+        float3 radiance = SkyIntensityScale_ * SampleIbl(iblData, direction, iblPdfA);
+
+        float sceneBoundingRadius = context->scene->boundingSphere.w;
         float pdfPosition = ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius * sceneBoundingRadius));
 
         directPdfA = iblPdfA;
@@ -285,7 +294,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void BackgroundLightSample(GIIntegrationContext* __restrict context, LightDirectSample& sample)
+    void BackgroundLightSample(GIIntegratorContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
         float r0 = context->sampler.UniformFloat();
@@ -307,11 +316,9 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void NextEventEstimation(GIIntegrationContext* context, LightDirectSample& sample)
+    void NextEventEstimation(GIIntegratorContext* context, LightDirectSample& sample)
     {
-        SceneContext* sceneData = context->sceneData;
-
-        if(sceneData->ibl) {
+        if(context->scene->iblResource) {
             DirectIblLightSample(context, sample);
             return;
         }
@@ -320,10 +327,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float BackgroundLightingPdf(GIIntegrationContext* context, float3 wi)
+    float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi)
     {
-        if(context->sceneData->ibl) {
-            return SampleIBlPdf(context->sceneData->ibl, wi);
+        if(context->scene->iblResource) {
+            return SampleIBlPdf(context->scene->iblResource->data, wi);
         }
         else {
             return Math::Inv4Pi_;
@@ -331,14 +338,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 SampleBackgroundLight(GIIntegrationContext* context, float3 wi)
+    float3 SampleBackgroundLight(GIIntegratorContext* context, float3 wi)
     {
-        if(context->sceneData->ibl) {
+        if(context->scene->iblResource) {
             float pdf;
-            return SkyIntensityScale_ * SampleIbl(context->sceneData->ibl, wi, pdf);
+            return SkyIntensityScale_ * SampleIbl(context->scene->iblResource->data, wi, pdf);
         }
         else {
-            return float3(1.0f, 1.0f, 1.0f);// context->sceneData->scene->data->backgroundIntensity;
+            return context->scene->data->backgroundIntensity.XYZ();
         }
     }
 }

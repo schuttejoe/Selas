@@ -82,5 +82,7 @@ namespace Selas
         camera.znear                     = settings.znear;
         camera.zfar                      = settings.zfar;
         camera.virtualImagePlaneDistance = widthf / (2.0f * Math::Tanf(horizontalFov));
+        camera.width                     = width;
+        camera.height                    = height;
     }
 }

@@ -12,7 +12,7 @@ typedef struct RTCSceneTy* RTCScene;
 namespace Selas
 {
     class CSampler;
-    struct GIIntegrationContext;
+    struct GIIntegratorContext;
     struct SurfaceParameters;
 
     struct SphericalAreaLight
@@ -67,11 +67,11 @@ namespace Selas
     //float3 IntegrateSphereLightWithSolidAngleSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
     //                                                  float3 view, SphericalAreaLight light, uint lightSampleCount);
 
-    void EmitIblLightSample(GIIntegrationContext* context, LightEmissionSample& sample);
-    void DirectIblLightSample(GIIntegrationContext* context, LightDirectSample& sample);
-    float3 IblCalculateRadiance(GIIntegrationContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
+    void EmitIblLightSample(GIIntegratorContext* context, LightEmissionSample& sample);
+    void DirectIblLightSample(GIIntegratorContext* context, LightDirectSample& sample);
+    float3 IblCalculateRadiance(GIIntegratorContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
 
-    void NextEventEstimation(GIIntegrationContext* context, LightDirectSample& sample);
-    float BackgroundLightingPdf(GIIntegrationContext* context, float3 wi);
-    float3 SampleBackgroundLight(GIIntegrationContext* context, float3 wi);
+    void NextEventEstimation(GIIntegratorContext* context, LightDirectSample& sample);
+    float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi);
+    float3 SampleBackgroundLight(GIIntegratorContext* context, float3 wi);
 }

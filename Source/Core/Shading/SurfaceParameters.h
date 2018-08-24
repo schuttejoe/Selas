@@ -10,7 +10,7 @@
 
 namespace Selas
 {
-    struct GIIntegrationContext;
+    struct GIIntegratorContext;
     struct HitParameters;
     struct ModelResource;
     struct Material;
@@ -47,7 +47,7 @@ namespace Selas
         uint32 materialFlags;
     };
 
-    bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* hit, SurfaceParameters& surface);
     bool CalculatePassesAlphaTest(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
     float CalculateDisplacement(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
 

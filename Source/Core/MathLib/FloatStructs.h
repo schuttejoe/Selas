@@ -44,7 +44,7 @@ namespace Selas
         ForceInline_ float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
         ForceInline_ float4(float3 xyz, float w_) : x(xyz.x), y(xyz.y), z(xyz.z), w(w_) {}
 
-        ForceInline_ float3 XYZ() { return float3(x, y, z); }
+        ForceInline_ float3 XYZ() const { return float3(x, y, z); }
 
         static const float4 Zero_;
         static const float4 XAxis_;

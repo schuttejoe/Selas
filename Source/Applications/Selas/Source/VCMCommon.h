@@ -20,9 +20,7 @@
 
 namespace Selas
 {
-    struct GIIntegrationContext;
-    struct SceneContext;
-    struct Framebuffer;
+    struct GIIntegratorContext;
 
     struct VCMIterationConstants
     {
@@ -63,7 +61,7 @@ namespace Selas
 
     struct VertexMergingCallbackStruct
     {
-        const GIIntegrationContext* context;
+        const GIIntegratorContext* context;
         const SurfaceParameters* surface;
         const CArray<VCMVertex>* pathVertices;
         const PathState* cameraState;
@@ -74,8 +72,8 @@ namespace Selas
 
     namespace VCMCommon
     {
-        void GenerateLightSample(GIIntegrationContext* context, float vcWeight, uint index, PathState& state);
-        void GenerateCameraSample(GIIntegrationContext* context, uint x, uint y, float lightPathCount, PathState& state);
+        void GenerateLightSample(GIIntegratorContext* context, float vcWeight, uint index, PathState& state);
+        void GenerateCameraSample(GIIntegratorContext* context, uint x, uint y, float lightPathCount, PathState& state);
 
         float SearchRadius(float baseRadius, float radiusAlpha, float iterationIndex);
         VCMIterationConstants CalculateIterationConstants(uint vmCount, uint vcCount, float baseRadius, float radiusAlpha,

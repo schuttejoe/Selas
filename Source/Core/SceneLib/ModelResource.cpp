@@ -21,8 +21,8 @@
 
 namespace Selas
 {
-    cpointer ModelResource::kDataType = "Scene";
-    cpointer ModelResource::kGeometryDataType = "SceneGeometry";
+    cpointer ModelResource::kDataType = "ModelResource";
+    cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
     const uint64 ModelResource::kDataVersion = 1534996046ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
@@ -78,7 +78,7 @@ namespace Selas
     static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
     {
         int* valid = args->valid;
-        ModelResource* scene = (ModelResource*)args->geometryUserPtr;
+        ModelResource* model = (ModelResource*)args->geometryUserPtr;
 
         for(uint32 scan = 0; scan < args->N; ++scan) {
             if(valid[scan] != -1) {
@@ -86,7 +86,7 @@ namespace Selas
             }
 
             RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, scan);
-            valid[scan] = CalculatePassesAlphaTest(scene, hit.geomID, hit.primID, { hit.u, hit.v });
+            valid[scan] = CalculatePassesAlphaTest(model, hit.geomID, hit.primID, { hit.u, hit.v });
         }
     }
 
@@ -106,10 +106,10 @@ namespace Selas
 
         unsigned int N = args->N;
 
-        ModelResource* scene = (ModelResource*)args->geometryUserPtr;
+        ModelResource* model = (ModelResource*)args->geometryUserPtr;
 
         AssertMsg_(false, "nyi");
-        uint32 geomId = 0;// (args->geometry == scene->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
+        uint32 geomId = 0;// (args->geometry == model->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
 
         for(unsigned int i = 0; i < N; i++) {
             //float3 position = float3(px[i], py[i], pz[i]);
@@ -119,7 +119,7 @@ namespace Selas
             Align_(16) float2 uvs;
             rtcInterpolate0(args->geometry, args->primID, barys.x, barys.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
-            float displacement = CalculateDisplacement(scene, geomId, args->primID, uvs);
+            float displacement = CalculateDisplacement(model, geomId, args->primID, uvs);
 
             #if CheckForNaNs_
             Assert_(!Math::IsNaN(normal.x));
@@ -137,10 +137,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SetVertexAttributes(RTCGeometry geom, ModelResource* scene)
+    static void SetVertexAttributes(RTCGeometry geom, ModelResource* model)
     {
-        ModelResourceData* metadata = scene->data;
-        ModelGeometryData* geometry = scene->geometry;
+        ModelResourceData* metadata = model->data;
+        ModelGeometryData* geometry = model->geometry;
 
         Assert_(((uint)geometry->positions & (ModelResource::kGeometryDataAlignment - 1)) == 0);
         Assert_(((uint)geometry->normals & (ModelResource::kGeometryDataAlignment - 1)) == 0);
@@ -158,7 +158,7 @@ namespace Selas
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
                                    sizeof(float2), metadata->totalVertexCount);
 
-        rtcSetGeometryUserData(geom, scene);
+        rtcSetGeometryUserData(geom, model);
     }
 
     //=============================================================================================================================
@@ -173,28 +173,28 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const Material* FindMeshMaterial(ModelResource* scene, Hash32 materialHash)
+    static const Material* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
     {
-        uint materialIndex = BinarySearch(scene->data->materialHashes, scene->data->materialCount, materialHash);
+        uint materialIndex = BinarySearch(model->data->materialHashes, model->data->materialCount, materialHash);
         if(materialIndex == (uint)-1) {
-            return scene->defaultMaterial;
+            return model->defaultMaterial;
         }
 
-        return &scene->data->materials[materialIndex];
+        return &model->data->materials[materialIndex];
     }
 
     //=============================================================================================================================
-    static void PopulateEmbreeScene(ModelResource* scene, RTCDevice rtcDevice, RTCScene rtcScene)
+    static void PopulateEmbreeScene(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene)
     {
-        ModelResourceData* sceneData = scene->data;
-        ModelGeometryData* geometry = scene->geometry;
+        ModelResourceData* modelData = model->data;
+        ModelGeometryData* geometry = model->geometry;
 
         Assert_(((uint)geometry->indices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
         Assert_(((uint)geometry->faceIndexCounts & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
-        for(uint32 scan = 0, count = sceneData->meshCount; scan < count; ++scan) {
-            const MeshMetaData& meshData = sceneData->meshData[scan];
-            const Material* material = FindMeshMaterial(scene, meshData.materialHash);
+        for(uint32 scan = 0, count = modelData->meshCount; scan < count; ++scan) {
+            const MeshMetaData& meshData = modelData->meshData[scan];
+            const Material* material = FindMeshMaterial(model, meshData.materialHash);
 
             bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
             bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
@@ -205,7 +205,7 @@ namespace Selas
             RTCGeometry rtcGeometry;
             if(hasDisplacement) {
                 rtcGeometry = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
-                SetVertexAttributes(rtcGeometry, scene);
+                SetVertexAttributes(rtcGeometry, model);
                 rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices,
                                            indexByteOffset, sizeof(uint32), meshData.indexCount);
 
@@ -221,7 +221,7 @@ namespace Selas
                 RTCFormat format = indicesPerFace == 3 ? RTC_FORMAT_UINT3 : RTC_FORMAT_UINT4;
 
                 rtcGeometry = rtcNewGeometry(rtcDevice, type);
-                SetVertexAttributes(rtcGeometry, scene);
+                SetVertexAttributes(rtcGeometry, model);
                 rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, format, geometry->indices,
                                            indexByteOffset, indicesPerFace * sizeof(uint32), meshData.indexCount / indicesPerFace);
             }
@@ -230,8 +230,8 @@ namespace Selas
                 rtcSetGeometryIntersectFilterFunction(rtcGeometry, IntersectionFilter);
             }
 
-            scene->materialLookup.Add(material);
-            scene->rtcGeometries.Add(rtcGeometry);
+            model->materialLookup.Add(material);
+            model->rtcGeometries.Add(rtcGeometry);
 
             rtcCommitGeometry(rtcGeometry);
             rtcAttachGeometryByID(rtcScene, rtcGeometry, scan);
@@ -242,7 +242,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    // SceneResource
+    // ModelResource
     //=============================================================================================================================
 
     //=============================================================================================================================
@@ -250,7 +250,6 @@ namespace Selas
         : data(nullptr)
         , geometry(nullptr)
         , textures(nullptr)
-        , rtcDevice(nullptr)
         , rtcScene(nullptr)
         , defaultMaterial(nullptr)
     {
@@ -263,12 +262,11 @@ namespace Selas
         Assert_(data == nullptr);
         Assert_(geometry == nullptr);
         Assert_(textures == nullptr);
-        Assert_(rtcDevice == nullptr);
         Assert_(rtcScene == nullptr);
     }
 
     //=============================================================================================================================
-    static Error ReadSceneMetaData(cpointer assetname, ModelResource* data)
+    static Error ReadModelResourceData(cpointer assetname, ModelResource* data)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(ModelResource::kDataType, ModelResource::kDataVersion, assetname, filepath);
@@ -283,7 +281,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadSceneGeometryData(cpointer assetname, ModelResource* data)
+    static Error ReadModelGeometryData(cpointer assetname, ModelResource* data)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, assetname, filepath);
@@ -300,57 +298,52 @@ namespace Selas
     //=============================================================================================================================
     Error ReadModelResource(cpointer assetname, ModelResource* data)
     {
-        ReturnError_(ReadSceneMetaData(assetname, data));
-        ReturnError_(ReadSceneGeometryData(assetname, data));
+        ReturnError_(ReadModelResourceData(assetname, data));
+        ReturnError_(ReadModelGeometryData(assetname, data));
 
         return Success_;
     }
 
     //=============================================================================================================================
-    Error InitializeModelResource(ModelResource* scene)
+    Error InitializeModelResource(ModelResource* model)
     {
-        uint textureCount = scene->data->textureCount;
-        scene->textures = AllocArray_(TextureResource, textureCount);
+        uint textureCount = model->data->textureCount;
+        model->textures = AllocArray_(TextureResource, textureCount);
 
-        for(uint scan = 0, count = scene->data->textureCount; scan < count; ++scan) {
-            ReturnError_(ReadTextureResource(scene->data->textureResourceNames[scan].Ascii(), &scene->textures[scan]));
+        for(uint scan = 0, count = model->data->textureCount; scan < count; ++scan) {
+            ReturnError_(ReadTextureResource(model->data->textureResourceNames[scan].Ascii(), &model->textures[scan]));
         }
 
-        scene->defaultMaterial = CreateDefaultMaterial();
+        model->defaultMaterial = CreateDefaultMaterial();
 
         return Success_;
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(ModelResource* scene)
+    void InitializeEmbreeScene(ModelResource* model, RTCDevice rtcDevice)
     {
-        RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
         RTCScene rtcScene = rtcNewScene(rtcDevice);
 
-        scene->rtcDevice = (void*)rtcDevice;
-        scene->rtcScene = (void*)rtcScene;
+        model->rtcScene = rtcScene;
 
-        PopulateEmbreeScene(scene, rtcDevice, rtcScene);
+        PopulateEmbreeScene(model, rtcDevice, rtcScene);
     }
 
     //=============================================================================================================================
-    void ShutdownModelResource(ModelResource* scene)
+    void ShutdownModelResource(ModelResource* model)
     {
-        if(scene->rtcScene)
-            rtcReleaseScene((RTCScene)scene->rtcScene);
-        if(scene->rtcDevice)
-            rtcReleaseDevice((RTCDevice)scene->rtcDevice);
+        if(model->rtcScene)
+            rtcReleaseScene(model->rtcScene);
+            
+        model->rtcScene = nullptr;
 
-        scene->rtcScene = nullptr;
-        scene->rtcDevice = nullptr;
-
-        for(uint scan = 0, count = scene->data->textureCount; scan < count; ++scan) {
-            ShutdownTextureResource(&scene->textures[scan]);
+        for(uint scan = 0, count = model->data->textureCount; scan < count; ++scan) {
+            ShutdownTextureResource(&model->textures[scan]);
         }
 
-        SafeDelete_(scene->defaultMaterial);
-        SafeFree_(scene->textures);
-        SafeFreeAligned_(scene->data);
-        SafeFreeAligned_(scene->geometry);
+        SafeDelete_(model->defaultMaterial);
+        SafeFree_(model->textures);
+        SafeFreeAligned_(model->data);
+        SafeFreeAligned_(model->geometry);
     }
 }

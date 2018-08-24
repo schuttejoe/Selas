@@ -4,13 +4,13 @@
 //=================================================================================================================================
 
 #include "PathTracer.h"
+#include "SceneLib/SceneResource.h"
+
 #include "Shading/SurfaceScattering.h"
 #include "Shading/VolumetricScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
 #include "Shading/AreaLighting.h"
-#include "SceneLib/ModelResource.h"
-#include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/TextureFiltering.h"
 #include "TextureLib/TextureResource.h"
 #include "GeometryLib/Camera.h"
@@ -54,10 +54,8 @@ namespace Selas
         //=========================================================================================================================
         struct PathTracingKernelData
         {
-            SceneContext* sceneData;
+            SceneResource* scene;
             RayCastCameraSettings camera;
-            uint width;
-            uint height;
             uint pathsPerPixel;
             uint maxBounceCount;
             float integrationSeconds;
@@ -71,7 +69,7 @@ namespace Selas
         };
 
         //=========================================================================================================================
-        static bool OcclusionRay(RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
+        static bool OcclusionRay(const RTCScene& rtcScene, const SurfaceParameters& surface, float3 direction, float distance)
         {
             float3 origin = OffsetRayOrigin(surface, direction, 0.1f);
 
@@ -125,6 +123,7 @@ namespace Selas
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
             hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
+            hit.instId = rayhit.hit.instID[0];
             hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
@@ -135,7 +134,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void EvaluateRayBatch(GIIntegrationContext* __restrict context, Ray ray, uint x, uint y)
+        static void EvaluateRayBatch(GIIntegratorContext* __restrict context, Ray ray, uint x, uint y)
         {
             float3 Ld[LayerCount_];
             Memory::Zero(Ld, sizeof(Ld));
@@ -155,7 +154,7 @@ namespace Selas
                 rayDistance = SampleDistance(&context->sampler, currentMedium, &pdf);
 
                 HitParameters hit;
-                bool rayCastHit = RayPick(context->sceneData->rtcScene, ray, rayDistance, hit);
+                bool rayCastHit = RayPick(context->rtcScene, ray, rayDistance, hit);
 
                 if(rayCastHit) {
                     rayDistance = Length(hit.position - ray.origin);
@@ -181,7 +180,7 @@ namespace Selas
                                                           reversePdfW);
                         if(Dot(reflectance, float3::One_) > 0) {
 
-                            if(OcclusionRay(context->sceneData->rtcScene, surface, lightSample.direction, lightSample.distance)) {
+                            if(OcclusionRay(context->scene->rtcScene, surface, lightSample.direction, lightSample.distance)) {
 
                                 // JSTODO - WARNING! We want directionPdfW not directionPdfA here. However, since we're currently
                                 // only sampling IBLs which return the solid angle pdf in directionPdfA we're good for now.
@@ -247,14 +246,14 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void CreatePrimaryRay(GIIntegrationContext* context, uint pixelIndex, uint x, uint y)
+        static void CreatePrimaryRay(GIIntegratorContext* context, uint pixelIndex, uint x, uint y)
         {
             Ray ray = JitteredCameraRay(context->camera, &context->sampler, (float)x, (float)y);
             EvaluateRayBatch(context, ray, x, y);
         }
 
         //=========================================================================================================================
-        static void PathTracing(GIIntegrationContext* context, uint raysPerPixel, uint width, uint height)
+        static void PathTracing(GIIntegratorContext* context, uint raysPerPixel, uint width, uint height)
         {
             for(uint y = 0; y < height; ++y) {
                 for(uint x = 0; x < width; ++x) {
@@ -271,11 +270,12 @@ namespace Selas
             PathTracingKernelData* integratorContext = static_cast<PathTracingKernelData*>(userData);
             int64 kernelIndex = Atomic::Increment64(integratorContext->kernelIndices);
 
-            uint width = integratorContext->width;
-            uint height = integratorContext->height;
+            uint width = integratorContext->camera.width;
+            uint height = integratorContext->camera.height;
 
-            GIIntegrationContext context;
-            context.sceneData        = integratorContext->sceneData;
+            GIIntegratorContext context;
+            context.rtcScene         = integratorContext->scene->rtcScene;
+            context.scene            = integratorContext->scene;
             context.camera           = &integratorContext->camera;
             context.sampler.Initialize((uint32)kernelIndex);
             context.maxPathLength    = integratorContext->maxBounceCount;
@@ -308,10 +308,8 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(SceneContext& context, cpointer imageName, const RayCastCameraSettings& camera)
+        void GenerateImage(SceneResource* scene, const RayCastCameraSettings& camera, cpointer imageName)
         {
-            const ModelResource* scene = context.scene;
-
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, LayerCount_);
 
@@ -328,10 +326,8 @@ namespace Selas
                           "Path count not divisible by number of threads");
 
             PathTracingKernelData integratorContext;
-            integratorContext.sceneData              = &context;
+            integratorContext.scene                  = scene;
             integratorContext.camera                 = camera;
-            integratorContext.width                  = (uint)camera.viewportWidth;
-            integratorContext.height                 = (uint)camera.viewportHeight;
             integratorContext.maxBounceCount         = MaxBounceCount_;
             integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
             integratorContext.integrationStartTime   = SystemTime::Now();

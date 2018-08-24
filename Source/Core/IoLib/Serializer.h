@@ -9,10 +9,18 @@
 
 namespace Selas
 {
+    enum SerializerFlags
+    {
+        eNone       = 0,
+        eSerializerAttaching  = 0x01
+    };
+
     //=============================================================================================================================
     class CSerializer
     {
     public:
+        virtual SerializerFlags Flags() = 0;
+
         virtual void Serialize(void* data, uint size) = 0;
         virtual void SerializePtr(void*& data, uint size, uint alignment) = 0;
     };

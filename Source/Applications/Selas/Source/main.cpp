@@ -10,9 +10,11 @@
 #include "BuildCommon/TextureBuildProcessor.h"
 #include "BuildCommon/CModelBuildProcessor.h"
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
+#include "BuildCommon/CSceneBuildProcessor.h"
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
 #include "Shading/IntegratorContexts.h"
+#include "SceneLib/SceneResource.h"
 #include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/Framebuffer.h"
@@ -34,11 +36,10 @@
 
 using namespace Selas;
 
-static cpointer modelName = "Scenes~SanMiguel~SanMiguel.fbx";
+//static cpointer modelName = "Scenes~SanMiguel~SanMiguel.fbx";
 //static cpointer modelName = "Scenes~island~island.json";
-//static cpointer modelName = "Meshes~PlaneWithDragon.fbx";
-static cpointer sceneType = "model";
-static cpointer iblName = "";// HDR~flower_road_4k.hdr";
+static cpointer sceneName = "Scenes~TestScene.json";
+static cpointer sceneType = "scene";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()
@@ -58,11 +59,9 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CDisneySceneBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
-    buildCore.BuildAsset(ContentId(sceneType, modelName));
-    if(StringUtil::Length(iblName) > 0) {
-        buildCore.BuildAsset(ContentId("HDR", iblName));
-    }
+    buildCore.BuildAsset(ContentId(sceneType, sceneName));
 
     ReturnError_(buildCore.Execute());
     buildCore.Shutdown();
@@ -89,59 +88,35 @@ int main(int argc, char *argv[])
 
     ExitMainOnError_(ValidateAssetsAreBuilt());
 
-    ModelResource modelResource;
-    ImageBasedLightResource iblResouce;
+    RTCDevice rtcDevice = rtcNewDevice(nullptr/*"verbose=3"*/);
+
+    SceneResource sceneResource;
 
     auto timer = SystemTime::Now();
-    if(StringUtil::Length(iblName) > 0) {
-        ExitMainOnError_(ReadImageBasedLightResource(iblName, &iblResouce));
-    }
-
-    ExitMainOnError_(ReadModelResource(modelName, &modelResource));
-    ExitMainOnError_(InitializeModelResource(&modelResource));
+    ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
+    ExitMainOnError_(InitializeSceneResource(&sceneResource));
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     timer = SystemTime::Now();
-    InitializeEmbreeScene(&modelResource);
+    InitializeEmbreeScene(&sceneResource, rtcDevice);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
-
-    SceneContext context;
-    context.rtcScene = (RTCScene)modelResource.rtcScene;
-    context.scene = &modelResource;
-    context.ibl = iblResouce.data;
 
     Selas::uint width = 1400;
     Selas::uint height = 800;
 
     RayCastCameraSettings camera;
-    if(modelResource.data->cameraCount > 0) {
-        InitializeRayCastCamera(modelResource.data->cameras[0], width, height, camera);
-    }
-    else {
-        CameraSettings defaultCamera;
-        defaultCamera.position = float3(0.0f, 0.0f, 5.0f);
-        defaultCamera.lookAt   = float3(0.0f, 0.0f, 0.0f);
-        defaultCamera.up       = float3(0.0f, 1.0f, 0.0f);
-        defaultCamera.fov      = 45.0f * Math::DegreesToRadians_;
-        defaultCamera.znear    = 0.1f;
-        defaultCamera.zfar     = 500.0f;
-
-        InitializeRayCastCamera(defaultCamera, width, height, camera);
-    }
+    InitializeSceneCamera(&sceneResource, width, height, camera);
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(context, "UnidirectionalPTTemp", camera);
-    //VCM::GenerateImage(context, "vcmTemp", width, height);
+    PathTracer::GenerateImage(&sceneResource, camera, "UnidirectionalPT");
+    //VCM::GenerateImage(&sceneResource, camera, "VCM");
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
-    // -- delete the scene
-    ShutdownModelResource(&modelResource);
-    if(StringUtil::Length(iblName) > 0) {
-        ShutdownImageBasedLightResource(&iblResouce);
-    }
+    ShutdownSceneResource(&sceneResource);
+    rtcReleaseDevice(rtcDevice);
 
     return 0;
 }

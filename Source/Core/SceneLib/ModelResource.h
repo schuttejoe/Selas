@@ -13,6 +13,12 @@
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
 
+struct RTCDeviceTy;
+typedef struct RTCDeviceTy* RTCDevice;
+
+struct RTCSceneTy;
+typedef struct RTCSceneTy* RTCScene;
+
 namespace Selas
 {
     #pragma warning(default : 4820)
@@ -145,8 +151,7 @@ namespace Selas
         ModelGeometryData* geometry;
 
         TextureResource* textures;
-        void* rtcDevice;
-        void* rtcScene;
+        RTCScene rtcScene;
         CArray<void*> rtcGeometries;
 
         Material* defaultMaterial;
@@ -159,8 +164,8 @@ namespace Selas
     void Serialize(CSerializer* serializer, ModelResourceData& data);
     void Serialize(CSerializer* serializer, ModelGeometryData& data);
 
-    Error ReadModelResource(cpointer filepath, ModelResource* scene);
-    Error InitializeModelResource(ModelResource* scene);
-    void InitializeEmbreeScene(ModelResource* scene);
-    void ShutdownModelResource(ModelResource* scene);
+    Error ReadModelResource(cpointer filepath, ModelResource* model);
+    Error InitializeModelResource(ModelResource* model);
+    void InitializeEmbreeScene(ModelResource* model, RTCDevice rtcDevice);
+    void ShutdownModelResource(ModelResource* model);
 }

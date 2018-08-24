@@ -5,9 +5,10 @@
 #include "SurfaceParameters.h"
 #include "IntegratorContexts.h"
 
+#include "SceneLib/SceneResource.h"
+#include "SceneLib/ModelResource.h"
 #include "TextureLib/TextureFiltering.h"
 #include "TextureLib/TextureResource.h"
-#include "SceneLib/ModelResource.h"
 #include "GeometryLib/Ray.h"
 #include "GeometryLib/CoordinateSystem.h"
 #include "MathLib/FloatFuncs.h"
@@ -161,21 +162,22 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    bool CalculateSurfaceParams(const GIIntegrationContext* context, const HitParameters* __restrict hit,
+    bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* __restrict hit,
                                 SurfaceParameters& surface)
     {
-        const ModelResource* scene = context->sceneData->scene;
+        const SceneResource* scene = context->scene;
+        const ModelResource* model = ModelFromInstanceId(context->scene, hit->instId);
 
-        const Material* material = GetSurfaceMaterial(scene, hit->geomId);
+        const Material* material = GetSurfaceMaterial(model, hit->geomId);
 
         Align_(16) float3 normal;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
         Align_(16) float4 tangent;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
         Align_(16) float2 uvs;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
 
         float3 n = Normalize(normal);
@@ -190,22 +192,22 @@ namespace Selas
         surface.error           = hit->error;
         surface.materialFlags   = material->flags;
 
-        surface.baseColor = SampleTextureFloat3(scene, uvs, material->baseColorTextureIndex, true, material->baseColor);
+        surface.baseColor = SampleTextureFloat3(model, uvs, material->baseColorTextureIndex, true, material->baseColor);
         surface.transmittanceColor = material->transmittanceColor;
 
-        surface.sheen           = ReadUvAttribute(scene, uvs, eSheen);
-        surface.sheenTint       = ReadUvAttribute(scene, uvs, eSheenTint);
-        surface.clearcoat       = ReadUvAttribute(scene, uvs, eClearcoat);
-        surface.clearcoatGloss  = ReadUvAttribute(scene, uvs, eClearcoatGloss);
-        surface.specTrans       = ReadUvAttribute(scene, uvs, eSpecTrans);
-        surface.diffTrans       = ReadUvAttribute(scene, uvs, eDiffuseTrans);
-        surface.flatness        = ReadUvAttribute(scene, uvs, eFlatness);
-        surface.anisotropic     = ReadUvAttribute(scene, uvs, eAnisotropic);
-        surface.specularTint    = ReadUvAttribute(scene, uvs, eSpecularTint);
-        surface.roughness       = ReadUvAttribute(scene, uvs, eRoughness);
-        surface.metallic        = ReadUvAttribute(scene, uvs, eMetallic);
-        surface.scatterDistance = ReadUvAttribute(scene, uvs, eScatterDistance);
-        surface.ior             = ReadUvAttribute(scene, uvs, eIor);
+        surface.sheen           = ReadUvAttribute(model, uvs, eSheen);
+        surface.sheenTint       = ReadUvAttribute(model, uvs, eSheenTint);
+        surface.clearcoat       = ReadUvAttribute(model, uvs, eClearcoat);
+        surface.clearcoatGloss  = ReadUvAttribute(model, uvs, eClearcoatGloss);
+        surface.specTrans       = ReadUvAttribute(model, uvs, eSpecTrans);
+        surface.diffTrans       = ReadUvAttribute(model, uvs, eDiffuseTrans);
+        surface.flatness        = ReadUvAttribute(model, uvs, eFlatness);
+        surface.anisotropic     = ReadUvAttribute(model, uvs, eAnisotropic);
+        surface.specularTint    = ReadUvAttribute(model, uvs, eSpecularTint);
+        surface.roughness       = ReadUvAttribute(model, uvs, eRoughness);
+        surface.metallic        = ReadUvAttribute(model, uvs, eMetallic);
+        surface.scatterDistance = ReadUvAttribute(model, uvs, eScatterDistance);
+        surface.ior             = ReadUvAttribute(model, uvs, eIor);
 
         surface.shader = material->shader;
         surface.view = hit->incDirection;
@@ -215,7 +217,7 @@ namespace Selas
                             ? surface.ior : 1.0f / surface.ior;
 
         float3x3 normalToWorld = MakeFloat3x3(t, -b, n);
-        float3 perturbNormal = SampleTextureNormal(scene, uvs, material->normalTextureIndex);
+        float3 perturbNormal = SampleTextureNormal(model, uvs, material->normalTextureIndex);
         surface.perturbedNormal = Normalize(MatrixMultiply(perturbNormal, normalToWorld));
 
         return true;

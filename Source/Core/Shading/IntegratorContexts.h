@@ -17,29 +17,20 @@ typedef struct RTCSceneTy* RTCScene;
 
 namespace Selas
 {
-    struct ModelResource;
+    struct SceneResource;
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
     struct SurfaceParameters;
 
     //=============================================================================================================================
-    // JSTODO - This is just an unnecessary indirection. Clean this up when you clean GIIntegrationContext
-    struct SceneContext
+    struct GIIntegratorContext
     {
-        RTCScene rtcScene;
-        const ModelResource* scene;
-        const ImageBasedLightResourceData* ibl;
-    };
+        RTCScene                                rtcScene;
 
-    //=============================================================================================================================
-    struct GIIntegrationContext
-    {
+        const SceneResource*                    scene;
         const RayCastCameraSettings* __restrict camera;
-        SceneContext*                __restrict sceneData;
         CSampler                                sampler;
         FramebufferWriter                       frameWriter;
-        uint                                    imageWidth;
-        uint                                    imageHeight;
         uint                                    maxPathLength;
     };
 
@@ -51,6 +42,7 @@ namespace Selas
         float error;
         int32 geomId;
         int32 primId;
+        int32 instId;
 
         float2 baryCoords;
     };

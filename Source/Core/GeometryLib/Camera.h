@@ -34,6 +34,8 @@ namespace Selas
         float    viewportHeight;
         float    znear;
         float    zfar;
+        uint     width;
+        uint     height;
 
         // -- the distance from the camera that you'd have to travel before the area of a single pixel is 1.
         float    virtualImagePlaneDistance;

@@ -14,12 +14,12 @@ namespace Selas
         ModelResourceData data;
         data.aaBox                = model.aaBox;
         data.boundingSphere       = model.boundingSphere;
-        data.cameraCount          = model.cameras.Count();
-        data.meshCount            = model.meshes.Count();
-        data.totalVertexCount     = model.positions.Count();
-        data.indexCount           = model.indices.Count();
-        data.textureCount         = model.textures.Count();
-        data.materialCount        = model.materials.Count();
+        data.cameraCount          = (uint32)model.cameras.Count();
+        data.meshCount            = (uint32)model.meshes.Count();
+        data.totalVertexCount     = (uint32)model.positions.Count();
+        data.indexCount           = (uint32)model.indices.Count();
+        data.textureCount         = (uint32)model.textures.Count();
+        data.materialCount        = (uint32)model.materials.Count();
         data.cameras              = (CameraSettings*)model.cameras.DataPointer();
         data.textureResourceNames = (FilePathString*)model.textures.DataPointer();
         data.materials            = (Material*)model.materials.DataPointer();

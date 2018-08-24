@@ -4,19 +4,16 @@
 // Joe Schutte
 //=================================================================================================================================
 
-// Exposes Austin Appleby's MurmurHash3 functions.
-
+#include "BuildCore/BuildProcessor.h"
 #include "SystemLib/BasicTypes.h"
 
 namespace Selas
 {
-    typedef uint32 Hash32;
-
-    struct Hash128
+    class CSceneBuildProcessor : public CBuildProcessor
     {
-        uint64 h1, h2;
+        virtual Error    Setup() override;
+        virtual cpointer Type() override;
+        virtual uint64   Version() override;
+        virtual Error    Process(BuildProcessorContext* context) override;
     };
-
-    Hash32 MurmurHash3_x86_32(const void* key, int32 len, uint32 seed = 0);
-    Hash128 MurmurHash3_x64_128(const void * key, int32 len, uint32 seed = 0);
 }

@@ -200,32 +200,37 @@ namespace Selas
         }
 
         //=============================================================================================================================
-        bool ReadMatrix4x4(const rapidjson::Value& element, float4x4& value)
+        bool ReadMatrix4x4(const rapidjson::Value& element, cpointer key, float4x4& value)
         {
             value = Matrix4x4::Identity();
-            if(element.IsArray() == false) {
-                return false;
+
+            if(element.HasMember(key)) {
+                if(element[key].IsArray() == false) {
+                    return false;
+                }
+                if(element[key].Size() != 16) {
+                    return false;
+                }
+                value.r0.x = element[key][0].GetFloat();
+                value.r0.y = element[key][1].GetFloat();
+                value.r0.z = element[key][2].GetFloat();
+                value.r0.w = element[key][3].GetFloat();
+                value.r1.x = element[key][4].GetFloat();
+                value.r1.y = element[key][5].GetFloat();
+                value.r1.z = element[key][6].GetFloat();
+                value.r1.w = element[key][7].GetFloat();
+                value.r2.x = element[key][8].GetFloat();
+                value.r2.y = element[key][9].GetFloat();
+                value.r2.z = element[key][10].GetFloat();
+                value.r2.w = element[key][11].GetFloat();
+                value.r3.x = element[key][12].GetFloat();
+                value.r3.y = element[key][13].GetFloat();
+                value.r3.z = element[key][14].GetFloat();
+                value.r3.w = element[key][15].GetFloat();
+                return true;
             }
-            if(element.Size() != 16) {
-                return false;
-            }
-            value.r0.x = element[0].GetFloat();
-            value.r0.y = element[1].GetFloat();
-            value.r0.z = element[2].GetFloat();
-            value.r0.w = element[3].GetFloat();
-            value.r1.x = element[4].GetFloat();
-            value.r1.y = element[5].GetFloat();
-            value.r1.z = element[6].GetFloat();
-            value.r1.w = element[7].GetFloat();
-            value.r2.x = element[8].GetFloat();
-            value.r2.y = element[9].GetFloat();
-            value.r2.z = element[10].GetFloat();
-            value.r2.w = element[11].GetFloat();
-            value.r3.x = element[12].GetFloat();
-            value.r3.y = element[13].GetFloat();
-            value.r3.z = element[14].GetFloat();
-            value.r3.w = element[15].GetFloat();
-            return true;
+
+            return false;
         }
     }
 }

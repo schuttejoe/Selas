@@ -10,12 +10,11 @@
 
 namespace Selas
 {
-    struct SceneContext;
-    struct Framebuffer;
     struct RayCastCameraSettings;
+    struct SceneResource;
 
     namespace VCM
     {
-        void GenerateImage(SceneContext& context, cpointer imageName, const RayCastCameraSettings& camera);
+        void GenerateImage(SceneResource* scene, const RayCastCameraSettings& camera, cpointer imageName);
     }
 }

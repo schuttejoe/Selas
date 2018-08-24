@@ -31,8 +31,10 @@ namespace Selas
         void Initialize(uint8* memory, uint memorySize);
         void SwitchToPtrWrites();
 
-        void Serialize(void* data, uint size) override;
-        void SerializePtr(void*& data, uint size, uint alignment) override;
+        virtual SerializerFlags Flags() override { return eNone; }
+
+        virtual void Serialize(void* data, uint size) override;
+        virtual void SerializePtr(void*& data, uint size, uint alignment) override;
     };
 
     //=============================================================================================================================
@@ -49,8 +51,10 @@ namespace Selas
 
         void Initialize(uint8* memory, uint memorySize);
 
-        void Serialize(void* data, uint size) override;
-        void SerializePtr(void*& data, uint size, uint alignment) override;
+        virtual SerializerFlags Flags() override { return eNone; }
+
+        virtual void Serialize(void* data, uint size) override;
+        virtual void SerializePtr(void*& data, uint size, uint alignment) override;
     };
 
     //=============================================================================================================================
@@ -66,7 +70,9 @@ namespace Selas
 
         void Initialize(uint8* memory, uint memorySize);
 
-        void Serialize(void* data, uint size) override;
-        void SerializePtr(void*& data, uint size, uint alignment) override;
+        virtual SerializerFlags Flags() override { return eSerializerAttaching; }
+
+        virtual void Serialize(void* data, uint size) override;
+        virtual void SerializePtr(void*& data, uint size, uint alignment) override;
     };
 }

@@ -7,6 +7,7 @@
 #include "VCMCommon.h"
 #include "VCMHashGrid.h"
 
+#include "SceneLib/SceneResource.h"
 #include "Shading/SurfaceScattering.h"
 #include "Shading/SurfaceParameters.h"
 #include "Shading/IntegratorContexts.h"
@@ -40,10 +41,9 @@ namespace Selas
         //=========================================================================================================================
         struct VCMSharedData
         {
-            SceneContext* sceneData;
+            RTCScene rtcScene;
+            SceneResource* scene;
             RayCastCameraSettings camera;
-            uint width;
-            uint height;
             uint maxBounceCount;
             float integrationSeconds;
             std::chrono::high_resolution_clock::time_point integrationStartTime;
@@ -63,7 +63,7 @@ namespace Selas
         {
             VCMHashGrid hashGrid;
             CArray<VCMVertex> lightVertices;
-            CArray<uint32> pathEnds;
+            CArray<uint64> pathEnds;
         };
 
         //=========================================================================================================================
@@ -151,6 +151,7 @@ namespace Selas
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
             hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
+            hit.instId = rayhit.hit.instID[0];
             hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
@@ -161,7 +162,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static float3 ConnectToSkyLight(GIIntegrationContext* context, PathState& state)
+        static float3 ConnectToSkyLight(GIIntegratorContext* context, PathState& state)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectToSkyLight");
 
@@ -180,7 +181,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void ConnectLightPathToCamera(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface,
+        static void ConnectLightPathToCamera(GIIntegratorContext* context, PathState& state, const SurfaceParameters& surface,
                                              float vmWeight, float lightPathCount)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectLightPathToCamera");
@@ -193,8 +194,8 @@ namespace Selas
             }
 
             int2 imagePosition = WorldToImage(camera, surface.position);
-            if(imagePosition.x < 0 || imagePosition.x >= camera->viewportWidth || imagePosition.y < 0 
-               || imagePosition.y >= camera->viewportHeight) {
+            if(imagePosition.x < 0 || imagePosition.x >= (int32)camera->width || imagePosition.y < 0 
+               || imagePosition.y >= (int32)camera->height) {
                 return;
             }
 
@@ -229,13 +230,13 @@ namespace Selas
                 return;
             }
 
-            if(OcclusionRay(context->sceneData->rtcScene, surface, -toPosition, distance)) {
+            if(OcclusionRay(context->rtcScene, surface, -toPosition, distance)) {
                 FramebufferWriter_Write(&context->frameWriter, &pathContribution, 1, imagePosition.x, imagePosition.y);
             }
         }
 
         //=========================================================================================================================
-        static float3 ConnectCameraPathToLight(GIIntegrationContext* context, PathState& state, const SurfaceParameters& surface,
+        static float3 ConnectCameraPathToLight(GIIntegratorContext* context, PathState& state, const SurfaceParameters& surface,
                                                float vmWeight)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectCameraPathToLight");
@@ -275,7 +276,7 @@ namespace Selas
                 return float3::Zero_;
             }
 
-            if(OcclusionRay(context->sceneData->rtcScene, surface, sample.direction, sample.distance)) {
+            if(OcclusionRay(context->rtcScene, surface, sample.direction, sample.distance)) {
                 return pathContribution;
             }
 
@@ -283,7 +284,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static float3 ConnectPathVertices(GIIntegrationContext* context, const SurfaceParameters& surface,
+        static float3 ConnectPathVertices(GIIntegratorContext* context, const SurfaceParameters& surface,
                                           const PathState& cameraState, const VCMVertex& lightVertex, float vmWeight)
         {
             ProfileEventMarker_(0x88FFFFFF, "ConnectPathVertices");
@@ -344,7 +345,7 @@ namespace Selas
                 return float3::Zero_;
             }
 
-            if(VcOcclusionRay(context->sceneData->rtcScene, surface, direction, distance)) {
+            if(VcOcclusionRay(context->rtcScene, surface, direction, distance)) {
                 return pathContribution;
             }
 
@@ -357,7 +358,7 @@ namespace Selas
             ProfileEventMarker_(0x88FFFFFF, "MergeVertices");
 
             VertexMergingCallbackStruct* vmData = (VertexMergingCallbackStruct*)userData;
-            const GIIntegrationContext* context = vmData->context;
+            const GIIntegratorContext* context = vmData->context;
             const SurfaceParameters& surface = *vmData->surface;
             const PathState& cameraState = *vmData->cameraState;
 
@@ -439,7 +440,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static bool EvaluateLightPathHit(const VCMIterationConstants& constants, GIIntegrationContext* context,
+        static bool EvaluateLightPathHit(const VCMIterationConstants& constants, GIIntegratorContext* context,
                                          PathState& state, HitParameters& hit, LightPathSet* lightPathSet)
         {
             // -- Calculate all surface information for this hit position
@@ -483,7 +484,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void GenerateLightSamples(const VCMIterationConstants& constants, GIIntegrationContext* context,
+        static void GenerateLightSamples(const VCMIterationConstants& constants, GIIntegratorContext* context,
                                          uint start, uint end, PathState* results)
         {
             for(uint scan = start; scan < end; ++scan) {
@@ -492,7 +493,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void EvaluateLightPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
+        static void EvaluateLightPaths(const VCMIterationConstants& constants, GIIntegratorContext* context,
                                        uint start, uint end, PathState* pathVertices, LightPathSet* lightPathSet)
         {
             // -- generate light paths
@@ -508,7 +509,7 @@ namespace Selas
 
                     // -- Cast the ray against the scene
                     HitParameters hit;
-                    if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                    if(RayPick(context->rtcScene, ray, hit) == false) {
                         break;
                     }
 
@@ -554,12 +555,12 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void GenerateCameraPaths(const VCMIterationConstants& constants, GIIntegrationContext* context,
+        static void GenerateCameraPaths(const VCMIterationConstants& constants, GIIntegratorContext* context,
                                         uint start, uint end, PathState* results)
         {
             for(uint scan = start; scan < end; ++scan) {
-                uint y = scan / context->imageWidth;
-                uint x = scan - y * context->imageWidth;
+                uint y = scan / context->camera->width;
+                uint x = scan - y * context->camera->height;
 
                 VCMCommon::GenerateCameraSample(context, x, y, (float)constants.vmCount, results[scan]);
             }
@@ -567,7 +568,7 @@ namespace Selas
 
         //=========================================================================================================================
         static void EvaluateCameraPaths(const VCMIterationConstants& constants, const LightPathSet* lightPathSet,
-                                        GIIntegrationContext* context, uint start, uint end, PathState* pathVertices)
+                                        GIIntegratorContext* context, uint start, uint end, PathState* pathVertices)
         {
             for(uint scan = start; scan < end; ++scan) {
 
@@ -582,7 +583,7 @@ namespace Selas
 
                     // -- Cast the ray against the scene
                     HitParameters hit;
-                    if(RayPick(context->sceneData->rtcScene, ray, hit) == false) {
+                    if(RayPick(context->rtcScene, ray, hit) == false) {
                         // -- if the ray exits the scene then we sample the ibl and accumulate the results.
                         float3 sample = cameraPathState.throughput * ConnectToSkyLight(context, cameraPathState);
                         color += sample;
@@ -659,7 +660,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegrationContext* context,
+        static void VertexConnectionAndMerging(CArray<PathState>& pathVertices, GIIntegratorContext* context,
                                                LightPathSet* lightPathSet, const VCMIterationConstants& constants,
                                                uint width, uint height)
         {
@@ -693,14 +694,13 @@ namespace Selas
             VCMSharedData* sharedData = static_cast<VCMSharedData*>(userData);
             int64 kernelIndex = Atomic::Increment64(sharedData->kernelIndices);
 
-            uint width = sharedData->width;
-            uint height = sharedData->height;
+            uint width = sharedData->camera.width;
+            uint height = sharedData->camera.height;
 
-            GIIntegrationContext context;
-            context.sceneData = sharedData->sceneData;
+            GIIntegratorContext context;
+            context.rtcScene = sharedData->rtcScene;
+            context.scene = sharedData->scene;
             context.camera = &sharedData->camera;
-            context.imageWidth = width;
-            context.imageHeight = height;
             context.sampler.Initialize((uint32)kernelIndex);
             context.maxPathLength = sharedData->maxBounceCount;
             FramebufferWriter_Initialize(&context.frameWriter, sharedData->frame,
@@ -742,11 +742,8 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(SceneContext& context, cpointer imageName, const RayCastCameraSettings& camera)
+        void GenerateImage(SceneResource* scene, const RayCastCameraSettings& camera, cpointer imageName)
         {
-            const ModelResource* scene = context.scene;
-            ModelResourceData* sceneData = scene->data;
-
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, 1);
 
@@ -762,11 +759,9 @@ namespace Selas
             #endif
 
             VCMSharedData sharedData;
-            sharedData.sceneData              = &context;
+            sharedData.scene                  = scene;
             sharedData.camera                 = camera;
             sharedData.frame                  = &frame;
-            sharedData.width                  = (uint)camera.viewportWidth;
-            sharedData.height                 = (uint)camera.viewportHeight;
             sharedData.maxBounceCount         = MaxBounceCount_;
             sharedData.integrationStartTime   = SystemTime::Now();
             sharedData.integrationSeconds     = IntegrationSeconds_;
@@ -774,7 +769,7 @@ namespace Selas
             sharedData.vcmPassCount           = &vcmPassCount;
             sharedData.completedThreads       = &completedThreads;
             sharedData.kernelIndices          = &kernelIndex;
-            sharedData.vcmRadius              = VcmRadiusFactor_ * sceneData->boundingSphere.w;
+            sharedData.vcmRadius              = VcmRadiusFactor_ * scene->boundingSphere.w;
             sharedData.vcmRadiusAlpha         = VcmRadiusAlpha_;
 
             #if EnableMultiThreading_

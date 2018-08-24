@@ -48,9 +48,9 @@ namespace Selas
     //=============================================================================================================================
     static void BuildMeshes(ImportedModel* imported, BuiltModel* built)
     {
-        uint32 totalVertexCount = 0;
-        uint32 totalIndexCount = 0;
-        uint32 totalFaceCount = 0;
+        uint64 totalVertexCount = 0;
+        uint64 totalIndexCount = 0;
+        uint64 totalFaceCount = 0;
 
         for(uint scan = 0, count = imported->meshes.Count(); scan < count; ++scan) {
             ImportedMesh* mesh = imported->meshes[scan];
@@ -76,11 +76,11 @@ namespace Selas
 
             ImportedMesh* mesh = imported->meshes[scan];
 
-            uint32 vertexCount = mesh->positions.Count();
+            uint32 vertexCount = (uint32)mesh->positions.Count();
 
             if(mesh->triindices.Count() > 0) {
                 MeshMetaData meshData;
-                meshData.indexCount = mesh->triindices.Count();
+                meshData.indexCount = (uint32)mesh->triindices.Count();
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
@@ -98,7 +98,7 @@ namespace Selas
             }
             if(mesh->quadindices.Count() > 0) {
                 MeshMetaData meshData;
-                meshData.indexCount = mesh->quadindices.Count();
+                meshData.indexCount = (uint32)mesh->quadindices.Count();
                 meshData.indexOffset = indexOffset;
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
