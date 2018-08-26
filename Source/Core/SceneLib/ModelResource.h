@@ -100,6 +100,7 @@ namespace Selas
         uint32 vertexOffset;
         uint32 materialHash;
         uint32 indicesPerFace;
+        Hash32 meshNameHash;
     };
 
     struct ModelResourceData

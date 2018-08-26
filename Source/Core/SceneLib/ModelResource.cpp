@@ -24,7 +24,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1534996046ul;
+    const uint64 ModelResource::kDataVersion = 1535305887ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -175,6 +175,10 @@ namespace Selas
     //=============================================================================================================================
     static const Material* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
     {
+        if(model->data->materialCount == 0) {
+            return model->defaultMaterial;
+        }
+
         uint materialIndex = BinarySearch(model->data->materialHashes, model->data->materialCount, materialHash);
         if(materialIndex == (uint)-1) {
             return model->defaultMaterial;

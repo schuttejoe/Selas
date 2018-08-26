@@ -20,7 +20,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    static void DetermineShaderType(ImportedMaterialData& material, ShaderType& shader)
+    static void DetermineShaderType(const ImportedMaterialData& material, ShaderType& shader)
     {
         static const char* shaderNames[] = {
             "DisneyThin",
@@ -32,6 +32,62 @@ namespace Selas
         for(uint scan = 0; scan < eShaderCount; ++scan) {
             if(StringUtil::EqualsIgnoreCase(shaderNames[scan], material.shaderName.Ascii())) {
                 shader = (ShaderType)scan;
+            }
+        }
+    }
+
+    //=============================================================================================================================
+    static uint32 AddTexture(BuiltModel* builtScene, const FilePathString& path)
+    {
+        // JSTODO - Implement a hash set
+        for(uint scan = 0, count = builtScene->textures.Count(); scan < count; ++scan) {
+            if(StringUtil::EqualsIgnoreCase(builtScene->textures[scan].Ascii(), path.Ascii())) {
+                return (uint32)scan;
+            }
+        }
+
+        builtScene->textures.Add(path);
+        return (uint32)builtScene->textures.Count() - 1;
+    }
+
+    //=============================================================================================================================
+    static void BuildMaterial(const ImportedMaterialData& importedMaterialData, Hash32 hash, BuiltModel* built)
+    {
+        built->materialHashes.Add(hash);
+        Material& material = built->materials.Add();
+        material = Material();
+
+        if(importedMaterialData.alphaTested)
+            material.flags |= eAlphaTested;
+        if(importedMaterialData.invertDisplacement)
+            material.flags |= eInvertDisplacement;
+
+        DetermineShaderType(importedMaterialData, material.shader);
+        material.baseColor = importedMaterialData.baseColor;
+        material.transmittanceColor = importedMaterialData.transmittanceColor;
+
+        if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
+            material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
+        }
+        if(StringUtil::Length(importedMaterialData.normalTexture.Ascii())) {
+            material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTexture);
+        }
+
+        for(uint property = 0; property < eMaterialPropertyCount; ++property) {
+            material.scalarAttributeValues[property] = importedMaterialData.scalarAttributes[property];
+
+            const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[property];
+            if(StringUtil::Length(textureName.Ascii())) {
+                material.scalarAttributeTextureIndices[property] = AddTexture(built, textureName);
+            }
+        }
+
+        if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
+            material.flags |= eDisplacementEnabled;
+        }
+        if(material.shader == eDisneySolid) {
+            if(material.scalarAttributeValues[eDiffuseTrans] > 0.0f || material.scalarAttributeValues[eSpecTrans] > 0.0f) {
+                material.flags |= eTransparent;
             }
         }
     }
@@ -85,6 +141,7 @@ namespace Selas
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
                 meshData.materialHash = mesh->materialHash;
+                meshData.meshNameHash = mesh->meshNameHash;
                 meshData.indicesPerFace = 3;
                 built->meshes.Add(meshData);
 
@@ -103,6 +160,7 @@ namespace Selas
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
                 meshData.materialHash = mesh->materialHash;
+                meshData.meshNameHash = mesh->meshNameHash;
                 meshData.indicesPerFace = 4;
                 built->meshes.Add(meshData);
 
@@ -155,73 +213,27 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static uint32 AddTexture(BuiltModel* builtScene, const FilePathString& path)
-    {
-        // JSTODO - Implement a hash set
-        for(uint scan = 0, count = builtScene->textures.Count(); scan < count; ++scan) {
-            if(StringUtil::EqualsIgnoreCase(builtScene->textures[scan].Ascii(), path.Ascii())) {
-                return (uint32)scan;
-            }
-        }
-
-        builtScene->textures.Add(path);
-        return (uint32)builtScene->textures.Count() - 1;
-    }
-
-    //=============================================================================================================================
     static Error ImportMaterials(BuildProcessorContext* context, cpointer prefix, ImportedModel* imported, BuiltModel* built)
     {
         built->materials.Reserve(imported->materials.Count());
         for(uint scan = 0, count = imported->materials.Count(); scan < count; ++scan) {
-            FilePathString materialfile;
-            AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
-            
-            ImportedMaterialData importedMaterialData;
-            Error err = ImportMaterial(materialfile.Ascii(), &importedMaterialData);
-            if(Failed_(err)) {
-                WriteDebugInfo_("Failed to load material: %s", materialfile.Ascii());
+
+            if(StringUtil::Equals(imported->materials[scan].Ascii(), "DefaultMaterial")) {
                 continue;
             }
 
+            FilePathString materialfile;
+            AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
+            if(File::Exists(materialfile.Ascii()) == false) {
+                WriteDebugInfo_("Material file (%s) not found. Using default.", materialfile.Ascii());
+                continue;
+            }
+
+            ImportedMaterialData importedMaterialData;
+            ReturnError_(ImportMaterial(materialfile.Ascii(), &importedMaterialData));
             context->AddFileDependency(materialfile.Ascii());
-
-            built->materialHashes.Add(imported->materialHashes[scan]);
-            Material& material = built->materials.Add();
-            material = Material();
-
-            if(importedMaterialData.alphaTested)
-                material.flags |= eAlphaTested;
-            if(importedMaterialData.invertDisplacement)
-                material.flags |= eInvertDisplacement;
-
-            DetermineShaderType(importedMaterialData, material.shader);
-            material.baseColor = importedMaterialData.baseColor;
-            material.transmittanceColor = importedMaterialData.transmittanceColor;
-
-            if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
-                material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
-            }
-            if(StringUtil::Length(importedMaterialData.normalTexture.Ascii())) {
-                material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTexture);
-            }
-
-            for(uint property = 0; property < eMaterialPropertyCount; ++property) {
-                material.scalarAttributeValues[property] = importedMaterialData.scalarAttributes[property];
-                
-                const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[property];
-                if(StringUtil::Length(textureName.Ascii())) {
-                    material.scalarAttributeTextureIndices[property] = AddTexture(built, textureName);
-                }
-            }
-
-            if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
-                material.flags |= eDisplacementEnabled;
-            }
-            if(material.shader == eDisneySolid) {
-                if(material.scalarAttributeValues[eDiffuseTrans] > 0.0f || material.scalarAttributeValues[eSpecTrans] > 0.0f) {
-                    material.flags |= eTransparent;
-                }
-            }
+            
+            BuildMaterial(importedMaterialData, imported->materialHashes[scan], built);
         }
 
         QuickSortMatchingArrays(built->materialHashes.DataPointer(), built->materials.DataPointer(), built->materials.Count());

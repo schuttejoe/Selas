@@ -44,6 +44,7 @@ namespace Selas
         CArray<uint32> triindices;
         CArray<uint32> quadindices;
         Hash32         materialHash;
+        Hash32         meshNameHash;
     };
 
     struct ImportedModel
