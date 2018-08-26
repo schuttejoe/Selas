@@ -396,8 +396,8 @@ namespace Selas
     float4x4 MatrixInverse(float4x4 const& mat);
     float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs);
     float3   MatrixMultiply(float3 const& vec, float3x3 const& mat);
-    float3   MatrixMultiplyFloat3(float3 const& vec, float4x4 const& mat);
-    float3   MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat);
+    float3   MatrixMultiplyVector(float3 const& vec, float4x4 const& mat);
+    float3   MatrixMultiplyPoint(float3 const& vec, float4x4 const& mat);
     float4   MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat);
 
     float4x4 ScreenProjection(uint width, uint height);

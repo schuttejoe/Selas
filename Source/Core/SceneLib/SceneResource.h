@@ -24,19 +24,23 @@ namespace Selas
 {
     struct ModelResource;
     struct ImageBasedLightResource;
+    struct SceneInstanceData;
 
-    struct ModelInstance
+    struct Instance
     {
-        uint64 meshIndex;
-        float4x4 transform;
+        uint64 index;
+        float4x4 localToWorld;
+        float4x4 worldToLocal;
     };
 
     struct SceneResourceData
     {
         FilePathString iblName;
         float4 backgroundIntensity;
+        CArray<FilePathString> sceneNames;
         CArray<FilePathString> modelNames;
-        CArray<ModelInstance> modelInstances;
+        CArray<Instance> sceneInstances;
+        CArray<Instance> modelInstances;
     };
 
     struct SceneResource
@@ -48,8 +52,11 @@ namespace Selas
 
         RTCScene rtcScene;
 
+        AxisAlignedBox aaBox;
         float4 boundingSphere;
 
+        SceneInstanceData* sceneInstanceData;
+        SceneResource** scenes;
         ModelResource** models;
         ImageBasedLightResource* iblResource;
 

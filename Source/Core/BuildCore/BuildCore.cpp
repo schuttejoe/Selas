@@ -190,9 +190,10 @@ namespace Selas
             deps = _coreData->depGraph->Create(source);
         }
 
-        // JSTODO -- Add way to verify this asset isn't already enqueued or being built.
-
-        QueueList_Push(&_coreData->pendingQueue, deps);
+        if((deps->flags & eEnqueued) == 0 && (deps->flags & eAlreadyBuilt) == 0) {
+            deps->flags |= eEnqueued;
+            QueueList_Push(&_coreData->pendingQueue, deps);
+        }
     }
 
     //=============================================================================================================================
@@ -245,6 +246,9 @@ namespace Selas
         dependencies->outputs.Append(jobData->context.outputs);
         dependencies->processDependencies.Append(jobData->context.processDependencies);
         dependencies->contentDependencies.Append(jobData->context.contentDependencies);
+
+        dependencies->flags |= eAlreadyBuilt;
+        dependencies->flags &= ~eEnqueued;
 
         // -- Add dependencies to the work queue
         EnqueueDependencies(dependencies);

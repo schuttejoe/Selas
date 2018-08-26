@@ -315,7 +315,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 MatrixMultiplyFloat3(float3 const& vec, float4x4 const& mat)
+    float3 MatrixMultiplyVector(float3 const& vec, float4x4 const& mat)
     {
         Assert_(mat.r0.w == 0.f);
         Assert_(mat.r1.w == 0.f);
@@ -331,7 +331,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 MatrixMultiplyFloat3h(float3 const& vec, float4x4 const& mat)
+    float3 MatrixMultiplyPoint(float3 const& vec, float4x4 const& mat)
     {
         Assert_(mat.r0.w == 0.f);
         Assert_(mat.r1.w == 0.f);

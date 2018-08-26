@@ -38,14 +38,21 @@ namespace Selas
         uint64 version;
     };
 
+    enum BuildProcessDependencyFlags
+    {
+        eEnqueued       = 0x01,
+        eAlreadyBuilt   = 0x02
+    };
+
     //=============================================================================================================================
     struct BuildProcessDependencies
     {
-        BuildProcessDependencies() : version(InvalidIndex32) {}
+        BuildProcessDependencies() : version(InvalidIndex32), flags(0) {}
 
         ContentId   source;
         AssetId     id;
         uint64      version;
+        uint32      flags;
 
         CArray<ContentDependency> contentDependencies;
         CArray<ProcessDependency> processDependencies;

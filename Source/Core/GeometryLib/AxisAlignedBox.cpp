@@ -39,4 +39,35 @@ namespace Selas
         box->max.y = Max<float>(box->max.y, position.y);
         box->max.z = Max<float>(box->max.z, position.z);
     }
+
+    //=============================================================================================================================
+    void IncludeBox(AxisAlignedBox* box, float4x4 transform, const AxisAlignedBox& right)
+    {
+        float3 d = right.max - right.min;
+        float3 ex = float3(d.x, 0.0f, 0.0f);
+        float3 ey = float3(0.0f, d.y, 0.0f);
+        float3 ez = float3(0.0f, 0.0f, d.z);
+
+        float3 tmin = MatrixMultiplyPoint(right.min, transform);
+        ex = MatrixMultiplyVector(ex, transform);
+        ey = MatrixMultiplyVector(ey, transform);
+        ez = MatrixMultiplyVector(ez, transform);
+
+        IncludePosition(box, tmin);
+        IncludePosition(box, tmin + ex);
+        IncludePosition(box, tmin + ex + ez);
+        IncludePosition(box, tmin + ez);
+
+        IncludePosition(box, tmin + ey);
+        IncludePosition(box, tmin + ey + ex);
+        IncludePosition(box, tmin + ey + ez);
+        IncludePosition(box, tmin + ey + ex + ez);
+    }
+
+    //=============================================================================================================================
+    void IncludeBox(AxisAlignedBox* box, const AxisAlignedBox& right)
+    {
+        IncludePosition(box, right.min);
+        IncludePosition(box, right.max);
+    }
 }

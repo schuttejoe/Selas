@@ -22,7 +22,7 @@ namespace Selas
     typedef std::map<AssetId, BuildProcessDependencies*>::iterator DependencyIterator;
 
     #define BuildDependencyGraphType_ "builddependencygraph"
-    #define BuildDependencyGraphVersion_ 1534874403ul
+    #define BuildDependencyGraphVersion_ 1535140108ul
 
     //=============================================================================================================================
     struct BuildGraphData
@@ -43,6 +43,7 @@ namespace Selas
         Serialize(serializer, data.source);
         Serialize(serializer, data.id);
         Serialize(serializer, data.version);
+        Serialize(serializer, data.flags);
 
         Serialize(serializer, data.contentDependencies);
         Serialize(serializer, data.processDependencies);
@@ -72,6 +73,9 @@ namespace Selas
         for(uint32 scan = 0; scan < count; ++scan) {
             BuildProcessDependencies* deps = New_(BuildProcessDependencies);
             Serialize(serializer, *deps);
+
+            // -- clear these flags since they are per-execution data.
+            deps->flags &= ~(eEnqueued | eAlreadyBuilt);
 
             data->dependencyGraph.insert(DependencyKeyValue(deps->id, deps));
         }
@@ -131,6 +135,7 @@ namespace Selas
         deps->contentDependencies.Shutdown();
         deps->processDependencies.Shutdown();
         deps->outputs.Shutdown();
+        deps->flags = 0;
     }
 
     //=============================================================================================================================

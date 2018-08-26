@@ -20,4 +20,6 @@ namespace Selas
 
     void MakeInvalid(AxisAlignedBox* box);
     void IncludePosition(AxisAlignedBox* box, float3 position);
+    void IncludeBox(AxisAlignedBox* box, const AxisAlignedBox& right);
+    void IncludeBox(AxisAlignedBox* box, float4x4 transform, const AxisAlignedBox& right);
 }

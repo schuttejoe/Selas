@@ -7,14 +7,16 @@
 #include "SceneLib/SceneResource.h"
 #include "UtilityLib/JsonUtilities.h"
 #include "Assets/AssetFileUtils.h"
+#include "MathLib/FloatFuncs.h"
 #include "SystemLib/MemoryAllocation.h"
 
 namespace Selas
 {
     struct InstanceDescription
     {
-        FilePathString model;
+        FilePathString asset;
         float4x4 transform;
+        float4x4 invTransform;
     };
 
     struct SceneDescription
@@ -22,6 +24,7 @@ namespace Selas
         FilePathString iblName;
         float3 backgroundIntensity;
         CArray<InstanceDescription> modelInstances;
+        CArray<InstanceDescription> sceneInstances;
     };
 
     //=============================================================================================================================
@@ -34,10 +37,22 @@ namespace Selas
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
-        for(const auto& instance : document["instances"].GetArray()) {
-            InstanceDescription& desc = scene->modelInstances.Add();
-            Json::ReadFixedString(instance, "model", desc.model);
-            Json::ReadMatrix4x4(instance, "transform", desc.transform);
+        if(document.HasMember("instances")) {
+            for(const auto& instance : document["instances"].GetArray()) {
+                InstanceDescription& desc = scene->modelInstances.Add();
+                Json::ReadFixedString(instance, "model", desc.asset);
+                Json::ReadMatrix4x4(instance, "transform", desc.transform);
+                desc.invTransform = MatrixInverse(desc.transform);
+            }
+        }
+
+        if(document.HasMember("scenes")) {
+            for(const auto& instance : document["scenes"].GetArray()) {
+                InstanceDescription& desc = scene->sceneInstances.Add();
+                Json::ReadFixedString(instance, "scene", desc.asset);
+                Json::ReadMatrix4x4(instance, "transform", desc.transform);
+                desc.invTransform = MatrixInverse(desc.transform);
+            }
         }
 
         Json::ReadFloat3(document, "backgroundIntensity", scene->backgroundIntensity, float3::One_);
@@ -75,6 +90,7 @@ namespace Selas
         ReturnError_(ParseSceneFile(context, &sceneDesc));
 
         CSet<Hash32> modelHashes;
+        CSet<Hash32> sceneHashes;
         SceneResourceData scene;
 
         scene.backgroundIntensity = float4(sceneDesc.backgroundIntensity, 1.0f);
@@ -87,17 +103,35 @@ namespace Selas
         for(uint scan = 0, count = sceneDesc.modelInstances.Count(); scan < count; ++scan) {
             InstanceDescription& instanceDesc = sceneDesc.modelInstances[scan];
 
-            Hash32 hash = MurmurHash3_x86_32(instanceDesc.model.Ascii(), StringUtil::Length(instanceDesc.model.Ascii()));
+            Hash32 hash = MurmurHash3_x86_32(instanceDesc.asset.Ascii(), StringUtil::Length(instanceDesc.asset.Ascii()));
 
             uint64 modelindex = modelHashes.Add(hash);
             if(modelindex >= scene.modelNames.Count()) {
-                context->AddProcessDependency("model", instanceDesc.model.Ascii());
-                scene.modelNames.Add(instanceDesc.model);
+                context->AddProcessDependency("model", instanceDesc.asset.Ascii());
+                scene.modelNames.Add(instanceDesc.asset);
             }
 
-            ModelInstance& instance = scene.modelInstances.Add();
-            instance.meshIndex = modelindex;
-            instance.transform = instanceDesc.transform;
+            Instance& instance = scene.modelInstances.Add();
+            instance.index = modelindex;
+            instance.localToWorld = instanceDesc.transform;
+            instance.worldToLocal = instanceDesc.invTransform;
+        }
+
+        for(uint scan = 0, count = sceneDesc.sceneInstances.Count(); scan < count; ++scan) {
+            InstanceDescription& instanceDesc = sceneDesc.sceneInstances[scan];
+
+            Hash32 hash = MurmurHash3_x86_32(instanceDesc.asset.Ascii(), StringUtil::Length(instanceDesc.asset.Ascii()));
+
+            uint64 sceneIndex = sceneHashes.Add(hash);
+            if(sceneIndex >= scene.sceneNames.Count()) {
+                context->AddProcessDependency("scene", instanceDesc.asset.Ascii());
+                scene.sceneNames.Add(instanceDesc.asset);
+            }
+
+            Instance& instance = scene.sceneInstances.Add();
+            instance.index = sceneIndex;
+            instance.localToWorld = instanceDesc.transform;
+            instance.worldToLocal = instanceDesc.invTransform;
         }
 
         context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), scene);
