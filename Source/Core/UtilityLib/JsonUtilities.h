@@ -42,7 +42,7 @@ namespace Selas
 
         // default is "". Returns false when the string does not fit.
         template<int size>
-        bool ReadFixedString(const rapidjson::Value& element, cpointer key, FixedString<size>& value)
+        bool ReadFixedString(const rapidjson::Value& element, cpointer key, cpointer prefix, FixedString<size>& value)
         {
             value.Clear();
 
@@ -52,12 +52,23 @@ namespace Selas
             if(element[key].IsString() == false) {
                 return false;
             }
-            if(element[key].GetStringLength() > value.Capacity()) {
+
+            uint prefixLen = StringUtil::Length(prefix);
+            if(element[key].GetStringLength() + prefixLen > value.Capacity()) {
                 return false;
             }
 
-            StringUtil::Copy(value.Ascii(), (uint32)value.Capacity(), element[key].GetString());
+            StringUtil::Copy(value.Ascii(), (uint32)value.Capacity(), prefix);
+            StringUtil::Copy(value.Ascii() + prefixLen, (uint32)value.Capacity() - (int32)prefixLen, element[key].GetString());
+
             return true;
+        }
+
+        // default is "". Returns false when the string does not fit.
+        template<int size>
+        bool ReadFixedString(const rapidjson::Value& element, cpointer key, FixedString<size>& value)
+        {
+            return ReadFixedString(element, key, "", value);
         }
 
     }

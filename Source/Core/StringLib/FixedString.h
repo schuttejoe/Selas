@@ -13,6 +13,8 @@ namespace Selas
     template <int T>
     struct FixedString
     {
+        FixedString() { Clear(); }
+
         char str[T];
 
         char* Ascii(void) { return &str[0]; }

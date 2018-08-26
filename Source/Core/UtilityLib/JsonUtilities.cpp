@@ -160,7 +160,7 @@ namespace Selas
         bool ReadFloat3(const rapidjson::Value& element, cpointer key, float3& value, float3 defaultValue)
         {
             if(element.HasMember(key)) {
-                if(element[key].IsArray() && element[key].Size() == 3) {
+                if(element[key].IsArray() && element[key].Size() >= 3) {
                     value.x = element[key][0].GetFloat();
                     value.y = element[key][1].GetFloat();
                     value.z = element[key][2].GetFloat();
@@ -181,7 +181,7 @@ namespace Selas
         bool ReadFloat4(const rapidjson::Value& element, cpointer key, float4& value, float4 defaultValue)
         {
             if(element.HasMember(key)) {
-                if(element[key].IsArray() && element[key].Size() == 4) {
+                if(element[key].IsArray() && element[key].Size() >= 4) {
                     value.x = element[key][0].GetFloat();
                     value.y = element[key][1].GetFloat();
                     value.z = element[key][2].GetFloat();
@@ -211,16 +211,16 @@ namespace Selas
                 if(element[key].Size() != 16) {
                     return false;
                 }
-                value.r0.x = element[key][0].GetFloat();
-                value.r0.y = element[key][1].GetFloat();
-                value.r0.z = element[key][2].GetFloat();
-                value.r0.w = element[key][3].GetFloat();
-                value.r1.x = element[key][4].GetFloat();
-                value.r1.y = element[key][5].GetFloat();
-                value.r1.z = element[key][6].GetFloat();
-                value.r1.w = element[key][7].GetFloat();
-                value.r2.x = element[key][8].GetFloat();
-                value.r2.y = element[key][9].GetFloat();
+                value.r0.x = element[key][ 0].GetFloat();
+                value.r0.y = element[key][ 1].GetFloat();
+                value.r0.z = element[key][ 2].GetFloat();
+                value.r0.w = element[key][ 3].GetFloat();
+                value.r1.x = element[key][ 4].GetFloat();
+                value.r1.y = element[key][ 5].GetFloat();
+                value.r1.z = element[key][ 6].GetFloat();
+                value.r1.w = element[key][ 7].GetFloat();
+                value.r2.x = element[key][ 8].GetFloat();
+                value.r2.y = element[key][ 9].GetFloat();
                 value.r2.z = element[key][10].GetFloat();
                 value.r2.w = element[key][11].GetFloat();
                 value.r3.x = element[key][12].GetFloat();

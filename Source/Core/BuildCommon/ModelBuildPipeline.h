@@ -21,6 +21,7 @@ namespace Selas
     {
         FixedString256 shaderName;
         FilePathString normalTexture;
+        FilePathString ptexFolder;
         FilePathString baseColorTexture;
         float3 baseColor;
         float3 transmittanceColor;
