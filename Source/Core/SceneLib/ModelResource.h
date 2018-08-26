@@ -26,7 +26,7 @@ namespace Selas
     struct TextureResource;
     struct HitParameters;
 
-    enum eMaterialShader
+    enum ShaderType
     {
         eDisneyThin,
         eDisneySolid,
@@ -81,7 +81,7 @@ namespace Selas
             }
         }
 
-        eMaterialShader shader;
+        ShaderType shader;
         uint32 baseColorTextureIndex;
         uint32 normalTextureIndex;
         uint32 flags;

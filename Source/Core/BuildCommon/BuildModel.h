@@ -13,5 +13,5 @@ namespace Selas
     struct ImportedModel;
     struct BuiltModel;
 
-    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built);
+    Error BuildModel(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built);
 }

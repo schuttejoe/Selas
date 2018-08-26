@@ -20,7 +20,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    static void DetermineShaderType(ImportedMaterialData& material, eMaterialShader& shader)
+    static void DetermineShaderType(ImportedMaterialData& material, ShaderType& shader)
     {
         static const char* shaderNames[] = {
             "DisneyThin",
@@ -31,7 +31,7 @@ namespace Selas
         shader = eDisneySolid;
         for(uint scan = 0; scan < eShaderCount; ++scan) {
             if(StringUtil::EqualsIgnoreCase(shaderNames[scan], material.shaderName.Ascii())) {
-                shader = (eMaterialShader)scan;
+                shader = (ShaderType)scan;
             }
         }
     }
@@ -229,7 +229,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error BuildScene(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built)
+    Error BuildModel(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built)
     {
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
         BuildMeshes(imported, built);

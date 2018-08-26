@@ -45,7 +45,7 @@ namespace Selas
         cpointer materialprefix = "Materials~";
 
         BuiltModel builtScene;
-        ReturnError_(BuildScene(context, materialprefix, &importedModel, &builtScene));
+        ReturnError_(BuildModel(context, materialprefix, &importedModel, &builtScene));
         ShutdownImportedModel(&importedModel);
 
         for(uint scan = 0, count = builtScene.textures.Count(); scan < count; ++scan) {
