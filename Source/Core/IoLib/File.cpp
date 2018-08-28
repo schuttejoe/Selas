@@ -36,7 +36,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        Error ReadWholeFile(const char* filepath, void** __restrict fileData, uint32* __restrict fileSize)
+        Error ReadWholeFile(const char* filepath, void** __restrict fileData, uint64* __restrict fileSize)
         {
             FILE* file = OpenFile_(filepath, "rb");
             if(file == nullptr) {
@@ -44,7 +44,7 @@ namespace Selas
             }
 
             fseek(file, 0, SEEK_END);
-            *fileSize = (uint32)ftell(file);
+            *fileSize = _ftelli64(file);
             fseek(file, 0, SEEK_SET);
 
             *fileData = AllocAligned_(*fileSize, 16);
@@ -62,7 +62,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        Error ReadWhileFileAsString(cpointer filepath, char** string, uint32* stringSize)
+        Error ReadWhileFileAsString(cpointer filepath, char** string, uint64* stringSize)
         {
             FILE* file = OpenFile_(filepath, "rb");
             if(file == nullptr) {
@@ -70,7 +70,7 @@ namespace Selas
             }
 
             fseek(file, 0, SEEK_END);
-            int32 fileSize = (int32)ftell(file);
+            uint64 fileSize = _ftelli64(file);
             fseek(file, 0, SEEK_SET);
 
             *string = (char*)AllocAligned_(fileSize + 1, 16);
@@ -91,7 +91,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        Error WriteWholeFile(const char* filepath, const void* data, uint32 size)
+        Error WriteWholeFile(const char* filepath, const void* data, uint64 size)
         {
             FILE* file = OpenFile_(filepath, "wb");
             if(file == nullptr) {

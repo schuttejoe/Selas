@@ -7,10 +7,12 @@
 #include "BuildCommon/ImportModel.h"
 #include "BuildCommon/BuildModel.h"
 #include "BuildCommon/BakeModel.h"
+#include "BuildCommon/ImportMaterial.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/JsonUtilities.h"
-#include "SceneLib/ModelResource.h"
+#include "SceneLib/SceneResource.h"
 #include "Assets/AssetFileUtils.h"
+#include "MathLib/FloatFuncs.h"
 #include "SystemLib/MemoryAllocation.h"
 
 namespace Selas
@@ -22,11 +24,25 @@ namespace Selas
     };
 
     //=============================================================================================================================
-    struct SElementData
+    struct MeshInstance
     {
-        FilePathString objSourceId;
-        FilePathString materialFile;
         float4x4 transform;
+        uint meshIndex;
+    };
+
+    //=============================================================================================================================
+    struct SceneDescription
+    {
+        FilePathString materialFile;
+        CArray<FilePathString> objFiles;
+        CArray<MeshInstance> instances;
+    };
+
+    //=============================================================================================================================
+    struct ElementData
+    {
+        CArray<SceneDescription*> scenes;
+        CArray<float4x4> sceneInstances;
     };
 
     //=============================================================================================================================
@@ -44,6 +60,97 @@ namespace Selas
         }
         
         return root;
+    }
+
+    //=============================================================================================================================
+    static Error ParseInstancePrimitivesFile(BuildProcessorContext* context, const FixedString256& root,
+                                             const FilePathString& sourceId, SceneDescription* mesh)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(sourceId.Ascii(), filepath);
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
+
+        rapidjson::Document document;
+        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+
+        for(const auto& objFileKV : document.GetObject()) {
+            cpointer objFile = objFileKV.name.GetString();
+
+            FilePathString instanceObjFile;
+            FixedStringSprintf(instanceObjFile, "%s%s", root.Ascii(), objFile);
+            AssetFileUtils::IndependentPathSeperators(instanceObjFile);
+
+            uint meshIndex = mesh->objFiles.Add(instanceObjFile);
+
+            const auto& element = objFileKV.value;
+            uint count = element.GetObject().MemberCount();
+
+            uint instanceOffset = mesh->instances.Count();
+            mesh->instances.Resize(instanceOffset + count);
+            uint index = instanceOffset;
+
+            for(const auto& instanceKV : element.GetObject()) {
+                cpointer instanceName = instanceKV.name.GetString();
+
+                mesh->instances[index].meshIndex = meshIndex;
+                if(Json::ReadMatrix4x4(instanceKV.value, mesh->instances[index].transform) == false) {
+                    return Error_("Failed to parse transform from instance '%s' in primfile '%s'", instanceName, filepath.Ascii());
+                }
+
+                ++index;
+            }
+        }
+
+        return Success_;
+    }
+    //=============================================================================================================================
+    static Error ParseInstancePrimitivesSection(BuildProcessorContext* context, const FixedString256& root,
+                                                const rapidjson::Value& section, SceneDescription* mesh)
+    {
+        for(const auto& keyvalue : section.GetObject()) {
+            const auto& element = keyvalue.value;
+
+            FixedString32 type;
+            if(Json::ReadFixedString(element, "type", type) == false) {
+                return Error_("'type' parameter missing from instanced primitives section.");
+            }
+
+            if(StringUtil::Equals(type.Ascii(), "archive") == false) {
+                // TODO
+                continue;
+            }
+
+            FilePathString primFile;
+            if(Json::ReadFixedString(element, "jsonFile", primFile) == false) {
+                return Error_("`jsonFile ` parameter missing from instanced primitives section");
+            }
+            AssetFileUtils::IndependentPathSeperators(primFile);
+            
+            FilePathString sourceId;
+            FixedStringSprintf(sourceId, "%s%s", root.Ascii(), primFile.Ascii());
+
+            ReturnError_(ParseInstancePrimitivesFile(context, root, sourceId, mesh));
+        }
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    static Error ImportDisneyMaterials(BuildProcessorContext* context, const FilePathString& contentId, cpointer prefix,
+                                       ImportedModel* imported)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(contentId.Ascii(), filepath);
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
+
+        CArray<Hash32> materialHashes;
+        CArray<ImportedMaterialData> importedMaterials;
+        ReturnError_(ImportDisneyMaterials(filepath.Ascii(), prefix, materialHashes, importedMaterials));
+
+        //imported->loadedMaterialHashes.Append(materialHashes);
+        //imported->loadedMaterials.Append(importedMaterials);
+
+        return Success_;
     }
 
     //=============================================================================================================================
@@ -70,23 +177,58 @@ namespace Selas
 
     //=============================================================================================================================
     static Error ParseElementFile(BuildProcessorContext* context, const FixedString256& root, const FixedString256& path,
-                                  SElementData& elementData)
+                                  SceneResourceData* rootScene, CArray<SceneResourceData*>& childScenes)
     {
-        FilePathString filepath;
-        AssetFileUtils::ContentFilePath(path.Ascii(), filepath);
-        context->AddFileDependency(filepath.Ascii());
+        FilePathString elementFilePath;
+        AssetFileUtils::ContentFilePath(path.Ascii(), elementFilePath);
+        ReturnError_(context->AddFileDependency(elementFilePath.Ascii()));
 
         rapidjson::Document document;
-        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+        ReturnError_(Json::OpenJsonDocument(elementFilePath.Ascii(), document));
 
-        cpointer objFile = document["geomObjFile"].GetString();
-        cpointer materialFile = document["matFile"].GetString();
+        // -- Get the materials json file path
+        //FixedStringSprintf(mesh->materialFile, "%s%s", root.Ascii(), document["matFile"].GetString());
 
-        FixedStringSprintf(elementData.objSourceId, "%s%s", root.Ascii(), objFile);
-        StringUtil::ReplaceAll(elementData.objSourceId.Ascii(), '\\', PlatformIndependentPathSep_);
-        StringUtil::ReplaceAll(elementData.objSourceId.Ascii(), '/', PlatformIndependentPathSep_);
+        // -- Add the main geometry object file
+        FilePathString geomObjFile;
+        FixedStringSprintf(geomObjFile, "%s%s", root.Ascii(), document["geomObjFile"].GetString());
+        AssetFileUtils::IndependentPathSeperators(geomObjFile);
+        rootScene->modelNames.Add(geomObjFile);
 
-        AssetFileUtils::ContentFilePath(root.Ascii(), materialFile, "", elementData.materialFile);
+        // -- read the instanced primitives section.
+        //ReturnError_(ParseInstancePrimitivesSection(context, root, document["instancedPrimitiveJsonFiles"], scenes));
+
+        // -- Each element file will have a transform for the 'root level' object file...
+        Instance rootInstance;
+        Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
+
+        rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
+        rootInstance.index = 0;
+        rootScene->modelInstances.Add(rootInstance);
+
+        // -- add instanced copies
+        if(document.HasMember("instancedCopies")) {
+            for(const auto& instancedCopyKV : document["instancedCopies"].GetObject()) {
+
+                Instance copyInstance;
+
+                if(Json::ReadMatrix4x4(instancedCopyKV.value["transformMatrix"], copyInstance.localToWorld) == false) {
+                    return Error_("Failed to read `transformMatrix` from instancedCopy '%s'", instancedCopyKV.name.GetString());
+                }
+                copyInstance.worldToLocal = MatrixInverse(copyInstance.localToWorld);
+
+                uint index = 0;
+                if(instancedCopyKV.value.HasMember("geomObjFile")) {
+                    FilePathString altGeomObjFile;
+                    FixedStringSprintf(altGeomObjFile, "%s%s", root.Ascii(), instancedCopyKV.value["geomObjFile"].GetString());
+                    AssetFileUtils::IndependentPathSeperators(altGeomObjFile);
+                    index = rootScene->modelNames.Add(altGeomObjFile);
+                }
+                copyInstance.index = index;
+
+                rootScene->modelInstances.Add(copyInstance);
+            }
+        }
 
         return Success_;
     }
@@ -120,12 +262,20 @@ namespace Selas
         SceneFileData sceneFile;
         ReturnError_(ParseSceneFile(context, sceneFile));
 
+        CArray<SceneResourceData*> childScenes;
+
+        SceneResourceData rootScene;
+
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
             const FixedString256& elementName = sceneFile.elements[scan];
-
-            SElementData elementData;
-            ReturnError_(ParseElementFile(context, contentRoot, elementName, elementData));
+            ReturnError_(ParseElementFile(context, contentRoot, elementName, &rootScene, childScenes));
         }
+
+        for(uint scan = 0, count = rootScene.modelNames.Count(); scan < count; ++scan) {
+            context->AddProcessDependency("model", rootScene.modelNames[scan].Ascii());
+        }
+
+        context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), rootScene);
 
         return Success_;
     }

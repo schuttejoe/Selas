@@ -276,7 +276,7 @@ namespace Selas
         AssetFileUtils::AssetFilePath(ModelResource::kDataType, ModelResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
-        uint32 fileSize = 0;
+        uint64 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         AttachToBinary(data->data, (uint8*)fileData, fileSize);
@@ -291,7 +291,7 @@ namespace Selas
         AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, assetname, filepath);
 
         void* fileData = nullptr;
-        uint32 fileSize = 0;
+        uint64 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         AttachToBinary(data->geometry, (uint8*)fileData, fileSize);

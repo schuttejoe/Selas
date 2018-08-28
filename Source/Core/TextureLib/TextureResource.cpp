@@ -48,7 +48,7 @@ namespace Selas
         AssetFileUtils::AssetFilePath(TextureResource::kDataType, TextureResource::kDataVersion, textureName, filepath);
 
         void* fileData = nullptr;
-        uint32 fileSize = 0;
+        uint64 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         AttachToBinary(resource->data, (uint8*)fileData, fileSize);

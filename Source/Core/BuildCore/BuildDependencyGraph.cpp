@@ -62,7 +62,7 @@ namespace Selas
         }
 
         void* fileData;
-        uint32 fileSize;
+        uint64 fileSize;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
         CBinaryReadSerializer* serializer = New_(CBinaryReadSerializer);

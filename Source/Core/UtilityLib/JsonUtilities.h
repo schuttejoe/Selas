@@ -38,6 +38,7 @@ namespace Selas
         bool ReadFloat3(const rapidjson::Value& element, cpointer key, float3& value, float3 defaultValue);
         bool ReadFloat4(const rapidjson::Value& element, cpointer key, float4& value, float4 defaultValue);
 
+        bool ReadMatrix4x4(const rapidjson::Value& element, float4x4& value);
         bool ReadMatrix4x4(const rapidjson::Value& element, cpointer key, float4x4& value);
 
         // default is "". Returns false when the string does not fit.
