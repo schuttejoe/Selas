@@ -193,11 +193,11 @@ namespace Selas
         for(uint scan = 0; scan < aiscene->mNumCameras; ++scan)
         {
             model->cameras[scan].position = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mPosition);
-            model->cameras[scan].lookAt = model->cameras[scan].position + AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mLookAt);
-            model->cameras[scan].up = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mUp);
-            model->cameras[scan].fov = aiscene->mCameras[scan]->mHorizontalFOV;
-            model->cameras[scan].znear = aiscene->mCameras[scan]->mClipPlaneNear;
-            model->cameras[scan].zfar = aiscene->mCameras[scan]->mClipPlaneFar;
+            model->cameras[scan].lookAt   = model->cameras[scan].position + AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mLookAt);
+            model->cameras[scan].up       = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mUp);
+            model->cameras[scan].fov      = aiscene->mCameras[scan]->mHorizontalFOV;
+            model->cameras[scan].znear    = aiscene->mCameras[scan]->mClipPlaneNear;
+            model->cameras[scan].zfar     = aiscene->mCameras[scan]->mClipPlaneFar;
         }
 
         return Success_;
@@ -212,10 +212,8 @@ namespace Selas
 
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filepath.Ascii(),
-                                                   aiProcess_GenNormals
+                                                     aiProcess_GenNormals
                                                    | aiProcess_CalcTangentSpace
-                                                   | aiProcess_GenUVCoords
-                                                   | aiProcess_ConvertToLeftHanded
                                                    | aiProcess_PreTransformVertices
                                                    | aiProcess_TransformUVCoords);
         if(!aiscene) {

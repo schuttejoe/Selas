@@ -177,8 +177,10 @@ namespace Selas
         rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
         Align_(16) float2 uvs = float2(0.0f, 0.0f);
-        //rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-        //                RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        if(model->geometry->uvsSize > 0) {
+            rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        }
 
         float3 n = Normalize(normal);
         float3 t = tangent.XYZ();

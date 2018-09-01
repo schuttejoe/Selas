@@ -275,14 +275,7 @@ namespace Selas
             uint modelIdx = scene->data->modelInstances[scan].index;
             rtcSetGeometryInstancedScene(instance, scene->models[modelIdx]->rtcScene);
             rtcSetGeometryTimeStepCount(instance, 1);
-
-            // JSTODO - Obviously temp
-            float4x4 s = scene->data->modelInstances[scan].localToWorld;
-            float4x4 d = { float4(s.r0.x, s.r0.y, s.r0.z, 0.0f),
-                           float4(s.r1.x, s.r1.y, s.r1.z, 0.0f),
-                           float4(-s.r2.x, -s.r2.y, -s.r2.z, 0.0f),
-                           float4(s.r3.x, s.r3.y, s.r3.z, 1.0f) };
-            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, (void*)&d);
+            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, (void*)&scene->data->modelInstances[scan].localToWorld);
 
             rtcCommitGeometry(instance);
             rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);
