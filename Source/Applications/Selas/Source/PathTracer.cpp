@@ -45,7 +45,7 @@
 #define PathsPerPixel_          1
 #define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     30.0f
+#define IntegrationSeconds_     1.0f
 
 namespace Selas
 {

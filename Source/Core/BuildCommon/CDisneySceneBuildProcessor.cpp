@@ -194,30 +194,31 @@ namespace Selas
         FilePathString geomObjFile;
         FixedStringSprintf(geomObjFile, "%s%s", root.Ascii(), document["geomObjFile"].GetString());
         AssetFileUtils::IndependentPathSeperators(geomObjFile);
-        rootScene->modelNames.Add(geomObjFile);
+        uint rootModelIndex = rootScene->modelNames.Add(geomObjFile);
 
         // -- read the instanced primitives section.
         //ReturnError_(ParseInstancePrimitivesSection(context, root, document["instancedPrimitiveJsonFiles"], scenes));
 
-        // -- Each element file will have a transform for the 'root level' object file...
-        Instance rootInstance;
-        Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
-        rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
-        rootInstance.index = rootScene->modelNames.Count() - 1;
-        rootScene->modelInstances.Add(rootInstance);
+        {
+            // -- Each element file will have a transform for the 'root level' object file...
+            Instance rootInstance;
+            Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
+            rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
+            rootInstance.index = rootModelIndex;
+            rootScene->modelInstances.Add(rootInstance);
+        }
 
         // -- add instanced copies
         if(document.HasMember("instancedCopies")) {
             for(const auto& instancedCopyKV : document["instancedCopies"].GetObject()) {
 
                 Instance copyInstance;
-
                 if(Json::ReadMatrix4x4(instancedCopyKV.value["transformMatrix"], copyInstance.localToWorld) == false) {
                     return Error_("Failed to read `transformMatrix` from instancedCopy '%s'", instancedCopyKV.name.GetString());
                 }
                 copyInstance.worldToLocal = MatrixInverse(copyInstance.localToWorld);
 
-                uint index = 0;
+                uint index = rootModelIndex;
                 if(instancedCopyKV.value.HasMember("geomObjFile")) {
                     FilePathString altGeomObjFile;
                     FixedStringSprintf(altGeomObjFile, "%s%s", root.Ascii(), instancedCopyKV.value["geomObjFile"].GetString());

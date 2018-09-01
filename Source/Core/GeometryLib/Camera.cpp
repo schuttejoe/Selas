@@ -92,8 +92,8 @@ namespace Selas
         float aspect        = widthf / heightf;
         float horizontalFov = settings.fov;
 
-        float4x4 worldToView = LookAtLh(settings.position, settings.up, settings.lookAt);
-        float4x4 viewToClip  = PerspectiveFovLhProjection(horizontalFov, aspect, settings.znear, settings.zfar);
+        float4x4 worldToView = LookAtRh(settings.position, settings.up, settings.lookAt);
+        float4x4 viewToClip  = PerspectiveFovRhProjection(horizontalFov, aspect, settings.znear, settings.zfar);
 
         float4x4 viewToWorld = MatrixInverse(worldToView);
         float4x4 clipToView  = MatrixInverse(viewToClip);

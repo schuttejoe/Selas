@@ -13,7 +13,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    void MatrixMultiply(float4x4* const __restrict lhs, float4x4* const __restrict rhs, float4x4* __restrict mat)
+    void MatrixMultiply(const float4x4* __restrict lhs, const float4x4* __restrict rhs, float4x4* __restrict mat)
     {
         Assert_(lhs != mat);
         Assert_(rhs != mat);
@@ -198,7 +198,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3x3 MatrixTranspose(float3x3 const& mat)
+    float3x3 MatrixTranspose(const float3x3& mat)
     {
         float3x3 result = {
             float3(mat.r0.x, mat.r1.x, mat.r2.x),
@@ -209,7 +209,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float4x4 MatrixTranspose(float4x4 const& mat)
+    float4x4 MatrixTranspose(const float4x4& mat)
     {
         float4x4 result = {
             float4(mat.r0.x, mat.r1.x, mat.r2.x, mat.r3.x),
@@ -221,7 +221,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float4x4 MatrixInverse(float4x4 const& mat)
+    float4x4 MatrixInverse(const float4x4& mat)
     {
         float tmp[12]; // temp array for pairs
         float dst[16]; // destination matrix
@@ -320,7 +320,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs)
+    float4x4 MatrixMultiply(const float4x4& lhs, const float4x4& rhs)
     {
         float4x4 result = {
             {
@@ -353,7 +353,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 MatrixMultiply(float3 const& vec, float3x3 const& mat)
+    float3 MatrixMultiply(const float3& vec, const float3x3& mat)
     {
         float3 result = {
             vec.x * mat.r0.x + vec.y * mat.r1.x + vec.z * mat.r2.x,
@@ -364,7 +364,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 MatrixMultiplyVector(float3 const& vec, float4x4 const& mat)
+    float3 MatrixMultiplyVector(const float3& vec, const float4x4& mat)
     {
         Assert_(mat.r0.w == 0.f);
         Assert_(mat.r1.w == 0.f);
@@ -380,7 +380,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 MatrixMultiplyPoint(float3 const& vec, float4x4 const& mat)
+    float3 MatrixMultiplyPoint(const float3& vec, const float4x4& mat)
     {
         Assert_(mat.r0.w == 0.f);
         Assert_(mat.r1.w == 0.f);
@@ -396,7 +396,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float4 MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat)
+    float4 MatrixMultiplyFloat4(const float4& vec, const float4x4& mat)
     {
         float4 result = {
             vec.x * mat.r0.x + vec.y * mat.r1.x + vec.z * mat.r2.x + vec.w * mat.r3.x,
@@ -503,6 +503,42 @@ namespace Selas
             float4(x_axis.x, y_axis.x, z_axis.x, 0.f),
             float4(x_axis.y, y_axis.y, z_axis.y, 0.f),
             float4(x_axis.z, y_axis.z, z_axis.z, 0.f),
+            float4(offset.x, offset.y, offset.z, 1.f)
+        };
+        return matrix;
+    }
+
+    //=============================================================================================================================
+    float4x4 PerspectiveFovRhProjection(float fov, float aspect, float near, float far)
+    {
+        float height = 1.0f / Math::Tanf(fov * 0.5f);
+        float width = height / aspect;
+
+        float d = far / (far - near);
+        float dn = near * d;
+
+        float4x4 result = {
+            float4(width,  0.0f, 0.0f,  0.0f),
+            float4(0.0f, height, 0.0f,  0.0f),
+            float4(0.0f,   0.0f,    d, -1.0f),
+            float4(0.0f,   0.0f,   dn,  0.0f)
+        };
+        return result;
+    }
+
+    //=============================================================================================================================
+    float4x4 LookAtRh(float3 eye, float3 up, float3 target)
+    {
+        float3 z = Normalize(eye - target);
+        float3 x = Normalize(Cross(up, z));
+        float3 y = Cross(z, x);
+
+        float3 offset = { -Dot(x, eye), -Dot(y, eye), -Dot(z, eye) };
+
+        float4x4 matrix = {
+            float4(x.x, y.x, z.x, 0.f),
+            float4(x.y, y.y, z.y, 0.f),
+            float4(x.z, y.z, z.z, 0.f),
             float4(offset.x, offset.y, offset.z, 1.f)
         };
         return matrix;

@@ -392,16 +392,16 @@ namespace Selas
     }
 
     // 3x3 matrix functions
-    float3x3 MatrixTranspose(float3x3 const& mat);
+    float3x3 MatrixTranspose(const float3x3& mat);
 
     // 4x4 matrix functions
-    float4x4 MatrixTranspose(float4x4 const& mat);
-    float4x4 MatrixInverse(float4x4 const& mat);
-    float4x4 MatrixMultiply(float4x4 const& lhs, float4x4 const& rhs);
-    float3   MatrixMultiply(float3 const& vec, float3x3 const& mat);
-    float3   MatrixMultiplyVector(float3 const& vec, float4x4 const& mat);
-    float3   MatrixMultiplyPoint(float3 const& vec, float4x4 const& mat);
-    float4   MatrixMultiplyFloat4(float4 const& vec, float4x4 const& mat);
+    float4x4 MatrixTranspose(const float4x4& mat);
+    float4x4 MatrixInverse(const float4x4& mat);
+    float4x4 MatrixMultiply(const float4x4& lhs, const float4x4& rhs);
+    float3   MatrixMultiply(const float3& vec, const float3x3& mat);
+    float3   MatrixMultiplyVector(const float3& vec, const float4x4& mat);
+    float3   MatrixMultiplyPoint(const float3& vec, const float4x4& mat);
+    float4   MatrixMultiplyFloat4(const float4& vec, const float4x4& mat);
 
     float4x4 ScreenProjection(uint width, uint height);
     float4x4 ScreenProjection(float x, float y, uint width, uint height);
@@ -409,4 +409,7 @@ namespace Selas
     float4x4 OffsetCenterProjectionLh(float min_x, float max_x, float min_y, float max_y, float min_z, float max_z);
     float4x4 LookAtLh(float3 eye, float3 up, float3 target);
     float4x4 ViewLh(float3 position, float3 forward, float3 up, float3 right);
+
+    float4x4 PerspectiveFovRhProjection(float fov, float aspect, float near, float far);
+    float4x4 LookAtRh(float3 eye, float3 up, float3 target);
 }

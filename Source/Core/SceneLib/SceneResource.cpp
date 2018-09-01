@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1535655328ul;
+    const uint64 SceneResource::kDataVersion = 1535825428ul;
 
     #define ModelInstanceMask_  0x0000FFFF
     #define SceneInstanceMask_  0xFFFF0000
