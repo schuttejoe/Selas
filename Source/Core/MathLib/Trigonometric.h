@@ -18,6 +18,7 @@ namespace Selas
         const float Inv4Pi_           = 1.0f / (4.0f * Pi_);
 
         const float DegreesToRadians_ = Pi_ / 180.f;
+        const float RadiansToDegrees_ = 180.f / Pi_;
 
         float Cosf(float radians);
         float Sinf(float radians);

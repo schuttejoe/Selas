@@ -5,8 +5,6 @@
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
 
 #include "BuildCommon/ImportModel.h"
-#include "BuildCommon/BuildModel.h"
-#include "BuildCommon/BakeModel.h"
 #include "BuildCommon/ImportMaterial.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/JsonUtilities.h"
@@ -20,7 +18,8 @@ namespace Selas
     //=============================================================================================================================
     struct SceneFileData
     {
-        CArray<FixedString256> elements;
+        FilePathString cameraFile;
+        CArray<FilePathString> elements;
     };
 
     //=============================================================================================================================
@@ -168,15 +167,17 @@ namespace Selas
         }
 
         for(const auto& element : document["elements"].GetArray()) {
-            FixedString256& str = output.elements.Add();
+            FilePathString& str = output.elements.Add();
             str.Copy(element.GetString());
         }
+
+        Json::ReadFixedString(document, "camera", output.cameraFile);
 
         return Success_;
     }
 
     //=============================================================================================================================
-    static Error ParseElementFile(BuildProcessorContext* context, const FixedString256& root, const FixedString256& path,
+    static Error ParseElementFile(BuildProcessorContext* context, const FixedString256& root, const FilePathString& path,
                                   SceneResourceData* rootScene, CArray<SceneResourceData*>& childScenes)
     {
         FilePathString elementFilePath;
@@ -201,9 +202,8 @@ namespace Selas
         // -- Each element file will have a transform for the 'root level' object file...
         Instance rootInstance;
         Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
-
         rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
-        rootInstance.index = 0;
+        rootInstance.index = rootScene->modelNames.Count() - 1;
         rootScene->modelInstances.Add(rootInstance);
 
         // -- add instanced copies
@@ -234,10 +234,31 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static Error ParseCameraFile(BuildProcessorContext* context, cpointer path, CameraSettings& settings)
+    {
+        FilePathString fullPath;
+        AssetFileUtils::ContentFilePath(path, fullPath);
+        ReturnError_(context->AddFileDependency(fullPath.Ascii()));
+
+        rapidjson::Document document;
+        ReturnError_(Json::OpenJsonDocument(fullPath.Ascii(), document));
+
+        Json::ReadFloat3(document, "eye", settings.position, float3(1.0f, 0.0f, 0.0f));
+        Json::ReadFloat(document, "fov", settings.fov, 70.0f);
+        Json::ReadFloat3(document, "look", settings.lookAt, float3::Zero_);
+        Json::ReadFloat3(document, "up", settings.up, float3::YAxis_);
+        
+        settings.fov *= Math::DegreesToRadians_;
+        settings.znear = 0.1f;
+        settings.zfar = 50000.0f;
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
     Error CDisneySceneBuildProcessor::Setup()
     {
-        AssetFileUtils::EnsureAssetDirectory<ModelResource>();
-        AssetFileUtils::EnsureAssetDirectory(ModelResource::kGeometryDataType, ModelResource::kDataVersion);
+        AssetFileUtils::EnsureAssetDirectory<SceneResource>();
 
         return Success_;
     }
@@ -251,7 +272,7 @@ namespace Selas
     //=============================================================================================================================
     uint64 CDisneySceneBuildProcessor::Version()
     {
-        return ModelResource::kDataVersion;
+        return SceneResource::kDataVersion;
     }
 
     //=============================================================================================================================
@@ -265,9 +286,12 @@ namespace Selas
         CArray<SceneResourceData*> childScenes;
 
         SceneResourceData rootScene;
+        rootScene.backgroundIntensity = float4::One_;
 
+        ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene.camera));
+        
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
-            const FixedString256& elementName = sceneFile.elements[scan];
+            const FilePathString& elementName = sceneFile.elements[scan];
             ReturnError_(ParseElementFile(context, contentRoot, elementName, &rootScene, childScenes));
         }
 

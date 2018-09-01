@@ -155,8 +155,8 @@ namespace Selas
                                    sizeof(float3), metadata->totalVertexCount);
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0, 
                                    sizeof(float4), metadata->totalVertexCount);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
-                                   sizeof(float2), metadata->totalVertexCount);
+        //rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
+        //                           sizeof(float2), metadata->totalVertexCount);
 
         rtcSetGeometryUserData(geom, model);
     }

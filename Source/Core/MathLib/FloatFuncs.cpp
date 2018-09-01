@@ -4,6 +4,7 @@
 //=================================================================================================================================
 
 #include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/JsAssert.h"
 
@@ -109,6 +110,54 @@ namespace Selas
                 float4(0.f, 0.f, sz,   0.f),
                 float4(tx,  ty,  tz,  1.f)
             };
+            return result;
+        }
+
+        //==============================================================================
+        float4x4 RotateX(float radians)
+        {
+            float cosangle = Math::Cosf(radians);
+            float sinangle = Math::Sinf(radians);
+
+            float4x4 result = {
+                { 1.0f,      0.0f,     0.0f, 0.0f },
+                { 0.0f,  cosangle, sinangle, 0.0f },
+                { 0.0f, -sinangle, cosangle, 0.0f },
+                { 0.0f,      0.0f,     0.0f, 1.0f },
+            };
+
+            return result;
+        }
+
+        //==============================================================================
+        float4x4 RotateY(float radians)
+        {
+            float cosangle = Math::Cosf(radians);
+            float sinangle = Math::Sinf(radians);
+
+            float4x4 result = {
+                { cosangle, 0.0f, -sinangle, 0.0f },
+                {     0.0f, 1.0f,      0.0f, 0.0f },
+                { sinangle, 0.0f,  cosangle, 0.0f },
+                {     0.0f, 0.0f,      0.0f, 1.0f },
+            };
+
+            return result;
+        }
+
+        //==============================================================================
+        float4x4 RotateZ(float radians)
+        {
+            float cosangle = Math::Cosf(radians);
+            float sinangle = Math::Sinf(radians);
+
+            float4x4 result = {
+                {  cosangle,  sinangle, 0.0f, 0.0f },
+                { -sinangle,  cosangle, 0.0f, 0.0f },
+                {      0.0f,      0.0f, 1.0f, 0.0f },
+                {      0.0f,      0.0f, 0.0f, 1.0f },
+            };
+
             return result;
         }
     };
@@ -426,16 +475,16 @@ namespace Selas
     //=============================================================================================================================
     float4x4 LookAtLh(float3 eye, float3 up, float3 target)
     {
-        float3 z_axis = Normalize(target - eye);
-        float3 x_axis = Normalize(Cross(up, z_axis));
-        float3 y_axis = Cross(z_axis, x_axis);
+        float3 z = Normalize(target - eye);
+        float3 x = Normalize(Cross(up, z));
+        float3 y = Cross(z, x);
 
-        float3 offset = { -Dot(x_axis, eye), -Dot(y_axis, eye), -Dot(z_axis, eye) };
+        float3 offset = { -Dot(x, eye), -Dot(y, eye), -Dot(z, eye) };
 
         float4x4 matrix = {
-            float4(x_axis.x, y_axis.x, z_axis.x, 0.f),
-            float4(x_axis.y, y_axis.y, z_axis.y, 0.f),
-            float4(x_axis.z, y_axis.z, z_axis.z, 0.f),
+            float4(x.x, y.x, z.x, 0.f),
+            float4(x.y, y.y, z.y, 0.f),
+            float4(x.z, y.z, z.z, 0.f),
             float4(offset.x, offset.y, offset.z, 1.f)
         };
         return matrix;

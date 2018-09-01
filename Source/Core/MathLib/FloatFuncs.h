@@ -376,6 +376,9 @@ namespace Selas
         float4x4 Translate(float x, float y, float z);
         float4x4 ScaleTranslate(float s, float tx, float ty, float tz);
         float4x4 ScaleTranslate(float sx, float sy, float sz, float tx, float ty, float tz);
+        float4x4 RotateX(float radians);
+        float4x4 RotateY(float radians);
+        float4x4 RotateZ(float radians);
     };
 
     namespace Matrix3x3

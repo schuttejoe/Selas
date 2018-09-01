@@ -47,6 +47,7 @@ namespace Selas
         ForceInline_ float3 XYZ() const { return float3(x, y, z); }
 
         static const float4 Zero_;
+        static const float4 One_;
         static const float4 XAxis_;
         static const float4 YAxis_;
         static const float4 ZAxis_;

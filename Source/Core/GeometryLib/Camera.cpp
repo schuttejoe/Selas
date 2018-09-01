@@ -22,6 +22,34 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    void InvalidCameraSettings(CameraSettings* settings)
+    {
+        settings->position = float3(0.0f, 0.0f, 0.0f);
+        settings->lookAt   = float3(0.0f, 0.0f, 0.0f);
+        settings->up       = float3(0.0f, 0.0f, 0.0f);
+        settings->fov      = 0.0f * Math::DegreesToRadians_;
+        settings->znear    = 0.0f;
+        settings->zfar     = 0.0f;
+    }
+
+    //=============================================================================================================================
+    void DefaultCameraSettings(CameraSettings* settings)
+    {
+        settings->position = float3(-1139.01589265f, 23.28673313185658f, 1479.7947229f);
+        settings->lookAt   = float3(244.81433650665076f, 238.8071478842799f, 560.3801168449178f);
+        settings->up       = float3(-0.107f, 0.99169f, 0.071189f);
+        settings->fov      = 70.0f * Math::DegreesToRadians_;
+        settings->znear    = 0.1f;
+        settings->zfar     = 50000.0f;
+    }
+
+    //=============================================================================================================================
+    bool ValidCamera(const CameraSettings& settings)
+    {
+        return settings.fov > 0 && settings.zfar > settings.znear;
+    }
+
+    //=============================================================================================================================
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world)
     {
         float4 clip = MatrixMultiplyFloat4(float4(world, 1.0f), camera->worldToClip);
@@ -59,17 +87,19 @@ namespace Selas
     //=============================================================================================================================
     void InitializeRayCastCamera(const CameraSettings& settings, uint width, uint height, RayCastCameraSettings& camera)
     {
-        float aspect = (float)width / height;
+        float widthf        = (float)width;
+        float heightf       = (float)height;
+        float aspect        = widthf / heightf;
         float horizontalFov = settings.fov;
-        float verticalFov = 2.0f * Math::Atanf(horizontalFov * 0.5f) * aspect;
-        float widthf = (float)width;
-        float heightf = (float)height;
 
         float4x4 worldToView = LookAtLh(settings.position, settings.up, settings.lookAt);
-        float4x4 viewToClip  = PerspectiveFovLhProjection(verticalFov, aspect, settings.znear, settings.zfar);
+        float4x4 viewToClip  = PerspectiveFovLhProjection(horizontalFov, aspect, settings.znear, settings.zfar);
 
-        float4x4 worldToClip   = MatrixMultiply(worldToView, viewToClip);
-        float4x4 clipToWorld = MatrixInverse(worldToClip);
+        float4x4 viewToWorld = MatrixInverse(worldToView);
+        float4x4 clipToView  = MatrixInverse(viewToClip);
+
+        float4x4 worldToClip = MatrixMultiply(worldToView, viewToClip);
+        float4x4 clipToWorld = MatrixMultiply(clipToView, viewToWorld);
 
         float4x4 imageToClip = Matrix4x4::ScaleTranslate(2.0f / widthf, -2.0f / heightf, 0, -1, 1, 0);
         

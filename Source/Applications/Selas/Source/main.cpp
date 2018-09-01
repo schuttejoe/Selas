@@ -36,8 +36,9 @@
 
 using namespace Selas;
 
-//static cpointer modelName = "Scenes~SanMiguel~SanMiguel.fbx";
-//static cpointer modelName = "Scenes~island~island.json";
+//static cpointer sceneName = "Scenes~TestScene.json";
+//static cpointer sceneType = "scene";
+
 static cpointer sceneName = "Scenes~island~island.json";
 static cpointer sceneType = "disney";
 
@@ -103,7 +104,7 @@ int main(int argc, char *argv[])
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
 
-    Selas::uint width = 1400;
+    Selas::uint width = 1920;
     Selas::uint height = 800;
 
     RayCastCameraSettings camera;

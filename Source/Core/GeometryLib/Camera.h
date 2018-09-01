@@ -43,6 +43,11 @@ namespace Selas
 
     void Serialize(CSerializer* serializer, CameraSettings& data);
 
+    void InvalidCameraSettings(CameraSettings* settings);
+    void DefaultCameraSettings(CameraSettings* settings);
+
+    bool ValidCamera(const CameraSettings& settings);
+
     int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world);
     float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y);
 

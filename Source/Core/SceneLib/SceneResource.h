@@ -41,6 +41,7 @@ namespace Selas
         CArray<FilePathString> modelNames;
         CArray<Instance> sceneInstances;
         CArray<Instance> modelInstances;
+        CameraSettings camera;
     };
 
     struct SceneResource

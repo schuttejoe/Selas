@@ -17,6 +17,7 @@ namespace Selas
     const float3 float3::ZAxis_ = float3(0.0f, 0.0f, 1.0f);
 
     const float4 float4::Zero_ = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    const float4 float4::One_  = float4(1.0f, 1.0f, 1.0f, 1.0f);
     const float4 float4::XAxis_ = float4(1.0f, 0.0f, 0.0f, 0.0f);
     const float4 float4::YAxis_ = float4(0.0f, 1.0f, 0.0f, 0.0f);
     const float4 float4::ZAxis_ = float4(0.0f, 0.0f, 1.0f, 0.0f);

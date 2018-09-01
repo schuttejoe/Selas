@@ -15,8 +15,8 @@ namespace Selas
     struct InstanceDescription
     {
         FilePathString asset;
-        float4x4 transform;
-        float4x4 invTransform;
+        float4x4 localToWorld;
+        float4x4 worldToLocal;
     };
 
     struct SceneDescription
@@ -41,8 +41,8 @@ namespace Selas
             for(const auto& instance : document["instances"].GetArray()) {
                 InstanceDescription& desc = scene->modelInstances.Add();
                 Json::ReadFixedString(instance, "model", desc.asset);
-                Json::ReadMatrix4x4(instance, "transform", desc.transform);
-                desc.invTransform = MatrixInverse(desc.transform);
+                Json::ReadMatrix4x4(instance, "transform", desc.localToWorld);
+                desc.worldToLocal = MatrixInverse(desc.localToWorld);
             }
         }
 
@@ -50,8 +50,8 @@ namespace Selas
             for(const auto& instance : document["scenes"].GetArray()) {
                 InstanceDescription& desc = scene->sceneInstances.Add();
                 Json::ReadFixedString(instance, "scene", desc.asset);
-                Json::ReadMatrix4x4(instance, "transform", desc.transform);
-                desc.invTransform = MatrixInverse(desc.transform);
+                Json::ReadMatrix4x4(instance, "transform", desc.localToWorld);
+                desc.worldToLocal = MatrixInverse(desc.localToWorld);
             }
         }
 
@@ -91,7 +91,9 @@ namespace Selas
 
         CSet<Hash32> modelHashes;
         CSet<Hash32> sceneHashes;
+
         SceneResourceData scene;
+        InvalidCameraSettings(&scene.camera);
 
         scene.backgroundIntensity = float4(sceneDesc.backgroundIntensity, 1.0f);
         scene.iblName = sceneDesc.iblName;
@@ -113,8 +115,8 @@ namespace Selas
 
             Instance& instance = scene.modelInstances.Add();
             instance.index = modelindex;
-            instance.localToWorld = instanceDesc.transform;
-            instance.worldToLocal = instanceDesc.invTransform;
+            instance.localToWorld = instanceDesc.localToWorld;
+            instance.worldToLocal = instanceDesc.worldToLocal;
         }
 
         for(uint scan = 0, count = sceneDesc.sceneInstances.Count(); scan < count; ++scan) {
@@ -130,8 +132,8 @@ namespace Selas
 
             Instance& instance = scene.sceneInstances.Add();
             instance.index = sceneIndex;
-            instance.localToWorld = instanceDesc.transform;
-            instance.worldToLocal = instanceDesc.invTransform;
+            instance.localToWorld = instanceDesc.localToWorld;
+            instance.worldToLocal = instanceDesc.worldToLocal;
         }
 
         context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), scene);

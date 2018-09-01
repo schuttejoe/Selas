@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1535156010ul;
+    const uint64 SceneResource::kDataVersion = 1535655328ul;
 
     #define ModelInstanceMask_  0x0000FFFF
     #define SceneInstanceMask_  0xFFFF0000
@@ -60,6 +60,7 @@ namespace Selas
         Serialize(serializer, data.modelNames);
         Serialize(serializer, data.sceneInstances);
         Serialize(serializer, data.modelInstances);
+        Serialize(serializer, data.camera);
     }
 
     //=============================================================================================================================
@@ -198,9 +199,9 @@ namespace Selas
         rayhit.ray.org_x = localOrigin.x;
         rayhit.ray.org_y = localOrigin.y;
         rayhit.ray.org_z = localOrigin.z;
-        rayhit.ray.dir_x = direction.x;
-        rayhit.ray.dir_y = direction.y;
-        rayhit.ray.dir_z = direction.z;
+        rayhit.ray.dir_x = localDirection.x;
+        rayhit.ray.dir_y = localDirection.y;
+        rayhit.ray.dir_z = localDirection.z;
         rayhit.ray.tnear = RTCRayN_tnear(rays, N, 0);
         rayhit.ray.tfar  = RTCRayN_tfar(rays, N, 0);
         
@@ -208,13 +209,11 @@ namespace Selas
         rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
 
         rtcIntersect1(instance->scene->rtcScene, context, &rayhit);
-        if(rayhit.hit.geomID == -1)
+        if(rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
             return;
 
-        RTCRayN_tfar(rays, N, 0) = rayhit.ray.tfar;
         rtcCopyHitToHitN(hits, &rayhit.hit, N, 0);
-
-        RTCHitN_instID(hits, N, 0, 0) = CalculateInstanceID(instance->sceneIdx, rayhit.hit.instID[0]);
+        RTCHitN_instID(hits, N, 0, 0) = CalculateInstanceID(instance->sceneIdx, 0);
     }
 
     //=============================================================================================================================
@@ -247,9 +246,9 @@ namespace Selas
         ray.org_x = localOrigin.x;
         ray.org_y = localOrigin.y;
         ray.org_z = localOrigin.z;
-        ray.dir_x = direction.x;
-        ray.dir_y = direction.y;
-        ray.dir_z = direction.z;
+        ray.dir_x = localDirection.x;
+        ray.dir_y = localDirection.y;
+        ray.dir_z = localDirection.z;
         ray.tnear = RTCRayN_tnear(rays, N, 0);
         ray.tfar = RTCRayN_tfar(rays, N, 0);
 
@@ -272,13 +271,18 @@ namespace Selas
 
         for(uint scan = 0, count = scene->data->modelInstances.Count(); scan < count; ++scan) {
             RTCGeometry instance = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_INSTANCE);
-            
+
             uint modelIdx = scene->data->modelInstances[scan].index;
             rtcSetGeometryInstancedScene(instance, scene->models[modelIdx]->rtcScene);
             rtcSetGeometryTimeStepCount(instance, 1);
 
-            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
-                                    (void*)&scene->data->modelInstances[scan].localToWorld);
+            // JSTODO - Obviously temp
+            float4x4 s = scene->data->modelInstances[scan].localToWorld;
+            float4x4 d = { float4(s.r0.x, s.r0.y, s.r0.z, 0.0f),
+                           float4(s.r1.x, s.r1.y, s.r1.z, 0.0f),
+                           float4(-s.r2.x, -s.r2.y, -s.r2.z, 0.0f),
+                           float4(s.r3.x, s.r3.y, s.r3.z, 1.0f) };
+            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, (void*)&d);
 
             rtcCommitGeometry(instance);
             rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);
@@ -350,6 +354,10 @@ namespace Selas
     void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera)
     {
         // -- if the scene has a camera set on it use that.
+        if(ValidCamera(scene->data->camera)) {
+            InitializeRayCastCamera(scene->data->camera, width, height, camera);
+            return;
+        }
 
         // -- otherwise search the models for a valid camera
         for(uint scan = 0, count = scene->data->modelNames.Count(); scan < count; ++scan) {
@@ -361,13 +369,7 @@ namespace Selas
 
         // -- and finally fall back on the default
         CameraSettings defaultCamera;
-        defaultCamera.position = float3(0.0f, 0.0f, 5.0f);
-        defaultCamera.lookAt   = float3(0.0f, 0.0f, 0.0f);
-        defaultCamera.up       = float3(0.0f, 1.0f, 0.0f);
-        defaultCamera.fov      = 45.0f * Math::DegreesToRadians_;
-        defaultCamera.znear    = 0.1f;
-        defaultCamera.zfar     = 500.0f;
-
+        DefaultCameraSettings(&defaultCamera);
         InitializeRayCastCamera(defaultCamera, width, height, camera);
     }
 
