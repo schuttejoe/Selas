@@ -275,7 +275,9 @@ namespace Selas
             uint modelIdx = scene->data->modelInstances[scan].index;
             rtcSetGeometryInstancedScene(instance, scene->models[modelIdx]->rtcScene);
             rtcSetGeometryTimeStepCount(instance, 1);
-            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR, (void*)&scene->data->modelInstances[scan].localToWorld);
+
+            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
+                                    (void*)&scene->data->modelInstances[scan].localToWorld);
 
             rtcCommitGeometry(instance);
             rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);

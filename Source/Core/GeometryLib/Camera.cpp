@@ -35,12 +35,12 @@ namespace Selas
     //=============================================================================================================================
     void DefaultCameraSettings(CameraSettings* settings)
     {
-        settings->position = float3(-1139.01589265f, 23.28673313185658f, 1479.7947229f);
-        settings->lookAt   = float3(244.81433650665076f, 238.8071478842799f, 560.3801168449178f);
-        settings->up       = float3(-0.107f, 0.99169f, 0.071189f);
-        settings->fov      = 70.0f * Math::DegreesToRadians_;
-        settings->znear    = 0.1f;
-        settings->zfar     = 50000.0f;
+        settings->position = float3(0.0f, 0.0f, 5.0f);
+        settings->lookAt   = float3(0.0f, 0.0f, 0.0f);
+        settings->up       = float3(0.0f, 1.0f, 0.0f);
+        settings->fov      = 35.0f * Math::DegreesToRadians_;
+        settings->znear    = 0.0001f;
+        settings->zfar     = 10000.0f;
     }
 
     //=============================================================================================================================
