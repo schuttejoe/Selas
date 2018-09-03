@@ -36,11 +36,11 @@
 
 using namespace Selas;
 
-static cpointer sceneName = "Scenes~TestScene.json";
-static cpointer sceneType = "scene";
+//static cpointer sceneName = "Scenes~TestScene.json";
+//static cpointer sceneType = "scene";
 
-//static cpointer sceneName = "Scenes~island~island.json";
-//static cpointer sceneType = "disney";
+static cpointer sceneName = "Scenes~island~island.json";
+static cpointer sceneType = "disney";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()

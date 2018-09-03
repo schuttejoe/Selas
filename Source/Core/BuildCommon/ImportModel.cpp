@@ -211,11 +211,9 @@ namespace Selas
         context->AddFileDependency(filepath.Ascii());
 
         Assimp::Importer importer;
-        const aiScene* aiscene = importer.ReadFile(filepath.Ascii(),
-                                                     aiProcess_GenNormals
-                                                   | aiProcess_CalcTangentSpace
-                                                   | aiProcess_PreTransformVertices
-                                                   | aiProcess_TransformUVCoords);
+        const aiScene* aiscene = importer.ReadFile(filepath.Ascii(), aiProcess_GenNormals
+                                                                    | aiProcess_PreTransformVertices
+                                                                    | aiProcess_TransformUVCoords);
         if(!aiscene) {
             const char* errstr = importer.GetErrorString();
             return Error_("AssetImporter failed with error: %s", errstr);
