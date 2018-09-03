@@ -86,6 +86,7 @@ namespace Selas
 
             // -- null terminate
             (*string)[fileSize] = '\0';
+            *stringSize = fileSize;
 
             return Success_;
         }

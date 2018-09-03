@@ -192,7 +192,7 @@ namespace Selas
             int32 copyLength = (srcStringLength < destMaxLength) ? srcStringLength : destMaxLength - 1;
 
             #if IsWindows_
-            strncpy_s(destString, destMaxLength, sourceString, copyLength);
+                strncpy_s(destString, destMaxLength, sourceString, copyLength);
             #elif IsOsx_
                 strncpy(destString, sourceString, copyLength);
             #endif
@@ -211,7 +211,7 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        int32 to_int(char const* text)
+        int32 ToInt32(char const* text)
         {
             Assert_(text);
             return atoi(text);
