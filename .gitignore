@@ -2,7 +2,9 @@ _Assets
 _BuildTemp
 _Projects
 _Images
+Scripts/pythoncd.sh
 Scripts/pythoncd.bat
 Scripts/ls.py
 Selas.sublime-workspace
+Scripts/Selas.sublime-workspace
 .DS_Store

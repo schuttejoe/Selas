@@ -1,14 +1,21 @@
 
+# On linux and MacOS platforms I recommend you use this by adding an alias to ~/.bashrc
+# ex:
+# alias nav='. ${HOME}/dev/Selas/Scripts/nav.sh ' 
+
 import os
 import sys
 
 ## ------------------------------------------------------------------------------------------------
 def main(argv):
-    engineDir = os.environ['Selas']
-
-    drive, tail = os.path.splitdrive(engineDir)
-
+    if sys.platform == "linux":
+        engineDir = os.path.join(os.path.expanduser("~"), "dev", "Selas")
+    else:
+        envVar = os.environ['Selas']
+        engineDir, tail = os.path.splitdrive(envVar)
+    
     targetDir = engineDir
+
 
     if(len(argv) > 0):
         if argv[0].lower() == "source":
@@ -38,7 +45,6 @@ def main(argv):
             targetDir = "D:\\Demos"
             
 
-    print(str(drive))
     print('cd %s' % str(targetDir))
 
 if __name__ == "__main__":
