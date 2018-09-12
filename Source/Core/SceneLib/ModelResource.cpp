@@ -150,14 +150,17 @@ namespace Selas
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), 
                                    metadata->totalVertexCount);
 
+        bool hasTangents = geometry->tangentsSize > 0;
         bool hasUVs = geometry->uvsSize > 0;
-        uint32 attributeCount = hasUVs ? 3 : 2;
+        uint32 attributeCount = 1 + (hasUVs ? 1 : 0) + (hasTangents ? 1 : 0);
 
         rtcSetGeometryVertexAttributeCount(geom, attributeCount);
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0, 
                                    sizeof(float3), metadata->totalVertexCount);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0, 
-                                   sizeof(float4), metadata->totalVertexCount);
+        if(hasTangents) {
+            rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0,
+                                       sizeof(float4), metadata->totalVertexCount);
+        }
         if(hasUVs) {
             rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
                                        sizeof(float2), metadata->totalVertexCount);

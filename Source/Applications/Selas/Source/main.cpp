@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
 
-    Selas::uint width = 1920;
-    Selas::uint height = 800;
+    Selas::uint width = 1024;
+    Selas::uint height = 429;
 
     RayCastCameraSettings camera;
     InitializeSceneCamera(&sceneResource, width, height, camera);

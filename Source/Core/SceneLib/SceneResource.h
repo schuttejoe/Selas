@@ -35,6 +35,7 @@ namespace Selas
 
     struct SceneResourceData
     {
+        FilePathString name;
         FilePathString iblName;
         float4 backgroundIntensity;
         CArray<FilePathString> sceneNames;

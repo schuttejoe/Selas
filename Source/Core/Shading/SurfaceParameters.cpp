@@ -173,18 +173,27 @@ namespace Selas
         Align_(16) float3 normal;
         rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+
+        float3 n = Normalize(normal);
+        float3 t, b;
+
         Align_(16) float4 tangent;
-        rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
+        if(model->geometry->tangentsSize > 0) {
+            rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
+
+            t = tangent.XYZ();
+            b = Cross(normal, t) * tangent.w;
+        }
+        else {
+            MakeOrthogonalCoordinateSystem(n, &t, &b);
+        }
+
         Align_(16) float2 uvs = float2(0.0f, 0.0f);
         if(model->geometry->uvsSize > 0) {
             rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
         }
-
-        float3 n = Normalize(normal);
-        float3 t = tangent.XYZ();
-        float3 b = Cross(normal, t) * tangent.w;
 
         // -- Calculate tangent space transforms
         float3x3 tangentToWorld = MakeFloat3x3(t, n, b);

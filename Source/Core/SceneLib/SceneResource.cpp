@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1535825428ul;
+    const uint64 SceneResource::kDataVersion = 1536017627ul;
 
     #define ModelInstanceMask_  0x0000FFFF
     #define SceneInstanceMask_  0xFFFF0000
@@ -54,6 +54,7 @@ namespace Selas
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, SceneResourceData& data)
     {
+        Serialize(serializer, data.name);
         Serialize(serializer, data.iblName);
         Serialize(serializer, data.backgroundIntensity);
         Serialize(serializer, data.sceneNames);
@@ -208,12 +209,11 @@ namespace Selas
         rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
 
-        rtcIntersect1(instance->scene->rtcScene, context, &rayhit);
-        if(rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-            return;
+        uint32 instId = CalculateInstanceID(instance->sceneIdx, 0);
 
-        rtcCopyHitToHitN(hits, &rayhit.hit, N, 0);
-        RTCHitN_instID(hits, N, 0, 0) = CalculateInstanceID(instance->sceneIdx, 0);
+        context->instID[0] = instId;
+        rtcIntersect1(instance->scene->rtcScene, context, &rayhit);
+        context->instID[0] = -1;
     }
 
     //=============================================================================================================================
