@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1536017627ul;
+    const uint64 SceneResource::kDataVersion = 1536806594ul;
 
     #define ModelInstanceMask_  0x0000FFFF
     #define SceneInstanceMask_  0xFFFF0000
@@ -52,6 +52,24 @@ namespace Selas
     //=============================================================================================================================
 
     //=============================================================================================================================
+    void Serialize(CSerializer* serializer, CurveSegment& data)
+    {
+        Serialize(serializer, data.startIndex);
+        Serialize(serializer, data.controlPointCount);
+    }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, CurveData& data)
+    {
+        Serialize(serializer, data.widthTip);
+        Serialize(serializer, data.widthRoot);
+        Serialize(serializer, data.degrees);
+        Serialize(serializer, data.faceCamera);
+        Serialize(serializer, data.controlPoints);
+        Serialize(serializer, data.segments);
+    }
+
+    //=============================================================================================================================
     void Serialize(CSerializer* serializer, SceneResourceData& data)
     {
         Serialize(serializer, data.name);
@@ -61,6 +79,7 @@ namespace Selas
         Serialize(serializer, data.modelNames);
         Serialize(serializer, data.sceneInstances);
         Serialize(serializer, data.modelInstances);
+        Serialize(serializer, data.curves);
         Serialize(serializer, data.camera);
     }
 
@@ -257,18 +276,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(SceneResource* scene, RTCDevice rtcDevice)
+    static void InitializeModelInstances(SceneResource* scene, RTCDevice rtcDevice)
     {
-        for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            InitializeEmbreeScene(scene->models[scan], rtcDevice);
-        }
-
-        for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
-            InitializeEmbreeScene(scene->scenes[scan], rtcDevice);
-        }
-
-        scene->rtcScene = rtcNewScene(rtcDevice);
-
         for(uint scan = 0, count = scene->data->modelInstances.Count(); scan < count; ++scan) {
             RTCGeometry instance = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_INSTANCE);
 
@@ -277,13 +286,17 @@ namespace Selas
             rtcSetGeometryTimeStepCount(instance, 1);
 
             rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
-                                    (void*)&scene->data->modelInstances[scan].localToWorld);
+                (void*)&scene->data->modelInstances[scan].localToWorld);
 
             rtcCommitGeometry(instance);
             rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);
             rtcReleaseGeometry(instance);
         }
+    }
 
+    //=============================================================================================================================
+    static void InitializeSceneInstances(SceneResource* scene, RTCDevice rtcDevice)
+    {
         uint32 offset = (uint32)scene->data->modelInstances.Count();
 
         if(scene->data->sceneInstances.Count() > 0) {
@@ -317,6 +330,29 @@ namespace Selas
                 rtcReleaseGeometry(geom);
             }
         }
+    }
+
+    //=============================================================================================================================
+    static void InitializeCurves(SceneResource* scene, RTCDevice rtcDevice)
+    {
+        //RTC_GEOMETRY_TYPE_ROUND_BSPLINE_CURVE
+    }
+
+    //=============================================================================================================================
+    void InitializeEmbreeScene(SceneResource* scene, RTCDevice rtcDevice)
+    {
+        for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
+            InitializeEmbreeScene(scene->models[scan], rtcDevice);
+        }
+
+        for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
+            InitializeEmbreeScene(scene->scenes[scan], rtcDevice);
+        }
+
+        scene->rtcScene = rtcNewScene(rtcDevice);
+
+        InitializeModelInstances(scene, rtcDevice);
+        InitializeSceneInstances(scene, rtcDevice);
 
         rtcCommitScene(scene->rtcScene);
     }

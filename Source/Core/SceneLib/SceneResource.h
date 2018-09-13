@@ -33,6 +33,25 @@ namespace Selas
         float4x4 worldToLocal;
     };
 
+    //=============================================================================================================================
+    struct CurveSegment
+    {
+        uint64 startIndex;
+        uint64 controlPointCount;
+    };
+
+    //=============================================================================================================================
+    struct CurveData
+    {
+        float widthTip;
+        float widthRoot;
+        float degrees;
+        bool  faceCamera;
+        CArray<float3> controlPoints;
+        CArray<CurveSegment> segments;
+    };
+
+    //=============================================================================================================================
     struct SceneResourceData
     {
         FilePathString name;
@@ -42,9 +61,11 @@ namespace Selas
         CArray<FilePathString> modelNames;
         CArray<Instance> sceneInstances;
         CArray<Instance> modelInstances;
+        CArray<CurveData> curves;
         CameraSettings camera;
     };
 
+    //=============================================================================================================================
     struct SceneResource
     {
         static cpointer kDataType;
@@ -66,6 +87,8 @@ namespace Selas
         ~SceneResource();
     };
 
+    void Serialize(CSerializer* serializer, CurveSegment& data);
+    void Serialize(CSerializer* serializer, CurveData& data);
     void Serialize(CSerializer* serializer, SceneResourceData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);

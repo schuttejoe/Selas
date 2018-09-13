@@ -45,7 +45,7 @@
 #define PathsPerPixel_          1
 #define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     1.0f
+#define IntegrationSeconds_     0.0f
 
 namespace Selas
 {
@@ -318,7 +318,7 @@ namespace Selas
             int64 pathsEvaluatedPerPixel = 0;
 
             #if EnableMultiThreading_ 
-                const uint additionalThreadCount = 6;
+                const uint additionalThreadCount = 7;
             #else
                 const uint additionalThreadCount = 0;
             #endif

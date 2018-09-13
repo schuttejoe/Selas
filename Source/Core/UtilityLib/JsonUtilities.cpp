@@ -125,6 +125,10 @@ namespace Selas
                     value = element[key].GetFloat();
                     return true;
                 }
+                else if(element[key].IsInt()) {
+                    value = (float)element[key].GetInt();
+                    return true;
+                }
                 else {
                     value = defaultValue;
                     return false;

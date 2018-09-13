@@ -13,6 +13,7 @@ namespace Selas
         }
 
     //=============================================================================================================================
+    BasicTypeSerializerImpl_(bool);
     BasicTypeSerializerImpl_(int8);
     BasicTypeSerializerImpl_(int16);
     BasicTypeSerializerImpl_(int32);

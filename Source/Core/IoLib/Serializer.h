@@ -27,6 +27,7 @@ namespace Selas
 
     //=============================================================================================================================
     // -- Serialize functions for basic types
+    void Serialize(CSerializer* serializer, bool& v);
     void Serialize(CSerializer* serializer, int8& v);
     void Serialize(CSerializer* serializer, int16& v);
     void Serialize(CSerializer* serializer, int32& v);

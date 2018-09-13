@@ -41,8 +41,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ParseInstancePrimitivesFile(BuildProcessorContext* context, const FixedString256& root,
-                                             const FilePathString& sourceId, SceneResourceData* scene)
+    static Error ParseArchiveFile(BuildProcessorContext* context, const FixedString256& root,
+                                  const FilePathString& sourceId, SceneResourceData* scene)
     {
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(sourceId.Ascii(), filepath);
@@ -81,9 +81,57 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static Error ParseCurveFile(BuildProcessorContext* context, const FixedString256& root, const FilePathString& sourceId,
+                                CurveData* curve)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(sourceId.Ascii(), filepath);
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
+
+        rapidjson::Document document;
+        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+
+        uint totalControlPoints = 0;
+
+        // -- Do a prepass to count the total number of control points
+        uint segmentCount = document.Size();
+        for(const auto& curveElement : document.GetArray()) {
+            uint controlPointCount = curveElement.Size();
+            totalControlPoints += controlPointCount;
+        }
+
+        curve->controlPoints.Resize(totalControlPoints);
+        curve->segments.Resize(segmentCount);
+
+        uint segmentIndex = 0;
+        uint cpIndex = 0;
+
+        for(const auto& curveElement : document.GetArray()) {
+            uint controlPointCount = curveElement.Size();
+            
+            curve->segments[segmentIndex].startIndex = cpIndex;
+            curve->segments[segmentIndex].controlPointCount = controlPointCount;
+            ++segmentIndex;
+
+            for(const auto& controlPointElement : curveElement.GetArray()) {
+                float3& controlPoint = curve->controlPoints[cpIndex];
+                ++cpIndex;
+
+                controlPoint.x = controlPointElement[0].GetFloat();
+                controlPoint.y = controlPointElement[1].GetFloat();
+                controlPoint.z = controlPointElement[2].GetFloat();
+            }
+        }
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
     static Error ParseInstancePrimitivesSection(BuildProcessorContext* context, const FixedString256& root,
                                                 const rapidjson::Value& section, SceneResourceData* scene)
     {
+        CArray<CurveData*> curves;
+
         for(const auto& keyvalue : section.GetObject()) {
             const auto& element = keyvalue.value;
 
@@ -92,22 +140,54 @@ namespace Selas
                 return Error_("'type' parameter missing from instanced primitives section.");
             }
 
-            if(StringUtil::Equals(type.Ascii(), "archive") == false) {
-                WriteDebugInfo_(type.Ascii());
-                continue;
-            }
+            if(StringUtil::Equals(type.Ascii(), "archive")) {
+                FilePathString primFile;
+                if(Json::ReadFixedString(element, "jsonFile", primFile) == false) {
+                    return Error_("`jsonFile ` parameter missing from instanced primitives section");
+                }
+                AssetFileUtils::IndependentPathSeperators(primFile);
 
-            FilePathString primFile;
-            if(Json::ReadFixedString(element, "jsonFile", primFile) == false) {
-                return Error_("`jsonFile ` parameter missing from instanced primitives section");
+                FilePathString sourceId;
+                FixedStringSprintf(sourceId, "%s%s", root.Ascii(), primFile.Ascii());
+                ReturnError_(ParseArchiveFile(context, root, sourceId, scene));
             }
-            AssetFileUtils::IndependentPathSeperators(primFile);
-            
-            FilePathString sourceId;
-            FixedStringSprintf(sourceId, "%s%s", root.Ascii(), primFile.Ascii());
+            else if(StringUtil::Equals(type.Ascii(), "curve")) {
+                FilePathString curveFile;
+                if(Json::ReadFixedString(element, "jsonFile", curveFile) == false) {
+                    return Error_("`jsonFile ` parameter missing from instanced primitives section");
+                }
+                AssetFileUtils::IndependentPathSeperators(curveFile);
 
-            ReturnError_(ParseInstancePrimitivesFile(context, root, sourceId, scene));
+                CurveData* curve = New_(CurveData);
+                curves.Add(curve);
+
+                Json::ReadFloat(element, "widthTip", curve->widthTip, 1.0f);
+                Json::ReadFloat(element, "widthRoot", curve->widthRoot, 1.0f);
+                Json::ReadFloat(element, "degrees", curve->degrees, 1.0f);
+                Json::ReadBool(element, "faceCamera", curve->faceCamera, false);
+
+                FilePathString sourceId;
+                FixedStringSprintf(sourceId, "%s%s", root.Ascii(), curveFile.Ascii());
+                ReturnError_(ParseCurveFile(context, root, sourceId, curve));
+            }
         }
+
+        scene->curves.Resize(curves.Count());
+        for(uint scan = 0, count = scene->curves.Count(); scan < count; ++scan) {
+            CurveData* curve = curves[scan];
+
+            scene->curves[scan] = CurveData();
+            scene->curves[scan].widthTip = curve->widthTip;
+            scene->curves[scan].widthRoot = curve->widthRoot;
+            scene->curves[scan].degrees = curve->degrees;
+            scene->curves[scan].faceCamera = curve->faceCamera;
+
+            scene->curves[scan].controlPoints.Append(curve->controlPoints);
+            scene->curves[scan].segments.Append(curve->segments);
+
+            Delete_(curve);
+        }
+        curves.Shutdown();
 
         return Success_;
     }
