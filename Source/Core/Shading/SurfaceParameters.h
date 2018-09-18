@@ -48,8 +48,8 @@ namespace Selas
     };
 
     bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* hit, SurfaceParameters& surface);
-    bool CalculatePassesAlphaTest(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 baryCoords);
-    float CalculateDisplacement(const ModelResource* scene, uint32 geomId, uint32 primitiveId, float2 uvs);
+    bool CalculatePassesAlphaTest(const GeometryUserData* geomData, uint32 geomId, uint32 primitiveId, float2 baryCoords);
+    float CalculateDisplacement(const GeometryUserData* geomData, RTCGeometry rtcGeometry, uint32 primId, float2 barys);
 
     float3 GeometricTangent(const SurfaceParameters& surface);
     float3 GeometricNormal(const SurfaceParameters& surface);

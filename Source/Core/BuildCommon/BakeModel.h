@@ -12,5 +12,5 @@ namespace Selas
     struct BuildProcessorContext;
 
     //=============================================================================================================================
-    Error BakeModel(BuildProcessorContext* context, const BuiltModel& model);
+    Error BakeModel(BuildProcessorContext* context, cpointer name, const BuiltModel& model);
 }

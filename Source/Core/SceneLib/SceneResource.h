@@ -4,6 +4,8 @@
 // Joe Schutte
 //=================================================================================================================================
 
+#include "Shading/IntegratorContexts.h"
+#include "SceneLib/EmbreeUtils.h"
 #include "StringLib/FixedString.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
@@ -13,42 +15,17 @@
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
 
-// JSTODO - Make a common header for these?
-struct RTCDeviceTy;
-typedef struct RTCDeviceTy* RTCDevice;
-
-struct RTCSceneTy;
-typedef struct RTCSceneTy* RTCScene;
-
 namespace Selas
 {
     struct ModelResource;
     struct ImageBasedLightResource;
-    struct SceneInstanceData;
+    struct GeometryUserData;
 
     struct Instance
     {
         uint64 index;
         float4x4 localToWorld;
         float4x4 worldToLocal;
-    };
-
-    //=============================================================================================================================
-    struct CurveSegment
-    {
-        uint64 startIndex;
-        uint64 controlPointCount;
-    };
-
-    //=============================================================================================================================
-    struct CurveData
-    {
-        float widthTip;
-        float widthRoot;
-        float degrees;
-        bool  faceCamera;
-        CArray<float3> controlPoints;
-        CArray<CurveSegment> segments;
     };
 
     //=============================================================================================================================
@@ -61,7 +38,6 @@ namespace Selas
         CArray<FilePathString> modelNames;
         CArray<Instance> sceneInstances;
         CArray<Instance> modelInstances;
-        CArray<CurveData> curves;
         CameraSettings camera;
     };
 
@@ -78,7 +54,7 @@ namespace Selas
         AxisAlignedBox aaBox;
         float4 boundingSphere;
 
-        SceneInstanceData* sceneInstanceData;
+        GeometryUserData* geomInstanceData;
         SceneResource** scenes;
         ModelResource** models;
         ImageBasedLightResource* iblResource;
@@ -87,8 +63,6 @@ namespace Selas
         ~SceneResource();
     };
 
-    void Serialize(CSerializer* serializer, CurveSegment& data);
-    void Serialize(CSerializer* serializer, CurveData& data);
     void Serialize(CSerializer* serializer, SceneResourceData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
@@ -97,5 +71,6 @@ namespace Selas
     void ShutdownSceneResource(SceneResource* scene);
 
     void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
-    ModelResource* ModelFromInstanceId(const SceneResource* scene, int32 instId);
+
+    RTCGeometry GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId);
 }

@@ -206,10 +206,6 @@ namespace Selas
         for(uint scan = 0, count = totalVertexCount; scan < count; ++scan) {
             IncludePosition(&built->aaBox, built->positions[scan]);
         }
-
-        float3 center = 0.5f * (built->aaBox.max + built->aaBox.min);
-        float radius = Length(built->aaBox.max - center);
-        built->boundingSphere = float4(center, radius);
     }
 
     //=============================================================================================================================
@@ -246,8 +242,6 @@ namespace Selas
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
         BuildMeshes(imported, built);
 
-        const float intensityScale = 1.2f;
-        built->backgroundIntensity = intensityScale * float3(0.9f, 0.84f, 0.78f);
         built->cameras.Append(imported->cameras);
 
         return Success_;

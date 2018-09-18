@@ -4,6 +4,7 @@
 
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
 
+#include "BuildCommon/BakeModel.h"
 #include "BuildCommon/ImportModel.h"
 #include "BuildCommon/ImportMaterial.h"
 #include "BuildCore/BuildContext.h"
@@ -13,14 +14,36 @@
 #include "MathLib/FloatFuncs.h"
 #include "SystemLib/Logging.h"
 #include "SystemLib/MemoryAllocation.h"
+#include "SystemLib/CheckedCast.h"
 
 namespace Selas
 {
+    #define CurveModelNameSuffix_ "_generatedcurves"
+
     //=============================================================================================================================
     struct SceneFileData
     {
         FilePathString cameraFile;
         CArray<FilePathString> elements;
+    };
+
+    //=============================================================================================================================
+    struct CurveSegment
+    {
+        uint64 startIndex;
+        uint64 controlPointCount;
+    };
+
+    //=============================================================================================================================
+    struct CurveData
+    {
+        float widthTip;
+        float widthRoot;
+        float degrees;
+        bool  faceCamera;
+        CArray<float3> controlPoints;
+        CArray<CurveSegment> segments;
+        Hash32 name;
     };
 
     //=============================================================================================================================
@@ -130,7 +153,10 @@ namespace Selas
     static Error ParseInstancePrimitivesSection(BuildProcessorContext* context, const FixedString256& root,
                                                 const rapidjson::Value& section, SceneResourceData* scene)
     {
-        CArray<CurveData*> curves;
+        CArray<CurveData*> importedCurves;
+
+        uint controlPointCount = 0;
+        uint curveCount = 0;
 
         for(const auto& keyvalue : section.GetObject()) {
             const auto& element = keyvalue.value;
@@ -159,7 +185,10 @@ namespace Selas
                 AssetFileUtils::IndependentPathSeperators(curveFile);
 
                 CurveData* curve = New_(CurveData);
-                curves.Add(curve);
+                importedCurves.Add(curve);
+
+                const char* name = keyvalue.name.GetString();
+                curve->name = MurmurHash3_x86_32(name, StringUtil::Length(name), 0);
 
                 Json::ReadFloat(element, "widthTip", curve->widthTip, 1.0f);
                 Json::ReadFloat(element, "widthRoot", curve->widthRoot, 1.0f);
@@ -169,25 +198,72 @@ namespace Selas
                 FilePathString sourceId;
                 FixedStringSprintf(sourceId, "%s%s", root.Ascii(), curveFile.Ascii());
                 ReturnError_(ParseCurveFile(context, root, sourceId, curve));
+
+                controlPointCount += curve->controlPoints.Count();
+                curveCount += curve->segments.Count();
             }
         }
 
-        scene->curves.Resize(curves.Count());
-        for(uint scan = 0, count = scene->curves.Count(); scan < count; ++scan) {
-            CurveData* curve = curves[scan];
+        if(importedCurves.Count() > 0) {
+            BuiltModel curveModel;
+            MakeInvalid(&curveModel.aaBox);
 
-            scene->curves[scan] = CurveData();
-            scene->curves[scan].widthTip = curve->widthTip;
-            scene->curves[scan].widthRoot = curve->widthRoot;
-            scene->curves[scan].degrees = curve->degrees;
-            scene->curves[scan].faceCamera = curve->faceCamera;
+            uint curveIndex = 0;
+            uint64 indexOffset = 0;
 
-            scene->curves[scan].controlPoints.Append(curve->controlPoints);
-            scene->curves[scan].segments.Append(curve->segments);
+            curveModel.curves.Resize(curveCount);
+            curveModel.curveIndices.Reserve(controlPointCount + curveCount*3);
+            curveModel.curveVertices.Reserve(controlPointCount + curveCount*2);
 
-            Delete_(curve);
+            for(uint scan = 0, count = importedCurves.Count(); scan < count; ++scan) {
+                const CurveData* importedCurve = importedCurves[scan];
+
+                float widthRoot = importedCurve->widthRoot;
+                float widthTip = importedCurve->widthTip;
+
+                for(uint segIndex = 0, segCount = importedCurve->segments.Count(); segIndex < segCount; ++segIndex) {
+                    
+                    const CurveSegment& segment = importedCurve->segments[segIndex];
+
+                    CurveMetaData& curve = curveModel.curves[curveIndex++];
+                    curve.indexOffset = CheckedCast<uint32>(curveModel.curveIndices.Count());
+                    curve.indexCount = CheckedCast<uint32>(segment.controlPointCount - 1);
+                    curve.nameHash = importedCurve->name; // This isn't going to work because the names don't always match.
+
+                    for(uint cpScan = 0; cpScan < segment.controlPointCount-1; ++cpScan) {
+                        curveModel.curveIndices.Add(CheckedCast<uint32>(indexOffset));
+                        ++indexOffset;
+                    }
+                    indexOffset += 3;
+
+                    curveModel.curveVertices.Add(float4(importedCurve->controlPoints[segment.startIndex], widthRoot));
+                    for(uint cpScan = 0; cpScan < segment.controlPointCount; ++cpScan) {
+
+                        float w = Lerp(widthRoot, widthTip, (float)cpScan / (float)(segment.controlPointCount - 1));
+                        float3 cpPosition = importedCurve->controlPoints[segment.startIndex + cpScan];
+                        IncludePosition(&curveModel.aaBox, cpPosition);
+                        
+                        curveModel.curveVertices.Add(float4(cpPosition, w));
+                    }
+                    curveModel.curveVertices.Add(float4(importedCurve->controlPoints[segment.startIndex + segment.controlPointCount - 1], widthTip));
+                }
+
+                Delete_(importedCurves[scan]);
+            }
+
+            FilePathString curveModelName;
+            FixedStringSprintf(curveModelName, "%s%s", scene->name.Ascii(), CurveModelNameSuffix_);
+
+            Instance curveInstance;
+            curveInstance.index = scene->modelNames.Add(curveModelName);
+            curveInstance.localToWorld = Matrix4x4::Identity();
+            curveInstance.worldToLocal = Matrix4x4::Identity();
+            scene->modelInstances.Add(curveInstance);
+
+            ReturnError_(BakeModel(context, curveModelName.Ascii(), curveModel));
         }
-        curves.Shutdown();
+
+        importedCurves.Shutdown();
 
         return Success_;
     }
@@ -374,7 +450,8 @@ namespace Selas
     //=============================================================================================================================
     uint64 CDisneySceneBuildProcessor::Version()
     {
-        return SceneResource::kDataVersion;
+        // -- This build processor outputs both scenes and models so its version depends on both.
+        return SceneResource::kDataVersion + ModelResource::kDataVersion;
     }
 
     //=============================================================================================================================
@@ -403,7 +480,9 @@ namespace Selas
 
             SceneResourceData* scene = allScenes[scan];
             for(uint scan = 0, count = scene->modelNames.Count(); scan < count; ++scan) {
-                context->AddProcessDependency("model", scene->modelNames[scan].Ascii());
+                if(StringUtil::EndsWithIgnoreCase(scene->modelNames[scan].Ascii(), CurveModelNameSuffix_) == false) {
+                    context->AddProcessDependency("model", scene->modelNames[scan].Ascii());
+                }
             }
 
             context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, scene->name.Ascii(), *scene);

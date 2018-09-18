@@ -24,7 +24,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1535774129ul;
+    const uint64 ModelResource::kDataVersion = 1536952591ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -34,22 +34,37 @@ namespace Selas
     //=============================================================================================================================
 
     //=============================================================================================================================
+    void Serialize(CSerializer* serializer, CurveMetaData& data)
+    {
+        Serialize(serializer, data.indexOffset);
+        Serialize(serializer, data.indexCount);
+        Serialize(serializer, data.nameHash);
+    }
+
+    //=============================================================================================================================
+    void Serialize(CSerializer* serializer, MeshMetaData& data)
+    {
+        Serialize(serializer, data.indexCount);
+        Serialize(serializer, data.indexOffset);
+        Serialize(serializer, data.vertexCount);
+        Serialize(serializer, data.vertexOffset);
+        Serialize(serializer, data.materialHash);
+        Serialize(serializer, data.indicesPerFace);
+        Serialize(serializer, data.meshNameHash);
+    }
+
+    //=============================================================================================================================
     void Serialize(CSerializer* serializer, ModelResourceData& data)
     {
         Serialize(serializer, data.aaBox);
-        Serialize(serializer, data.boundingSphere);
-        Serialize(serializer, data.cameraCount);
-        Serialize(serializer, data.meshCount);
         Serialize(serializer, data.totalVertexCount);
-        Serialize(serializer, data.indexCount);
-        Serialize(serializer, data.textureCount);
-        Serialize(serializer, data.materialCount);
-
-        serializer->SerializePtr((void*&)data.cameras, data.cameraCount * sizeof(CameraSettings), 0);
-        serializer->SerializePtr((void*&)data.textureResourceNames, data.textureCount * sizeof(FilePathString), 0);
-        serializer->SerializePtr((void*&)data.materials, data.materialCount * sizeof(Material), 0);
-        serializer->SerializePtr((void*&)data.materialHashes, data.materialCount * sizeof(Hash32), 0);
-        serializer->SerializePtr((void*&)data.meshData, data.meshCount * sizeof(MeshMetaData), 0);
+        Serialize(serializer, data.totalCurveVertexCount);
+        Serialize(serializer, data.cameras);
+        Serialize(serializer, data.textureResourceNames);
+        Serialize(serializer, data.materials);
+        Serialize(serializer, data.materialHashes);
+        Serialize(serializer, data.meshes);
+        Serialize(serializer, data.curves);
     }
 
     //=============================================================================================================================
@@ -61,6 +76,8 @@ namespace Selas
         Serialize(serializer, data.normalsSize);
         Serialize(serializer, data.tangentsSize);
         Serialize(serializer, data.uvsSize);
+        Serialize(serializer, data.curveIndexSize);
+        Serialize(serializer, data.curveVertexSize);
         
         serializer->SerializePtr((void*&)data.indices, data.indexSize, ModelResource::kGeometryDataAlignment);
         serializer->SerializePtr((void*&)data.faceIndexCounts, data.faceIndexSize, ModelResource::kGeometryDataAlignment);
@@ -68,6 +85,8 @@ namespace Selas
         serializer->SerializePtr((void*&)data.normals, data.normalsSize, ModelResource::kGeometryDataAlignment);
         serializer->SerializePtr((void*&)data.tangents, data.tangentsSize, ModelResource::kGeometryDataAlignment);
         serializer->SerializePtr((void*&)data.uvs, data.uvsSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.curveIndices, data.curveIndexSize, ModelResource::kGeometryDataAlignment);
+        serializer->SerializePtr((void*&)data.curveVertices, data.curveVertexSize, ModelResource::kGeometryDataAlignment);
     }
 
     //=============================================================================================================================
@@ -78,7 +97,7 @@ namespace Selas
     static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
     {
         int* valid = args->valid;
-        ModelResource* model = (ModelResource*)args->geometryUserPtr;
+        GeometryUserData* geomData = (GeometryUserData*)args->geometryUserPtr;
 
         for(uint32 scan = 0; scan < args->N; ++scan) {
             if(valid[scan] != -1) {
@@ -86,7 +105,7 @@ namespace Selas
             }
 
             RTCHit hit = rtcGetHitFromHitN(args->hit, args->N, scan);
-            valid[scan] = CalculatePassesAlphaTest(model, hit.geomID, hit.primID, { hit.u, hit.v });
+            valid[scan] = CalculatePassesAlphaTest(geomData, hit.geomID, hit.primID, { hit.u, hit.v });
         }
     }
 
@@ -106,20 +125,14 @@ namespace Selas
 
         unsigned int N = args->N;
 
-        ModelResource* model = (ModelResource*)args->geometryUserPtr;
-
-        AssertMsg_(false, "nyi");
-        uint32 geomId = 0;// (args->geometry == model->rtcGeometries[eMeshDisplaced]) ? eMeshDisplaced : eMeshAlphaTestedDisplaced;
+        GeometryUserData* userData = (GeometryUserData*)args->geometryUserPtr;
 
         for(unsigned int i = 0; i < N; i++) {
             //float3 position = float3(px[i], py[i], pz[i]);
             float3 normal = float3(nx[i], ny[i], nz[i]);
             float2 barys = float2(us[i], vs[i]);
 
-            Align_(16) float2 uvs;
-            rtcInterpolate0(args->geometry, args->primID, barys.x, barys.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
-
-            float displacement = CalculateDisplacement(model, geomId, args->primID, uvs);
+            float displacement = CalculateDisplacement(userData, args->geometry, args->primID, barys);
 
             #if CheckForNaNs_
             Assert_(!Math::IsNaN(normal.x));
@@ -137,9 +150,9 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SetVertexAttributes(RTCGeometry geom, ModelResource* model)
+    static void SetMeshVertexAttributes(RTCGeometry geom, ModelResource* model)
     {
-        ModelResourceData* metadata = model->data;
+        ModelResourceData* resourceData = model->data;
         ModelGeometryData* geometry = model->geometry;
 
         Assert_(((uint)geometry->positions & (ModelResource::kGeometryDataAlignment - 1)) == 0);
@@ -148,25 +161,31 @@ namespace Selas
         Assert_(((uint)geometry->uvs & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
         rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, geometry->positions, 0, sizeof(float3), 
-                                   metadata->totalVertexCount);
+                                   resourceData->totalVertexCount);
 
+        bool hasNormals = geometry->normalsSize > 0;
         bool hasTangents = geometry->tangentsSize > 0;
         bool hasUVs = geometry->uvsSize > 0;
-        uint32 attributeCount = 1 + (hasUVs ? 1 : 0) + (hasTangents ? 1 : 0);
+        uint32 attributeCount = (hasNormals ? 1 : 0) + (hasUVs ? 1 : 0) + (hasTangents ? 1 : 0);
 
-        rtcSetGeometryVertexAttributeCount(geom, attributeCount);
-        rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0, 
-                                   sizeof(float3), metadata->totalVertexCount);
-        if(hasTangents) {
-            rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0,
-                                       sizeof(float4), metadata->totalVertexCount);
-        }
-        if(hasUVs) {
-            rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
-                                       sizeof(float2), metadata->totalVertexCount);
-        }
+        if(attributeCount > 0) {
+            rtcSetGeometryVertexAttributeCount(geom, attributeCount);
 
-        rtcSetGeometryUserData(geom, model);
+            if(hasNormals) {
+                rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, geometry->normals, 0,
+                                           sizeof(float3), resourceData->totalVertexCount);
+            }
+            if(hasTangents) {
+                Assert_(hasNormals);
+                rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT4, geometry->tangents, 0,
+                                           sizeof(float4), resourceData->totalVertexCount);
+            }
+            if(hasUVs) {
+                Assert_(hasNormals && hasTangents);
+                rtcSetSharedGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT2, geometry->uvs, 0,
+                                           sizeof(float2), resourceData->totalVertexCount);
+            }
+        }
     }
 
     //=============================================================================================================================
@@ -183,11 +202,12 @@ namespace Selas
     //=============================================================================================================================
     static const Material* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
     {
-        if(model->data->materialCount == 0) {
+        uint materialCount = model->data->materials.Count();
+        if(materialCount == 0) {
             return model->defaultMaterial;
         }
 
-        uint materialIndex = BinarySearch(model->data->materialHashes, model->data->materialCount, materialHash);
+        uint materialIndex = BinarySearch(model->data->materialHashes.DataPointer(), materialCount, materialHash);
         if(materialIndex == (uint)-1) {
             return model->defaultMaterial;
         }
@@ -196,7 +216,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void PopulateEmbreeScene(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene)
+    static uint32 InitializeMeshes(ModelResource* model, uint32 offset, RTCDevice rtcDevice, RTCScene rtcScene)
     {
         ModelResourceData* modelData = model->data;
         ModelGeometryData* geometry = model->geometry;
@@ -204,8 +224,8 @@ namespace Selas
         Assert_(((uint)geometry->indices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
         Assert_(((uint)geometry->faceIndexCounts & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
-        for(uint32 scan = 0, count = modelData->meshCount; scan < count; ++scan) {
-            const MeshMetaData& meshData = modelData->meshData[scan];
+        for(uint32 scan = 0, count = (uint32)modelData->meshes.Count(); scan < count; ++scan) {
+            const MeshMetaData& meshData = modelData->meshes[scan];
             const Material* material = FindMeshMaterial(model, meshData.materialHash);
 
             bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
@@ -217,7 +237,7 @@ namespace Selas
             RTCGeometry rtcGeometry;
             if(hasDisplacement) {
                 rtcGeometry = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_SUBDIVISION);
-                SetVertexAttributes(rtcGeometry, model);
+                SetMeshVertexAttributes(rtcGeometry, model);
                 rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->indices,
                                            indexByteOffset, sizeof(uint32), meshData.indexCount);
 
@@ -233,7 +253,7 @@ namespace Selas
                 RTCFormat format = indicesPerFace == 3 ? RTC_FORMAT_UINT3 : RTC_FORMAT_UINT4;
 
                 rtcGeometry = rtcNewGeometry(rtcDevice, type);
-                SetVertexAttributes(rtcGeometry, model);
+                SetMeshVertexAttributes(rtcGeometry, model);
                 rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, format, geometry->indices,
                                            indexByteOffset, indicesPerFace * sizeof(uint32), meshData.indexCount / indicesPerFace);
             }
@@ -242,13 +262,81 @@ namespace Selas
                 rtcSetGeometryIntersectFilterFunction(rtcGeometry, IntersectionFilter);
             }
 
-            model->materialLookup.Add(material);
             model->rtcGeometries.Add(rtcGeometry);
 
+            GeometryUserData* userData = New_(GeometryUserData);
+            userData->flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
+                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
+            userData->material = material;
+            userData->instanceID = RTC_INVALID_GEOMETRY_ID;
+            userData->rtcScene = rtcScene;
+            userData->rtcGeometry = rtcGeometry;
+            userData->worldToLocal = Matrix4x4::Identity();
+            MakeInvalid(&userData->aaBox);
+            rtcSetGeometryUserData(rtcGeometry, userData);
+
             rtcCommitGeometry(rtcGeometry);
-            rtcAttachGeometryByID(rtcScene, rtcGeometry, scan);
+            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
             rtcReleaseGeometry(rtcGeometry);
         }
+
+        return offset + (uint32)modelData->meshes.Count();
+    }
+
+    //=============================================================================================================================
+    static uint32 InitializeCurves(ModelResource* model, uint32 offset, RTCDevice rtcDevice, RTCScene rtcScene)
+    {
+        ModelResourceData* modelData = model->data;
+        ModelGeometryData* geometry = model->geometry;
+
+        Assert_(((uint)geometry->curveIndices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+        Assert_(((uint)geometry->curveVertices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
+
+        model->rtcGeometries.Reserve(modelData->curves.Count());
+
+        for(uint32 scan = 0, count = (uint32)modelData->curves.Count(); scan < count; ++scan) {
+
+            const CurveMetaData& curve = modelData->curves[scan];
+            const Material* material = FindMeshMaterial(model, curve.nameHash);
+
+            uint32 indexByteOffset = curve.indexOffset * sizeof(uint32);
+
+            RTCGeometry rtcGeometry = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_ROUND_BSPLINE_CURVE);
+
+            rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT, geometry->curveIndices,
+                                       indexByteOffset, sizeof(uint32), curve.indexCount);
+            rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT4, geometry->curveVertices,
+                                       0, sizeof(float4), modelData->totalCurveVertexCount);
+
+            model->rtcGeometries.Add(rtcGeometry);
+
+            GeometryUserData* userData = New_(GeometryUserData);
+            userData->flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
+                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
+            userData->material = material;
+            userData->instanceID = RTC_INVALID_GEOMETRY_ID;
+            userData->rtcScene = rtcScene;
+            userData->rtcGeometry = rtcGeometry;
+            userData->worldToLocal = Matrix4x4::Identity();
+            MakeInvalid(&userData->aaBox);
+            rtcSetGeometryUserData(rtcGeometry, userData);
+
+            rtcCommitGeometry(rtcGeometry);
+            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
+            rtcReleaseGeometry(rtcGeometry);
+        }
+
+        return offset + (uint32)modelData->curves.Count();
+    }
+
+    //=============================================================================================================================
+    static void PopulateEmbreeScene(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene)
+    {
+        uint32 offset = 0;
+        offset = InitializeMeshes(model, offset, rtcDevice, rtcScene);
+        offset = InitializeCurves(model, offset, rtcDevice, rtcScene);
 
         rtcCommitScene(rtcScene);
     }
@@ -319,10 +407,10 @@ namespace Selas
     //=============================================================================================================================
     Error InitializeModelResource(ModelResource* model)
     {
-        uint textureCount = model->data->textureCount;
+        uint textureCount = model->data->textureResourceNames.Count();
         model->textures = AllocArray_(TextureResource, textureCount);
 
-        for(uint scan = 0, count = model->data->textureCount; scan < count; ++scan) {
+        for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
             ReturnError_(ReadTextureResource(model->data->textureResourceNames[scan].Ascii(), &model->textures[scan]));
         }
 
@@ -344,12 +432,17 @@ namespace Selas
     //=============================================================================================================================
     void ShutdownModelResource(ModelResource* model)
     {
-        if(model->rtcScene)
+        for(uint scan = 0, count = model->rtcGeometries.Count(); scan < count; ++scan) {
+            GeometryUserData* geomData = (GeometryUserData*)rtcGetGeometryUserData(model->rtcGeometries[scan]);
+            Delete_(geomData);
+        }
+
+        if(model->rtcScene) {
             rtcReleaseScene(model->rtcScene);
-            
+        }
         model->rtcScene = nullptr;
 
-        for(uint scan = 0, count = model->data->textureCount; scan < count; ++scan) {
+        for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
             ShutdownTextureResource(&model->textures[scan]);
         }
 

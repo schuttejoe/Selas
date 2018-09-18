@@ -64,6 +64,7 @@ namespace Selas
         material->baseColorTexture.Clear();
         if(Json::IsStringAttribute(document, "baseColor")) {
             Json::ReadFixedString(document, "baseColor", material->baseColorTexture);
+            material->baseColor = float3(0.6f, 0.6f, 0.6f);
         }
         else {
             Json::ReadFloat3(document, "baseColor", material->baseColor, float3(0.6f, 0.6f, 0.6f));

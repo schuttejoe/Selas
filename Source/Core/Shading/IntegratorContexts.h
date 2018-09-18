@@ -15,6 +15,8 @@
 struct RTCSceneTy;
 typedef struct RTCSceneTy* RTCScene;
 
+#define MaxInstanceLevelCount_ 2
+
 namespace Selas
 {
     struct SceneResource;
@@ -38,11 +40,12 @@ namespace Selas
     struct HitParameters
     {
         float3 position;
+        float3 normal;
         float3 incDirection; // points in the direction the path that hit this position came from
         float error;
         int32 geomId;
         int32 primId;
-        int32 instId;
+        int32 instId[MaxInstanceLevelCount_];
 
         float2 baryCoords;
     };

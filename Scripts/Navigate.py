@@ -11,11 +11,9 @@ def main(argv):
     if sys.platform == "linux":
         engineDir = os.path.join(os.path.expanduser("~"), "dev", "Selas")
     else:
-        envVar = os.environ['Selas']
-        engineDir, tail = os.path.splitdrive(envVar)
+        engineDir = os.environ['Selas']
     
     targetDir = engineDir
-
 
     if(len(argv) > 0):
         if argv[0].lower() == "source":
@@ -32,8 +30,6 @@ def main(argv):
             targetDir = os.path.join(engineDir, "Content")
         if argv[0].lower() == "selas":
             targetDir = os.path.join(engineDir, "Source", "Applications", "Selas")
-        if argv[0].lower() == "build":
-            targetDir = os.path.join(engineDir, "Source", "Applications", "Build")
         if argv[0].lower() == "projects":
             targetDir = os.path.join(engineDir, "_Projects")
         if argv[0].lower() == "middleware":

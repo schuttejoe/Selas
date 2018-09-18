@@ -42,7 +42,7 @@
 #define MaxBounceCount_         2048
 
 #define EnableMultiThreading_   1
-#define PathsPerPixel_          1
+#define PathsPerPixel_          128
 #define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
 #define IntegrationSeconds_     0.0f
@@ -111,6 +111,8 @@ namespace Selas
 
             rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
             rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+            rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+            rayhit.hit.instID[1] = RTC_INVALID_GEOMETRY_ID;
 
             rtcIntersect1(rtcScene, &context, &rayhit);
 
@@ -120,10 +122,14 @@ namespace Selas
             hit.position.x = rayhit.ray.org_x + rayhit.ray.tfar * ray.direction.x;
             hit.position.y = rayhit.ray.org_y + rayhit.ray.tfar * ray.direction.y;
             hit.position.z = rayhit.ray.org_z + rayhit.ray.tfar * ray.direction.z;
+            hit.normal.x = rayhit.hit.Ng_x;
+            hit.normal.y = rayhit.hit.Ng_y;
+            hit.normal.z = rayhit.hit.Ng_z;
             hit.baryCoords = { rayhit.hit.u, rayhit.hit.v };
             hit.geomId = rayhit.hit.geomID;
             hit.primId = rayhit.hit.primID;
-            hit.instId = rayhit.hit.instID[0];
+            hit.instId[0] = rayhit.hit.instID[0];
+            hit.instId[1] = rayhit.hit.instID[1];
             hit.incDirection = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;

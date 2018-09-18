@@ -4,6 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
+#include "SceneLib/EmbreeUtils.h"
 #include "StringLib/FixedString.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
@@ -12,12 +13,6 @@
 #include "ContainersLib/CArray.h"
 #include "SystemLib/Error.h"
 #include "SystemLib/BasicTypes.h"
-
-struct RTCDeviceTy;
-typedef struct RTCDeviceTy* RTCDevice;
-
-struct RTCSceneTy;
-typedef struct RTCSceneTy* RTCScene;
 
 namespace Selas
 {
@@ -92,13 +87,20 @@ namespace Selas
         uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];
     };
 
+    struct CurveMetaData
+    {
+        uint32 indexOffset;
+        uint32 indexCount;
+        Hash32 nameHash;
+    };
+
     struct MeshMetaData
     {
         uint32 indexCount;
         uint32 indexOffset;
         uint32 vertexCount;
         uint32 vertexOffset;
-        uint32 materialHash;
+        Hash32 materialHash;
         uint32 indicesPerFace;
         Hash32 meshNameHash;
     };
@@ -107,21 +109,15 @@ namespace Selas
     {
         // -- misc scene info
         AxisAlignedBox  aaBox;
-        float4          boundingSphere;
-
-        // -- object counts
-        uint32          cameraCount;
-        uint32          meshCount;
         uint32          totalVertexCount;
-        uint32          indexCount;
-        uint32          textureCount;
-        uint32          materialCount;
+        uint32          totalCurveVertexCount;
 
-        CameraSettings* cameras;
-        FilePathString* textureResourceNames;
-        Material*       materials;
-        Hash32*         materialHashes;
-        MeshMetaData*   meshData;
+        CArray<CameraSettings> cameras;
+        CArray<FilePathString> textureResourceNames;
+        CArray<Material>       materials;
+        CArray<Hash32>         materialHashes;
+        CArray<MeshMetaData>   meshes;
+        CArray<CurveMetaData>  curves;
     };
 
     struct ModelGeometryData
@@ -132,6 +128,8 @@ namespace Selas
         uint64 normalsSize;
         uint64 tangentsSize;
         uint64 uvsSize;
+        uint64 curveIndexSize;
+        uint64 curveVertexSize;
 
         uint32* indices;
         uint32* faceIndexCounts;
@@ -139,6 +137,8 @@ namespace Selas
         float3* normals;
         float4* tangents;
         float2* uvs;
+        uint32* curveIndices;
+        float4* curveVertices;
     };
 
     struct ModelResource
@@ -153,15 +153,16 @@ namespace Selas
 
         TextureResource* textures;
         RTCScene rtcScene;
-        CArray<void*> rtcGeometries;
+        CArray<RTCGeometry> rtcGeometries;
 
         Material* defaultMaterial;
-        CArray<const Material*> materialLookup;
 
         ModelResource();
         ~ModelResource();
     };
 
+    void Serialize(CSerializer* serializer, CurveMetaData& data);
+    void Serialize(CSerializer* serializer, MeshMetaData& data);
     void Serialize(CSerializer* serializer, ModelResourceData& data);
     void Serialize(CSerializer* serializer, ModelGeometryData& data);
 

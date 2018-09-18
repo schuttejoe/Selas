@@ -62,13 +62,11 @@ namespace Selas
         // -- meta data
         CArray<CameraSettings> cameras;
         AxisAlignedBox aaBox;
-        float4 boundingSphere;
-        float3 backgroundIntensity;
 
         // -- material information
-        CArray<FilePathString> textures;
-        CArray<Hash32>         materialHashes;
-        CArray<Material>       materials;
+        CArray<FilePathString>      textures;
+        CArray<Hash32>              materialHashes;
+        CArray<Material>            materials;
 
         // -- geometry information
         CArray<MeshMetaData>        meshes;
@@ -78,6 +76,11 @@ namespace Selas
         CArray<float3>              normals;
         CArray<float4>              tangents;
         CArray<float2>              uvs;
+
+        // -- curves
+        CArray<CurveMetaData>       curves;
+        CArray<uint32>              curveIndices;
+        CArray<float4>              curveVertices;
     };
 
 }

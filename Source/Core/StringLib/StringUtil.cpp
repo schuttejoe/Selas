@@ -170,7 +170,7 @@ namespace Selas
             uint startIndex = lhsLength - rhsLength;
 
             #if IsWindows_
-            return _stricmp(lhs + startIndex, rhs) == 0;
+                return _stricmp(lhs + startIndex, rhs) == 0;
             #elif IsOsx_
                 return strcmp(lhs + startIndex, rhs) == 0;
             #endif

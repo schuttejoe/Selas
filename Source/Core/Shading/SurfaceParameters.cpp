@@ -20,18 +20,18 @@
 #define ForceNoMips_ true
 #define EnableEWA_ true
 
-#define ReadUvAttribute(scene, uvs, attrib) \
-   SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[attrib], false, material->scalarAttributeValues[attrib]);
+#define ReadUvAttribute(model, uvs, attrib) \
+   SampleTextureFloat(model, uvs, material->scalarAttributeTextureIndices[attrib], false, material->scalarAttributeValues[attrib]);
 
 namespace Selas
 {
     //=============================================================================================================================
-    static float3 SampleTextureNormal(const ModelResource* scene, float2 uvs, uint textureIndex)
+    static float3 SampleTextureNormal(const ModelResource* model, float2 uvs, uint textureIndex)
     {
-        if(textureIndex == InvalidIndex32)
+        //if(textureIndex == InvalidIndex32)
             return float3::ZAxis_;
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
         if(textures[textureIndex].data->format != TextureResourceData::Float3) {
             Assert_(false);
             return float3::ZAxis_;
@@ -44,13 +44,13 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float SampleTextureOpacity(const ModelResource* scene, float2 uvs, uint textureIndex)
+    static float SampleTextureOpacity(const ModelResource* model, float2 uvs, uint textureIndex)
     {
-        if(textureIndex == InvalidIndex32) {
+        //if(textureIndex == InvalidIndex32) {
             return 1.0f;
-        }
+        //}
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
         if(textures[textureIndex].data->format != TextureResourceData::Float4) {
             return 1.0f;
         }
@@ -63,12 +63,12 @@ namespace Selas
 
     //=============================================================================================================================
     template <typename Type_>
-    static Type_ SampleTexture(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
+    static Type_ SampleTexture(const ModelResource* model, float2 uvs, uint textureIndex, bool sRGB, Type_ defaultValue)
     {
-        if(textureIndex == InvalidIndex32)
+        //if(textureIndex == InvalidIndex32)
             return defaultValue;
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
 
         Type_ sample;
         TextureFiltering::Triangle(textures[textureIndex].data, 0, uvs, sample);
@@ -81,24 +81,24 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float SampleTextureFloat(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
+    static float SampleTextureFloat(const ModelResource* model, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
-        if(textureIndex == InvalidIndex32)
+        //if(textureIndex == InvalidIndex32)
             return defaultValue;
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
+            return SampleTexture(model, uvs, textureIndex, sRGB, defaultValue);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float2) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, float2(defaultValue, 0.0f)).x;
+            return SampleTexture(model, uvs, textureIndex, sRGB, float2(defaultValue, 0.0f)).x;
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, 0.0f, 0.0f)).x;
+            return SampleTexture(model, uvs, textureIndex, sRGB, float3(defaultValue, 0.0f, 0.0f)).x;
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, 0.0f, 0.0f, 0.0f)).x;
+            return SampleTexture(model, uvs, textureIndex, sRGB, float4(defaultValue, 0.0f, 0.0f, 0.0f)).x;
         }
 
         Assert_(false);
@@ -106,23 +106,23 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float3 SampleTextureFloat3(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float3 defaultValue)
+    static float3 SampleTextureFloat3(const ModelResource* model, float2 uvs, uint textureIndex, bool sRGB, float3 defaultValue)
     {
-        if(textureIndex == InvalidIndex32)
+        //if(textureIndex == InvalidIndex32)
             return defaultValue;
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
             float val;
-            val = SampleTexture(scene, uvs, textureIndex, sRGB, 0.0f);
+            val = SampleTexture(model, uvs, textureIndex, sRGB, 0.0f);
             return float3(val, val, val);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
+            return SampleTexture(model, uvs, textureIndex, sRGB, defaultValue);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            float4 val = SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, 1.0f));
+            float4 val = SampleTexture(model, uvs, textureIndex, sRGB, float4(defaultValue, 1.0f));
             return val.XYZ();
         }
 
@@ -131,23 +131,23 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static float4 SampleTextureFloat4(const ModelResource* scene, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
+    static float4 SampleTextureFloat4(const ModelResource* model, float2 uvs, uint textureIndex, bool sRGB, float defaultValue)
     {
-        if(textureIndex == InvalidIndex32)
+        //if(textureIndex == InvalidIndex32)
             return float4(defaultValue, defaultValue, defaultValue, defaultValue);
 
-        TextureResource* textures = scene->textures;
+        TextureResource* textures = model->textures;
 
         if(textures[textureIndex].data->format == TextureResourceData::Float) {
-            float val = SampleTexture(scene, uvs, textureIndex, sRGB, defaultValue);
+            float val = SampleTexture(model, uvs, textureIndex, sRGB, defaultValue);
             return float4(val, val, val, 1.0f);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float3) {
-            float3 value = SampleTexture(scene, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
+            float3 value = SampleTexture(model, uvs, textureIndex, sRGB, float3(defaultValue, defaultValue, defaultValue));
             return float4(value, 1.0f);
         }
         else if(textures[textureIndex].data->format == TextureResourceData::Float4) {
-            return SampleTexture(scene, uvs, textureIndex, sRGB, float4(defaultValue, defaultValue, defaultValue, defaultValue));
+            return SampleTexture(model, uvs, textureIndex, sRGB, float4(defaultValue, defaultValue, defaultValue, defaultValue));
         }
 
         Assert_(false);
@@ -155,31 +155,31 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const Material* GetSurfaceMaterial(const ModelResource* model, uint32 geomId)
-    {
-        Assert_(geomId < model->materialLookup.Count());
-        return model->materialLookup[geomId];
-    }
-
-    //=============================================================================================================================
     bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* __restrict hit,
                                 SurfaceParameters& surface)
     {
         const SceneResource* scene = context->scene;
-        const ModelResource* model = ModelFromInstanceId(context->scene, hit->instId);
+        const ModelResource* model = nullptr;// ModelFromRayIds(context->scene, hit->geomId, hit->instId);
 
-        const Material* material = GetSurfaceMaterial(model, hit->geomId);
+        RTCGeometry rtcGeometry = GeometryFromRayIds(context->scene, hit->instId, hit->geomId);
+        GeometryUserData* userData = (GeometryUserData*)rtcGetGeometryUserData(rtcGeometry);
+        const Material* material = userData->material;
 
         Align_(16) float3 normal;
-        rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        if(userData->flags & HasNormals) {
+            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        }
+        else {
+            normal = hit->normal;
+        }
 
         float3 n = Normalize(normal);
         float3 t, b;
 
         Align_(16) float4 tangent;
-        if(model->geometry->tangentsSize > 0) {
-            rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        if(userData->flags & HasTangents) {
+            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
 
             t = tangent.XYZ();
@@ -190,8 +190,8 @@ namespace Selas
         }
 
         Align_(16) float2 uvs = float2(0.0f, 0.0f);
-        if(model->geometry->uvsSize > 0) {
-            rtcInterpolate0((RTCGeometry)model->rtcGeometries[hit->geomId], hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        if(userData->flags & HasUvs) {
+            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
         }
 
@@ -235,24 +235,32 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    bool CalculatePassesAlphaTest(const ModelResource* scene, uint32 geomId, uint32 primId, float2 baryCoords)
+    bool CalculatePassesAlphaTest(const GeometryUserData* geomData, uint32 geomId, uint32 primId, float2 baryCoords)
     {
-        const Material* material = GetSurfaceMaterial(scene, geomId);
+        const Material* material = geomData->material;
         Assert_(material->flags & MaterialFlags::eAlphaTested);
 
-        Align_(16) float2 uvs;
-        rtcInterpolate0((RTCGeometry)scene->rtcGeometries[geomId], primId, baryCoords.x, baryCoords.y,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        Align_(16) float2 uvs = float2::Zero_;
+        if(geomData->flags & HasUvs) {
+            rtcInterpolate0(geomData->rtcGeometry, primId, baryCoords.x, baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        }
 
         static const float kAlphaTestCutoff = 0.5f;
-        return SampleTextureOpacity(scene, uvs, material->baseColorTextureIndex) > kAlphaTestCutoff;
+        return SampleTextureOpacity(nullptr, uvs, material->baseColorTextureIndex) > kAlphaTestCutoff;
     }
 
     //=============================================================================================================================
-    float CalculateDisplacement(const ModelResource* scene, uint32 geomId, uint32 primId, float2 uvs)
+    float CalculateDisplacement(const GeometryUserData* userData, RTCGeometry rtcGeometry, uint32 primId, float2 barys)
     {
-        const Material* material = GetSurfaceMaterial(scene, geomId);
-        float displacement = SampleTextureFloat(scene, uvs, material->scalarAttributeTextureIndices[eDisplacement], false, 0.0f);
+        Align_(16) float2 uvs = float2::Zero_;
+        if(userData->flags & HasUvs) {
+            rtcInterpolate0(rtcGeometry, primId, barys.x, barys.y, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        }
+
+        const Material* material = userData->material;
+
+        float displacement = SampleTextureFloat(nullptr, uvs, material->scalarAttributeTextureIndices[eDisplacement], false, 0.0f);
         if(material->flags & eInvertDisplacement) {
             displacement = 1.0f - displacement;
         }
