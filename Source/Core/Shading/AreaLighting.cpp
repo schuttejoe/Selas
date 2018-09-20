@@ -222,7 +222,7 @@ namespace Selas
 
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(&iblData->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        Ibl(iblData, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
         float3 radiance = SampleIbl(iblData, x, y);
 
@@ -263,7 +263,7 @@ namespace Selas
         float dirTheta;
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(&iblData->densityfunctions, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        Ibl(iblData, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
         float3 radiance = SkyIntensityScale_ * SampleIbl(iblData, x, y);
 
@@ -338,11 +338,23 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 SampleBackgroundLight(GIIntegratorContext* context, float3 wi)
+    float3 SampleBackground(GIIntegratorContext* context, float3 wi)
     {
         if(context->scene->iblResource) {
             float pdf;
             return SkyIntensityScale_ * SampleIbl(context->scene->iblResource->data, wi, pdf);
+        }
+        else {
+            return context->scene->data->backgroundIntensity.XYZ();
+        }
+    }
+
+    //=============================================================================================================================
+    float3 SampleBackgroundMiss(GIIntegratorContext* context, float3 wi)
+    {
+        if(context->scene->iblResource) {
+            float pdf;
+            return SkyIntensityScale_ * SampleIblMiss(context->scene->iblResource->data, wi, pdf);
         }
         else {
             return context->scene->data->backgroundIntensity.XYZ();

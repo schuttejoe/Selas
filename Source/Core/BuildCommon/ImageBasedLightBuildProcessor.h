@@ -16,4 +16,12 @@ namespace Selas
         virtual uint64   Version() override;
         virtual Error    Process(BuildProcessorContext* context) override;
     };
+
+    class CDualImageBasedLightBuildProcessor : public CBuildProcessor
+    {
+        virtual Error    Setup() override;
+        virtual cpointer Type() override;
+        virtual uint64   Version() override;
+        virtual Error    Process(BuildProcessorContext* context) override;
+    };
 }

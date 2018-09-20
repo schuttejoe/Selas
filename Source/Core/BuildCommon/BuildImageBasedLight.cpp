@@ -96,29 +96,103 @@ namespace Selas
         functions->marginalDensityFunction[height - 1] = 1.0f;
     }
 
+    struct Rgb16
+    {
+        uint16 r;
+        uint16 g;
+        uint16 b;
+    };
+
+    //=============================================================================================================================
+    static float3 ToFloat3(Rgb16 convert)
+    {
+        float3 result;
+        result.x = convert.r / 65535.0f;
+        result.y = convert.g / 65535.0f;
+        result.z = convert.b / 65535.0f;
+
+        return result;
+    }
+
+    //=============================================================================================================================
+    static Error ReadIblTextureFile(BuildProcessorContext* context, cpointer filename, uint& width, uint& height, float3*& data)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(filename, filepath);
+
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
+
+        void* rawData;
+
+
+        uint channels;
+        bool floatData;
+        ReturnError_(StbImageRead(filepath.Ascii(), 3, 16, width, height, channels, floatData, rawData));
+        if(floatData == false) {
+            data = AllocArray_(float3, width*height);
+            
+            Rgb16* conversion = (Rgb16*)rawData;
+            for(uint scan = 0, count = width * height; scan < count; ++scan) {
+                data[scan] = ToFloat3(conversion[scan]);
+            }
+            Free_(rawData);
+        }
+        else {
+            data = (float3*)rawData;
+        }
+
+        return Success_;
+    }
+
     //=============================================================================================================================
     Error ImportImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* ibl)
     {
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
-        context->AddFileDependency(filepath.Ascii());
-
+        
         uint width;
         uint height;
-        uint channels;
-        bool floatData;
-        void* raw;
-        ReturnError_(StbImageRead(filepath.Ascii(), 3, width, height, channels, floatData, raw));
+        float3* raw;
+        ReturnError_(ReadIblTextureFile(context, filepath.Ascii(), width, height, raw));
+
+        ibl->lightData = raw;
+        ibl->missData = nullptr;
+        ibl->missWidth = 0;
+        ibl->missHeight = 0;
+        ibl->rotationRadians = 0.0f;
         
-        if(floatData == false) {
-            return Error_("Expected floating point texture for '%s'", filepath.Ascii());
-        }
-
-        ibl->hdrData = reinterpret_cast<float3*>(raw);
-
-        float* intensities = CalculateIntensityMap(width, height, ibl->hdrData);
+        float* intensities = CalculateIntensityMap(width, height, ibl->lightData);
 
         CalculateStrataDistributionFunctions(width, height, intensities, &ibl->densityfunctions);
+
+        FreeAligned_(intensities);
+        Free_(raw);
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    Error ImportDualImageBasedLight(BuildProcessorContext* context, cpointer lightPath, cpointer missPath,
+                                    ImageBasedLightResourceData* ibl)
+    {
+        uint lightWidth;
+        uint lightHeight;
+        float3* lightData;
+        ReturnError_(ReadIblTextureFile(context, lightPath, lightWidth, lightHeight, lightData));
+
+        uint missWidth;
+        uint missHeight;
+        float3* missData;
+        ReturnError_(ReadIblTextureFile(context, missPath, missWidth, missHeight, missData));
+
+        ibl->lightData = lightData;
+        float* intensities = CalculateIntensityMap(lightWidth, lightHeight, ibl->lightData);
+        CalculateStrataDistributionFunctions(lightWidth, lightHeight, intensities, &ibl->densityfunctions);
+
+        ibl->missData = missData;
+        ibl->missWidth = missWidth;
+        ibl->missHeight = missHeight;
+        ibl->rotationRadians = 0.0f;
 
         FreeAligned_(intensities);
 

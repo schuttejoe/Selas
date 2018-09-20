@@ -22,8 +22,8 @@
 namespace Selas
 {
     //=============================================================================================================================
-    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData,
-                       void*& rgba)
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint nonHdrBitDepth,
+                       uint& width, uint& height, uint& channels, bool& floatData, void*& rgba)
     {
         int32 w_;
         int32 h_;
@@ -35,7 +35,16 @@ namespace Selas
             floatData = true;
         }
         else {
-            raw = (void*)stbi_load(filepath, &w_, &h_, &c_, (int)requestedChannels);
+            if(nonHdrBitDepth == 16) {
+                raw = (void*)stbi_load_16(filepath, &w_, &h_, &c_, (int)requestedChannels);
+            }
+            else if(nonHdrBitDepth == 8) {
+                raw = (void*)stbi_load(filepath, &w_, &h_, &c_, (int)requestedChannels);
+            }
+            else {
+                return Error_("Unsupported bit depth");
+            }
+            
             floatData = false;
         }
 

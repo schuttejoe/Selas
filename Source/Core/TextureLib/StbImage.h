@@ -20,7 +20,7 @@ namespace Selas
         JPG
     };
 
-    Error StbImageRead(cpointer filepath, uint requestedChannels, uint& width, uint& height, uint& channels, bool& floatData,
-                       void*& rgba);
+    Error StbImageRead(cpointer filepath, uint requestedChannels, uint nonHdrBitDepth,
+                       uint& width, uint& height, uint& channels, bool& floatData, void*& rgba);
     Error StbImageWrite(cpointer filepath, uint width, uint height, uint channels, StbImageFormats format, void* rgba);
 }

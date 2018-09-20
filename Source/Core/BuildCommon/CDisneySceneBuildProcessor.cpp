@@ -24,6 +24,7 @@ namespace Selas
     struct SceneFileData
     {
         FilePathString cameraFile;
+        FilePathString iblFile;
         CArray<FilePathString> elements;
     };
 
@@ -306,6 +307,7 @@ namespace Selas
         }
 
         Json::ReadFixedString(document, "camera", output.cameraFile);
+        Json::ReadFixedString(document, "ibl", output.iblFile);
 
         return Success_;
     }
@@ -467,6 +469,7 @@ namespace Selas
         SceneResourceData* rootScene = New_(SceneResourceData);
         rootScene->name.Copy(context->source.name.Ascii());
         rootScene->backgroundIntensity = float4::One_;
+        rootScene->iblName.Copy(sceneFile.iblFile.Ascii());
         allScenes.Add(rootScene);
 
         ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene->camera));
@@ -487,6 +490,10 @@ namespace Selas
 
             context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, scene->name.Ascii(), *scene);
             Delete_(scene);
+        }
+
+        if(StringUtil::Length(sceneFile.iblFile.Ascii()) > 0) {
+            context->AddProcessDependency("DualIbl", sceneFile.iblFile.Ascii());
         }
 
         allScenes.Shutdown();

@@ -12,6 +12,8 @@ def main(argv):
         engineDir = os.path.join(os.path.expanduser("~"), "dev", "Selas")
     else:
         engineDir = os.environ['Selas']
+        drive, tail = os.path.splitdrive(engineDir)
+        print(str(drive))
     
     targetDir = engineDir
 

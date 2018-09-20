@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1536952668ul;
+    const uint64 SceneResource::kDataVersion = 1537401790ul;
 
     //=============================================================================================================================
     // Serialization

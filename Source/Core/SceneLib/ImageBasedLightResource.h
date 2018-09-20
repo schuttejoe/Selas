@@ -23,8 +23,16 @@ namespace Selas
 
     struct ImageBasedLightResourceData
     {
+        ImageBasedLightResourceData() : pad(0) {}
+
         IblDensityFunctions densityfunctions;
-        float3* hdrData;
+        uint64 missWidth;
+        uint64 missHeight;
+        float rotationRadians;
+        uint32 pad;
+
+        float3* lightData;
+        float3* missData;
     };
     void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data);
 
@@ -51,11 +59,12 @@ namespace Selas
 
     //=============================================================================================================================
     // -- Importance sampling functions
-    void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
+    void Ibl(const ImageBasedLightResourceData* ibl, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf);
 
     //=============================================================================================================================
     // -- Sampling the ibl directly
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf);
+    float3 SampleIblMiss(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf);
     float SampleIBlPdf(const ImageBasedLightResourceData* ibl, float3 wi);
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y);
 

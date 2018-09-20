@@ -16,7 +16,7 @@
 namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
-    const uint64 ImageBasedLightResource::kDataVersion = 1534822944ul;
+    const uint64 ImageBasedLightResource::kDataVersion = 1537399667ul;
 
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data)
@@ -28,11 +28,17 @@ namespace Selas
         uint height = data.densityfunctions.height;
         uint mdfSize = sizeof(float) * CalculateMarginalDensityFunctionCount(width, height);
         uint cdfsSize= sizeof(float) * CalculateConditionalDensityFunctionsCount(width, height);
-        uint hdrDataSize = sizeof(float3) * width * height;
-
         serializer->SerializePtr((void*&)data.densityfunctions.marginalDensityFunction, mdfSize, 0);
         serializer->SerializePtr((void*&)data.densityfunctions.conditionalDensityFunctions, cdfsSize, 0);
-        serializer->SerializePtr((void*&)data.hdrData, hdrDataSize, 0);
+        
+        Serialize(serializer, data.missWidth);
+        Serialize(serializer, data.missHeight);
+        Serialize(serializer, data.rotationRadians);
+        Serialize(serializer, data.pad);
+        uint lightDataSize = sizeof(float3) * width * height;
+        uint missDataSize = sizeof(float3) * data.missWidth * data.missHeight;
+        serializer->SerializePtr((void*&)data.lightData, lightDataSize, 0);
+        serializer->SerializePtr((void*&)data.missData, missDataSize, 0);
     }
 
     //=============================================================================================================================
@@ -108,10 +114,12 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void Ibl(const IblDensityFunctions* distributions, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
+    void Ibl(const ImageBasedLightResourceData* ibl, float r0, float r1, float& theta, float& phi, uint& x, uint& y, float& pdf)
     {
         // - http://www.igorsklyar.com/system/documents/papers/4/fiscourse.comp.pdf Section 4.2
         // - See also: Physically based rendering volume 2 section 13.6.5
+
+        const IblDensityFunctions* distributions = &ibl->densityfunctions;
 
         uint width = distributions->width;
         uint height = distributions->height;
@@ -127,7 +135,8 @@ namespace Selas
         theta = (y + 0.5f) * Math::Pi_ / heightf;
 
         // -- phi represents the horizontal position on the sphere and varies between -pi and pi
-        phi = (x + 0.5f) * Math::TwoPi_ / widthf - Math::Pi_;
+        // -- we also apply a rotation from the ibl first
+        phi = Math::Fmodf(((x + 0.5f) * Math::TwoPi_ / widthf) + ibl->rotationRadians, Math::TwoPi_) - Math::Pi_;
 
         // convert from texture space to spherical with the inverse of the Jacobian
         float invJacobian = (widthf * heightf) / Math::TwoPi_;
@@ -148,8 +157,8 @@ namespace Selas
         float phi;
         Math::NormalizedCartesianToSpherical(wi, theta, phi);
 
-        // -- remap from [-pi, pi] to [0, 2pi]
-        phi += Math::Pi_;
+        // -- remap from [-pi, pi] to [0, 2pi] and apply our rotation
+        phi = Math::Fmodf(phi + Math::Pi_ + ibl->rotationRadians, Math::TwoPi_);
 
         int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
         int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
@@ -173,7 +182,30 @@ namespace Selas
         // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
         pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
 
-        return ibl->hdrData[y * ibl->densityfunctions.width + x];
+        return ibl->lightData[y * ibl->densityfunctions.width + x];
+    }
+
+    //=============================================================================================================================
+    float3 SampleIblMiss(const ImageBasedLightResourceData* ibl, float3 wi, float& pdf)
+    {
+        pdf = SampleIBlPdf(ibl, wi);
+
+        int32 width = (int32)ibl->missWidth;
+        int32 height = (int32)ibl->missHeight;
+        float widthf = (float)width;
+        float heightf = (float)height;
+
+        float theta;
+        float phi;
+        Math::NormalizedCartesianToSpherical(wi, theta, phi);
+
+        // -- remap from [-pi, pi] to [0, 2pi] and apply our rotation
+        phi = Math::Fmodf(phi + Math::Pi_ + ibl->rotationRadians, Math::TwoPi_);
+
+        int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
+        int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
+
+        return ibl->missData[y * ibl->missWidth + x];
     }
 
     //=============================================================================================================================
@@ -188,8 +220,8 @@ namespace Selas
         float phi;
         Math::NormalizedCartesianToSpherical(wi, theta, phi);
 
-        // -- remap from [-pi, pi] to [0, 2pi]
-        phi += Math::Pi_;
+        // -- remap from [-pi, pi] to [0, 2pi] and apply our rotation
+        phi = Math::Fmodf(phi + Math::Pi_ + ibl->rotationRadians, Math::TwoPi_);
 
         int32 x = Clamp<int32>((int32)(phi * widthf / Math::TwoPi_ - 0.5f), 0, width);
         int32 y = Clamp<int32>((int32)(theta * heightf / Math::Pi_ - 0.5f), 0, height);
@@ -218,7 +250,7 @@ namespace Selas
     //=============================================================================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y)
     {
-        return ibl->hdrData[y * ibl->densityfunctions.width + x];
+        return ibl->lightData[y * ibl->densityfunctions.width + x];
     }
 
     //=============================================================================================================================

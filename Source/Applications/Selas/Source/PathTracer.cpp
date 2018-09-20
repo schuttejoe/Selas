@@ -230,7 +230,12 @@ namespace Selas
                     ray = MakeRay(origin, direction);
                 }
                 else {
-                    float3 sample = SampleBackgroundLight(context, ray.direction);
+                    float3 sample;
+                    if(bounceCount == 0)
+                        sample = SampleBackgroundMiss(context, ray.direction);
+                    else
+                        sample = SampleBackground(context, ray.direction);
+
                     Ld[0] += sample * throughput;
                     Ld[1] += sample * misThroughput;
                     break;

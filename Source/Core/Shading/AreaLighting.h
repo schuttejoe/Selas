@@ -73,5 +73,6 @@ namespace Selas
 
     void NextEventEstimation(GIIntegratorContext* context, LightDirectSample& sample);
     float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi);
-    float3 SampleBackgroundLight(GIIntegratorContext* context, float3 wi);
+    float3 SampleBackground(GIIntegratorContext* context, float3 wi);
+    float3 SampleBackgroundMiss(GIIntegratorContext* context, float3 wi);
 }

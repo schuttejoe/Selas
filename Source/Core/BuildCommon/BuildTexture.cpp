@@ -243,7 +243,7 @@ namespace Selas
         uint channels;
         bool floatData;
         void* rawData;
-        ReturnError_(StbImageRead(filepath.Ascii(), NoComponentCountRequest_, width, height, channels, floatData, rawData));
+        ReturnError_(StbImageRead(filepath.Ascii(), NoComponentCountRequest_, 8, width, height, channels, floatData, rawData));
 
         bool result;
         if(channels == 1) {

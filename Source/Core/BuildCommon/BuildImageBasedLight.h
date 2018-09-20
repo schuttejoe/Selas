@@ -13,4 +13,6 @@ namespace Selas
     struct BuildProcessorContext;
 
     Error ImportImageBasedLight(BuildProcessorContext* context, ImageBasedLightResourceData* ibl);
+    Error ImportDualImageBasedLight(BuildProcessorContext* context, cpointer lightPath, cpointer missPath,
+                                    ImageBasedLightResourceData* ibl);
 }
