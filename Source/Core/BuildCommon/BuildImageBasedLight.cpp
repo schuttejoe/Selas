@@ -193,6 +193,7 @@ namespace Selas
         ibl->missWidth = missWidth;
         ibl->missHeight = missHeight;
         ibl->rotationRadians = 0.0f;
+        ibl->exposureScale = 1.0f;
 
         FreeAligned_(intensities);
 

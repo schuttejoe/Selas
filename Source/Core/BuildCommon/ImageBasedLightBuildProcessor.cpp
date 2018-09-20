@@ -51,7 +51,7 @@ namespace Selas
 
     //=============================================================================================================================
     static Error ParseDualIblFile(BuildProcessorContext* context,
-                                  FilePathString& lightFile, FilePathString& missFile, float& rotationDegrees)
+                                  FilePathString& lightFile, FilePathString& missFile, float& rotationDegrees, float& exposure)
     {
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(context->source.name.Ascii(), filepath);
@@ -69,6 +69,7 @@ namespace Selas
         }
 
         Json::ReadFloat(document, "rotationDegrees", rotationDegrees, 0.0f);
+        Json::ReadFloat(document, "exposure", exposure, 0.0f);
 
         return Success_;
     }
@@ -99,13 +100,15 @@ namespace Selas
         FilePathString lightFile;
         FilePathString missFile;
         float rotationDegrees;
-        ReturnError_(ParseDualIblFile(context, lightFile, missFile, rotationDegrees));
+        float exposure;
+        ReturnError_(ParseDualIblFile(context, lightFile, missFile, rotationDegrees, exposure));
 
         ImageBasedLightResourceData iblData;
         Memory::Zero(&iblData, sizeof(iblData));
 
         ReturnError_(ImportDualImageBasedLight(context, lightFile.Ascii(), missFile.Ascii(), &iblData));
         iblData.rotationRadians = rotationDegrees * Math::DegreesToRadians_;
+        iblData.exposureScale = Math::Powf(2.0f, exposure);
         ReturnError_(BakeImageBasedLight(context, &iblData));
 
         SafeFree_(iblData.densityfunctions.conditionalDensityFunctions);

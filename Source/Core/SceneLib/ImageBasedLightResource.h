@@ -23,13 +23,11 @@ namespace Selas
 
     struct ImageBasedLightResourceData
     {
-        ImageBasedLightResourceData() : pad(0) {}
-
         IblDensityFunctions densityfunctions;
         uint64 missWidth;
         uint64 missHeight;
         float rotationRadians;
-        uint32 pad;
+        float exposureScale; // 2^exposure
 
         float3* lightData;
         float3* missData;

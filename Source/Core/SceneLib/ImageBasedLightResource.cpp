@@ -9,6 +9,7 @@
 #include "IoLib/File.h"
 #include "MathLib/Projection.h"
 #include "MathLib/Trigonometric.h"
+#include "MathLib/FloatFuncs.h"
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/MinMax.h"
 #include "SystemLib/JsAssert.h"
@@ -16,7 +17,7 @@
 namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
-    const uint64 ImageBasedLightResource::kDataVersion = 1537399667ul;
+    const uint64 ImageBasedLightResource::kDataVersion = 1537474488ul;
 
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data)
@@ -34,7 +35,7 @@ namespace Selas
         Serialize(serializer, data.missWidth);
         Serialize(serializer, data.missHeight);
         Serialize(serializer, data.rotationRadians);
-        Serialize(serializer, data.pad);
+        Serialize(serializer, data.exposureScale);
         uint lightDataSize = sizeof(float3) * width * height;
         uint missDataSize = sizeof(float3) * data.missWidth * data.missHeight;
         serializer->SerializePtr((void*&)data.lightData, lightDataSize, 0);
@@ -182,7 +183,7 @@ namespace Selas
         // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
         pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
 
-        return ibl->lightData[y * ibl->densityfunctions.width + x];
+        return ibl->exposureScale * ibl->lightData[y * ibl->densityfunctions.width + x];
     }
 
     //=============================================================================================================================
@@ -250,7 +251,7 @@ namespace Selas
     //=============================================================================================================================
     float3 SampleIbl(const ImageBasedLightResourceData* ibl, uint x, uint y)
     {
-        return ibl->lightData[y * ibl->densityfunctions.width + x];
+        return ibl->exposureScale * ibl->lightData[y * ibl->densityfunctions.width + x];
     }
 
     //=============================================================================================================================
