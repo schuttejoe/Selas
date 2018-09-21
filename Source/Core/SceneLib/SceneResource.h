@@ -31,9 +31,9 @@ namespace Selas
         uint32 type;
         float3 position;
         float3 direction;
+        float3 x;
+        float3 z;
         float3 radiance;
-        float width;
-        float height;
     };
 
     struct Instance

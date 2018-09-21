@@ -296,6 +296,10 @@ namespace Selas
             Json::ReadFloat3(lightElementKV.value, "color", color, float3::Zero_);
             Json::ReadFloat(lightElementKV.value, "exposure", exposure, 0.0f);
 
+            float width, height;
+            Json::ReadFloat(lightElementKV.value, "width", width, 0.0f);
+            Json::ReadFloat(lightElementKV.value, "height", height, 0.0f);
+
             float3 swizzle = float3(color.z, color.y, color.x);
             float3 radiance = Math::Powf(2.0f, exposure) * Pow(swizzle, 2.2f);
             if(Dot(radiance, float3::One_) <= 0.0f) {
@@ -308,13 +312,12 @@ namespace Selas
             Json::ReadMatrix4x4(lightElementKV.value, "translationMatrix", matrix);
 
             light.position = MatrixMultiplyPoint(float3::Zero_, matrix);
-            light.direction = MatrixMultiplyVector(float3::ZAxis_, matrix);
+            light.direction = MatrixMultiplyVector(-float3::ZAxis_, matrix);
+            light.x = MatrixMultiplyVector(width * float3::XAxis_, matrix);
+            light.z = MatrixMultiplyVector(height * float3::YAxis_, matrix);
 
             light.radiance = radiance;
             light.type = QuadLight;
-
-            Json::ReadFloat(lightElementKV.value, "width", light.width, 0.0f);
-            Json::ReadFloat(lightElementKV.value, "height", light.height, 0.0f);
         }
 
         return Success_;

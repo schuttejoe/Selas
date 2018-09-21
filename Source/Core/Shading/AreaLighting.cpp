@@ -69,46 +69,46 @@ namespace Selas
     //    return Lo * (1.0f / (pdf * sampleCount));
     //}
 
-    ////=============================================================================================================================
-    //float3 IntegrateRectangleLightWithSolidAngle(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
-    //                                             RectangularAreaLight light, uint sampleCount)
-    //{
-    //    float3 eX = light.eX;
-    //    float3 eZ = light.eZ;
-    //    float3 s = light.corner;
+    //=============================================================================================================================
+    static void SampleRectangleLightSolidAngle(GIIntegratorContext* context, const float3& position, const SceneLight& light,
+                                               LightDirectSample& sample)
+    {
+        float3 eX = light.x;
+        float3 eZ = light.z;
+        float3 s = light.position - 0.5f * eX - 0.5f * eZ;
 
-    //    RectangleLightSampler quadsampler;
-    //    InitializeRectangleLightSampler(s, eX, eZ, surface.position, quadsampler);
+        RectangleLightSampler quadsampler;
+        InitializeRectangleLightSampler(s, eX, eZ, position, quadsampler);
 
-    //    float3 lightFacing = quadsampler.z;
+        float3 lightFacing = quadsampler.z;
 
-    //    float3 Lo = float3::Zero_;
+        float3 Lo = float3::Zero_;
 
-    //    float pdf = 1.0f / quadsampler.S;
+        float pdf = 1.0f / quadsampler.S;
 
-    //    for(uint scan = 0; scan < sampleCount; ++scan) {
-    //        float u = sampler->UniformFloat();
-    //        float v = sampler->UniformFloat();
+        float u = context->sampler.UniformFloat();
+        float v = context->sampler.UniformFloat();
 
-    //        float3 position = SampleRectangleLight(quadsampler, u, v);
+        float3 lp = SampleRectangleLight(quadsampler, u, v);
 
-    //        float3 ul = position - surface.position;
-    //        float distSquared = LengthSquared(ul);
-    //        float dist = Math::Sqrtf(distSquared);
-    //        float3 l = (1.0f / dist) * ul;
+        float3 ul = lp - position;
+        float distSquared = LengthSquared(ul);
+        float dist = Math::Sqrtf(distSquared);
+        float3 l = (1.0f / dist) * ul;
 
-    //        float dotNL = Saturate(Dot(surface.perturbedNormal, l));
-    //        float dotSL = Saturate(Dot(lightFacing, -l));
-
-    //        if(dotNL > 0.0f && dotSL > 0.0f && OcclusionRay(rtcScene, surface, l, dist)) {
-    //            // -- the dist^2 and Dot(w', n') terms from the pdf and the area form of the rendering equation cancel out
-    //            // -- the pdf is constant so that is applied below.
-    //            Lo += dotNL * light.intensity;
-    //        }
-    //    }
-
-    //    return Lo * (1.0f / (pdf * sampleCount));
-    //}
+        if(Dot(-l, lightFacing) > 0) {
+            sample.direction = l;
+            sample.distance  = dist;
+            sample.radiance  = light.radiance;
+            sample.pdfW      = pdf;
+        }
+        else {
+            sample.direction = l;
+            sample.distance  = dist;
+            sample.radiance  = float3::Zero_;
+            sample.pdfW      = pdf;
+        }
+    }
 
     ////=============================================================================================================================
     //float3 IntegrateSphereLightWithAreaSampling(RTCScene& rtcScene, CSampler* sampler, const SurfaceParameters& surface,
@@ -263,7 +263,7 @@ namespace Selas
         float dirTheta;
         // -- Importance sample the ibl. Note that we're cheating and treating the sample pdf as an area measure
         // -- even though it's a solid angle measure.
-        Ibl(iblData, r0, r1, dirTheta, dirPhi, x, y, sample.directionPdfA);
+        Ibl(iblData, r0, r1, dirTheta, dirPhi, x, y, sample.pdfW);
         float3 toIbl = Math::SphericalToCartesian(dirTheta, dirPhi);
         float3 radiance = SkyIntensityScale_ * SampleIbl(iblData, x, y);
 
@@ -272,8 +272,6 @@ namespace Selas
         sample.distance = 1e36f;
         sample.direction = toIbl;
         sample.radiance = radiance;
-        sample.emissionPdfW = sample.directionPdfA * ConcentricDiscPdf() * (1.0f / (sceneBoundingRadius*sceneBoundingRadius));
-        sample.cosThetaLight = 1.0f; // -- not used for ibl light source
     }
 
     //=============================================================================================================================
@@ -308,22 +306,31 @@ namespace Selas
 
         sample.distance = 1e36f;
         sample.direction = direction;
-        sample.radiance = float3(1.0f, 1.0f, 1.0f);// context->sceneData->scene->data->backgroundIntensity;
-        sample.emissionPdfW = Math::Inv4Pi_;
-        sample.directionPdfA = Math::Inv4Pi_;
-
-        sample.cosThetaLight = 1.0f; // -- not used for background light source
+        sample.radiance = context->scene->data->backgroundIntensity.XYZ();
     }
 
     //=============================================================================================================================
-    void NextEventEstimation(GIIntegratorContext* context, LightDirectSample& sample)
+    void NextEventEstimation(GIIntegratorContext* context, const float3& position, LightDirectSample& sample)
     {
-        if(context->scene->iblResource) {
-            DirectIblLightSample(context, sample);
-            return;
-        }
+        uint lightCount = context->scene->data->lights.Count();
+        float backgroundProb = lightCount > 0 ? 0.8f : 1.0f;
+        float perLightProb = lightCount > 0 ? (1.0f - backgroundProb) / lightCount : 0.0f;
 
-        BackgroundLightSample(context, sample);
+        float p0 = context->sampler.UniformFloat();
+        if(p0 < backgroundProb) {
+            if(context->scene->iblResource) {
+                DirectIblLightSample(context, sample);
+            }
+            else {
+                BackgroundLightSample(context, sample);
+            }
+            sample.pdfW *= backgroundProb;
+        }
+        else {
+            uint lightIndex = (uint)(/*(1.0f / backgroundProb) **/ (p0 - backgroundProb) * lightCount);
+            SampleRectangleLightSolidAngle(context, position, context->scene->data->lights[lightIndex], sample);
+            sample.pdfW *= perLightProb;
+        }
     }
 
     //=============================================================================================================================

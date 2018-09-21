@@ -177,9 +177,9 @@ namespace Selas
 
                     // -- choose a light and sample the light source
                     LightDirectSample lightSample;
-                    NextEventEstimation(context, lightSample);
+                    NextEventEstimation(context, hit.position, lightSample);
 
-                    {
+                    if(Dot(lightSample.radiance, float3::One_) > 0) {
                         float forwardPdfW;
                         float reversePdfW;
                         float3 reflectance = EvaluateBsdf(surface, -ray.direction, lightSample.direction, forwardPdfW,
@@ -188,11 +188,9 @@ namespace Selas
 
                             if(OcclusionRay(context->scene->rtcScene, surface, lightSample.direction, lightSample.distance)) {
 
-                                // JSTODO - WARNING! We want directionPdfW not directionPdfA here. However, since we're currently
-                                // only sampling IBLs which return the solid angle pdf in directionPdfA we're good for now.
-                                float weight = ImportanceSampling::BalanceHeuristic(1, lightSample.directionPdfA, 1, forwardPdfW);
+                                float weight = ImportanceSampling::BalanceHeuristic(1, lightSample.pdfW, 1, forwardPdfW);
 
-                                float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.directionPdfA);
+                                float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.pdfW);
                                 Ld[1] += weight * sample * misThroughput;
                             }
                         }
