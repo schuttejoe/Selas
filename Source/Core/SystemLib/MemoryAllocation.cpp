@@ -11,6 +11,7 @@
 #include "SystemLib/JsAssert.h"
 
 #include <stdio.h>
+#include <map>
 #include <memory>
 
 #if IsWindows_
@@ -18,7 +19,7 @@
 #endif
 
 // -- allocation tracking
-#define EnableManualAllocationTracking_ Debug_ && 0
+#define EnableManualAllocationTracking_ Debug_ && 1
 #define AllocationTrackingIncrement_    4096
 #define EnableVerboseLogging_           IsWindows_ && 0
 // #define BreakOnAllocation_              61
@@ -44,6 +45,8 @@ namespace Selas
         uint   size;
         uint   used;
         Allocation* allocations;
+        std::map<void*, uint> allocSearch;
+
         uint8  spinLock[CacheLineSize_];
 
         uint64 allocatedMemory;
@@ -116,6 +119,8 @@ namespace Selas
             }
         #endif
 
+        allocSearch.insert(std::pair<void*, uint>(address, used));
+
         allocations[used].address = address;
         allocations[used].name = name;
         allocations[used].file = file;
@@ -140,33 +145,39 @@ namespace Selas
     {
         EnterSpinLock(spinLock);
 
-        bool found = false;
-
-        for(uint scan = 0; scan < used; ++scan) {
-            if(allocations[scan].address == address) {
-                allocatedMemory -= allocations[scan].size;
-
-                #if EnableVerboseLogging_
-                    char logstring[2048];
-                    sprintf_s(logstring, 2048, "Free (%llu): %s - Total Allocated %llu\n", allocations[scan].size,
-                              allocations[scan].name, allocatedMemory);
-                    OutputDebugString(logstring);
-                #endif
-
-                allocations[scan].address = allocations[used - 1].address;
-                allocations[scan].name = allocations[used - 1].name;
-                allocations[scan].file = allocations[used - 1].file;
-                allocations[scan].line = allocations[used - 1].line;
-                allocations[scan].index = allocations[used - 1].index;
-                allocations[scan].size = allocations[used - 1].size;
-
-                found = true;
-                break;
-            }
+        auto obj = allocSearch.find(address);
+        if(obj == allocSearch.end()) {
+            AssertMsg_(false, "Unknown memory address released");
         }
+        else {
+            uint index = obj->second;
+            allocSearch.erase(obj);
 
-        AssertMsg_(found, "Unknown memory address released");
-        used -= found ? 1 : 0;
+            allocatedMemory -= allocations[index].size;
+
+            #if EnableVerboseLogging_
+                char logstring[2048];
+                sprintf_s(logstring, 2048, "Free (%llu): %s - Total Allocated %llu\n", allocations[scan].size,
+                          allocations[scan].name, allocatedMemory);
+                OutputDebugString(logstring);
+            #endif
+
+            if(used > 1 && index != used - 1) {
+                auto& modifiedObj = allocSearch.find(allocations[used - 1].address);
+                Assert_(modifiedObj != allocSearch.end());
+
+                allocations[index].address = allocations[used - 1].address;
+                allocations[index].name = allocations[used - 1].name;
+                allocations[index].file = allocations[used - 1].file;
+                allocations[index].line = allocations[used - 1].line;
+                allocations[index].index = allocations[used - 1].index;
+                allocations[index].size = allocations[used - 1].size;
+
+                modifiedObj->second = index;
+            }
+
+            --used;
+        }
 
         LeaveSpinLock(spinLock);
     }
@@ -199,7 +210,7 @@ namespace Selas
         void* address = malloc(size);
 
         #if EnableManualAllocationTracking_
-        tracker.AddAllocation(address, size, name, file, line);
+            tracker.AddAllocation(address, size, name, file, line);
         #endif
 
         return address;
@@ -216,7 +227,7 @@ namespace Selas
         address = realloc(address, size);
 
         #if EnableManualAllocationTracking_
-        tracker.AddAllocation(address, size, name, file, line);
+            tracker.AddAllocation(address, size, name, file, line);
         #endif
 
         return address;

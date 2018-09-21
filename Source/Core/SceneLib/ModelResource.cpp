@@ -263,18 +263,18 @@ namespace Selas
             }
 
             model->rtcGeometries.Add(rtcGeometry);
+            GeometryUserData& userData = model->userDatas.Add();
 
-            GeometryUserData* userData = New_(GeometryUserData);
-            userData->flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+            userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
                             | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
                             | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-            userData->material = material;
-            userData->instanceID = RTC_INVALID_GEOMETRY_ID;
-            userData->rtcScene = rtcScene;
-            userData->rtcGeometry = rtcGeometry;
-            userData->worldToLocal = Matrix4x4::Identity();
-            MakeInvalid(&userData->aaBox);
-            rtcSetGeometryUserData(rtcGeometry, userData);
+            userData.material = material;
+            userData.instanceID = RTC_INVALID_GEOMETRY_ID;
+            userData.rtcScene = rtcScene;
+            userData.rtcGeometry = rtcGeometry;
+            userData.worldToLocal = Matrix4x4::Identity();
+            MakeInvalid(&userData.aaBox);
+            rtcSetGeometryUserData(rtcGeometry, &userData);
 
             rtcCommitGeometry(rtcGeometry);
             rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
@@ -293,8 +293,6 @@ namespace Selas
         Assert_(((uint)geometry->curveIndices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
         Assert_(((uint)geometry->curveVertices & (ModelResource::kGeometryDataAlignment - 1)) == 0);
 
-        model->rtcGeometries.Reserve(modelData->curves.Count());
-
         for(uint32 scan = 0, count = (uint32)modelData->curves.Count(); scan < count; ++scan) {
 
             const CurveMetaData& curve = modelData->curves[scan];
@@ -310,18 +308,18 @@ namespace Selas
                                        0, sizeof(float4), modelData->totalCurveVertexCount);
 
             model->rtcGeometries.Add(rtcGeometry);
+            GeometryUserData& userData = model->userDatas.Add();
 
-            GeometryUserData* userData = New_(GeometryUserData);
-            userData->flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
-                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
-                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-            userData->material = material;
-            userData->instanceID = RTC_INVALID_GEOMETRY_ID;
-            userData->rtcScene = rtcScene;
-            userData->rtcGeometry = rtcGeometry;
-            userData->worldToLocal = Matrix4x4::Identity();
-            MakeInvalid(&userData->aaBox);
-            rtcSetGeometryUserData(rtcGeometry, userData);
+            userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+                           | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
+                           | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
+            userData.material = material;
+            userData.instanceID = RTC_INVALID_GEOMETRY_ID;
+            userData.rtcScene = rtcScene;
+            userData.rtcGeometry = rtcGeometry;
+            userData.worldToLocal = Matrix4x4::Identity();
+            MakeInvalid(&userData.aaBox);
+            rtcSetGeometryUserData(rtcGeometry, &userData);
 
             rtcCommitGeometry(rtcGeometry);
             rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
@@ -334,6 +332,9 @@ namespace Selas
     //=============================================================================================================================
     static void PopulateEmbreeScene(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene)
     {
+        model->rtcGeometries.Reserve(model->data->meshes.Count() + model->data->curves.Count());
+        model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
+
         uint32 offset = 0;
         offset = InitializeMeshes(model, offset, rtcDevice, rtcScene);
         offset = InitializeCurves(model, offset, rtcDevice, rtcScene);
@@ -432,11 +433,6 @@ namespace Selas
     //=============================================================================================================================
     void ShutdownModelResource(ModelResource* model)
     {
-        for(uint scan = 0, count = model->rtcGeometries.Count(); scan < count; ++scan) {
-            GeometryUserData* geomData = (GeometryUserData*)rtcGetGeometryUserData(model->rtcGeometries[scan]);
-            Delete_(geomData);
-        }
-
         if(model->rtcScene) {
             rtcReleaseScene(model->rtcScene);
         }

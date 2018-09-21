@@ -153,6 +153,7 @@ namespace Selas
 
         TextureResource* textures;
         RTCScene rtcScene;
+        CArray<GeometryUserData> userDatas;
         CArray<RTCGeometry> rtcGeometries;
 
         Material* defaultMaterial;
