@@ -260,6 +260,37 @@ namespace Selas
         return 1.f / Length(vec4);
     }
 
+    ForceInline_ float2 Pow(float base, float2 vec)
+    {
+        return float2(Math::Powf(base, vec.x), Math::Powf(base, vec.y));
+    }
+
+    ForceInline_ float3 Pow(float base, float3 vec)
+    {
+        return float3(Math::Powf(base, vec.x), Math::Powf(base, vec.y), Math::Powf(base, vec.z));
+    }
+
+    ForceInline_ float4 Pow(float base, float4 vec)
+    {
+        return float4(Math::Powf(base, vec.x), Math::Powf(base, vec.y), Math::Powf(base, vec.z), Math::Powf(base, vec.w));
+    }
+
+    ForceInline_ float2 Pow(float2 vec, float exponent)
+    {
+        return float2(Math::Powf(vec.x, exponent), Math::Powf(vec.y, exponent));
+    }
+
+    ForceInline_ float3 Pow(float3 vec, float exponent)
+    {
+        return float3(Math::Powf(vec.x, exponent), Math::Powf(vec.y, exponent), Math::Powf(vec.z, exponent));
+    }
+
+    ForceInline_ float4 Pow(float4 vec, float exponent)
+    {
+        return float4(Math::Powf(vec.x, exponent), Math::Powf(vec.y, exponent),
+                      Math::Powf(vec.z, exponent), Math::Powf(vec.w, exponent));
+    }
+
     ForceInline_ float2 Exp(float2 vec)
     {
         return float2(Math::Expf(vec.x), Math::Expf(vec.y));

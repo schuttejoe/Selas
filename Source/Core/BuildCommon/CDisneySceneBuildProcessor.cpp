@@ -25,6 +25,7 @@ namespace Selas
     {
         FilePathString cameraFile;
         FilePathString iblFile;
+        FilePathString lightsFile;
         CArray<FilePathString> elements;
     };
 
@@ -270,6 +271,56 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static Error ParseLightFile(BuildProcessorContext* context, cpointer lightfile, SceneResourceData* scene)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(lightfile, filepath);
+        context->AddFileDependency(filepath.Ascii());
+
+        rapidjson::Document document;
+        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+
+        uint lightCount = document.MemberCount();
+        scene->lights.Reserve(lightCount);
+
+        for(const auto& lightElementKV : document.GetObject()) {
+            
+            FixedString64 type;
+            Json::ReadFixedString(lightElementKV.value, "type", type);
+            if(StringUtil::Equals(type.Ascii(), "quad") == false) {
+                continue;
+            }
+
+            float3 color;
+            float exposure;
+            Json::ReadFloat3(lightElementKV.value, "color", color, float3::Zero_);
+            Json::ReadFloat(lightElementKV.value, "exposure", exposure, 0.0f);
+
+            float3 swizzle = float3(color.z, color.y, color.x);
+            float3 radiance = Math::Powf(2.0f, exposure) * Pow(swizzle, 2.2f);
+            if(Dot(radiance, float3::One_) <= 0.0f) {
+                continue;
+            }
+
+            SceneLight& light = scene->lights.Add();
+
+            float4x4 matrix;
+            Json::ReadMatrix4x4(lightElementKV.value, "translationMatrix", matrix);
+
+            light.position = MatrixMultiplyPoint(float3::Zero_, matrix);
+            light.direction = MatrixMultiplyVector(float3::ZAxis_, matrix);
+
+            light.radiance = radiance;
+            light.type = QuadLight;
+
+            Json::ReadFloat(lightElementKV.value, "width", light.width, 0.0f);
+            Json::ReadFloat(lightElementKV.value, "height", light.height, 0.0f);
+        }
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
     static Error ImportDisneyMaterials(BuildProcessorContext* context, const FilePathString& contentId, cpointer prefix,
                                        ImportedModel* imported)
     {
@@ -308,6 +359,7 @@ namespace Selas
 
         Json::ReadFixedString(document, "camera", output.cameraFile);
         Json::ReadFixedString(document, "ibl", output.iblFile);
+        Json::ReadFixedString(document, "lights", output.lightsFile);
 
         return Success_;
     }
@@ -473,6 +525,7 @@ namespace Selas
         allScenes.Add(rootScene);
 
         ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene->camera));
+        ReturnError_(ParseLightFile(context, sceneFile.lightsFile.Ascii(), rootScene));
         
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
             const FilePathString& elementName = sceneFile.elements[scan];

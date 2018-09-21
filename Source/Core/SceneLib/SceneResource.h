@@ -21,6 +21,21 @@ namespace Selas
     struct ImageBasedLightResource;
     struct GeometryUserData;
 
+    enum SceneLightType
+    {
+        QuadLight
+    };
+
+    struct SceneLight
+    {
+        uint32 type;
+        float3 position;
+        float3 direction;
+        float3 radiance;
+        float width;
+        float height;
+    };
+
     struct Instance
     {
         uint64 index;
@@ -38,6 +53,8 @@ namespace Selas
         CArray<FilePathString> modelNames;
         CArray<Instance> sceneInstances;
         CArray<Instance> modelInstances;
+        CArray<SceneLight> lights;
+
         CameraSettings camera;
     };
 

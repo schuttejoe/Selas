@@ -17,11 +17,21 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1537401790ul;
+    const uint64 SceneResource::kDataVersion = 1537401791ul;
 
     //=============================================================================================================================
     // Serialization
     //=============================================================================================================================
+
+    static void Serialize(CSerializer* serializer, SceneLight& light)
+    {
+        Serialize(serializer, light.type);
+        Serialize(serializer, light.position);
+        Serialize(serializer, light.direction);
+        Serialize(serializer, light.radiance);
+        Serialize(serializer, light.width);
+        Serialize(serializer, light.height);
+    }
 
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, SceneResourceData& data)
@@ -33,6 +43,7 @@ namespace Selas
         Serialize(serializer, data.modelNames);
         Serialize(serializer, data.sceneInstances);
         Serialize(serializer, data.modelInstances);
+        Serialize(serializer, data.lights);
         Serialize(serializer, data.camera);
     }
 
