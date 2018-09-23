@@ -53,7 +53,7 @@ namespace Selas
             context->AddProcessDependency("Texture", textureName);
         }
 
-        BakeModel(context, context->source.name.Ascii(), builtScene);
+        BakeModel(context, builtScene);
 
         return Success_;
     }

@@ -9,7 +9,7 @@
 namespace Selas
 {
     //=============================================================================================================================
-    Error BakeModel(BuildProcessorContext* context, cpointer name, const BuiltModel& model)
+    Error BakeModel(BuildProcessorContext* context, const BuiltModel& model)
     {
         ModelResourceData data;
         data.aaBox                = model.aaBox;
@@ -22,7 +22,7 @@ namespace Selas
         data.meshes.Append(model.meshes);
         data.curves.Append(model.curves);
         
-        context->CreateOutput(ModelResource::kDataType, ModelResource::kDataVersion, name, data);
+        context->CreateOutput(ModelResource::kDataType, ModelResource::kDataVersion, context->source.name.Ascii(), data);
 
         ModelGeometryData geometry;
         geometry.indexSize       = model.indices.DataSize();
@@ -43,7 +43,7 @@ namespace Selas
         geometry.curveIndices    = (uint32*)model.curveIndices.DataPointer();
         geometry.curveVertices   = (float4*)model.curveVertices.DataPointer();
 
-        context->CreateOutput(ModelResource::kGeometryDataType, ModelResource::kDataVersion, name, geometry);
+        context->CreateOutput(ModelResource::kGeometryDataType, ModelResource::kDataVersion, context->source.name.Ascii(), geometry);
 
         return Success_;
     }

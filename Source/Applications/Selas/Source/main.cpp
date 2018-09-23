@@ -10,6 +10,7 @@
 #include "BuildCommon/TextureBuildProcessor.h"
 #include "BuildCommon/CModelBuildProcessor.h"
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
+#include "BuildCommon/CDisneyCurveBuildProcessor.h"
 #include "BuildCommon/CSceneBuildProcessor.h"
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
@@ -40,7 +41,7 @@ using namespace Selas;
 //static cpointer sceneType = "scene";
 
 static cpointer sceneName = "Scenes~island~island.json";
-static cpointer sceneType = "disney";
+static cpointer sceneType = "disneyscene";
 
 //=================================================================================================================================
 static Error ValidateAssetsAreBuilt()
@@ -61,6 +62,7 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CDisneySceneBuildProcessor>(&buildCore);
+    CreateAndRegisterBuildProcessor<CDisneyCurveBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
     buildCore.BuildAsset(ContentId(sceneType, sceneName));
