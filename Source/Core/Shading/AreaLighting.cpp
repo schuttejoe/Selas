@@ -307,6 +307,7 @@ namespace Selas
         sample.distance = 1e36f;
         sample.direction = direction;
         sample.radiance = context->scene->data->backgroundIntensity.XYZ();
+        sample.pdfW = 1.0f;
     }
 
     //=============================================================================================================================

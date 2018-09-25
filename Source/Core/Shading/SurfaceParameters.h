@@ -13,7 +13,7 @@ namespace Selas
     struct GIIntegratorContext;
     struct HitParameters;
     struct ModelResource;
-    struct Material;
+    struct MaterialResourceData;
 
     struct SurfaceParameters
     {

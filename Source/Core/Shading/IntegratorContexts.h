@@ -23,6 +23,7 @@ namespace Selas
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
     struct SurfaceParameters;
+    class TextureCache;
 
     //=============================================================================================================================
     struct GIIntegratorContext
@@ -30,6 +31,7 @@ namespace Selas
         RTCScene                                rtcScene;
 
         const SceneResource*                    scene;
+        TextureCache*                           textureCache;
         const RayCastCameraSettings* __restrict camera;
         CSampler                                sampler;
         FramebufferWriter                       frameWriter;

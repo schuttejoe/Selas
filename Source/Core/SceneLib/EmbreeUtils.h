@@ -4,6 +4,7 @@
 // Joe Schutte
 //=================================================================================================================================
 
+#include "TextureLib/TextureCache.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "MathLib/FloatFuncs.h"
 #include "SystemLib/BasicTypes.h"
@@ -19,13 +20,19 @@ typedef struct RTCGeometryTy* RTCGeometry;
 
 namespace Selas
 {
-    struct Material;
+    struct MaterialResourceData;
 
     enum EmbreeGeometryFlags
     {
         HasNormals  = 1 << 0,
         HasTangents = 1 << 1,
         HasUvs      = 1 << 2
+    };
+
+    struct Material
+    {
+        const MaterialResourceData* resource;
+        TextureHandle baseColorTextureHandle;
     };
 
     struct GeometryUserData
@@ -37,7 +44,7 @@ namespace Selas
         AxisAlignedBox aaBox;
         uint32 instanceID;
 
-        const Material* material;
+        Material material;
         uint32 flags;
     };
 }

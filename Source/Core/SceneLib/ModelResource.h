@@ -5,10 +5,11 @@
 //=================================================================================================================================
 
 #include "SceneLib/EmbreeUtils.h"
-#include "StringLib/FixedString.h"
+#include "TextureLib/TextureCache.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
 #include "UtilityLib/MurmurHash.h"
+#include "StringLib/FixedString.h"
 #include "MathLib/FloatStructs.h"
 #include "ContainersLib/CArray.h"
 #include "SystemLib/Error.h"
@@ -60,11 +61,10 @@ namespace Selas
         eMaterialPropertyCount
     };
 
-    struct Material
+    struct MaterialResourceData
     {
-        Material()
+        MaterialResourceData()
             : baseColorTextureIndex(InvalidIndex32)
-            , normalTextureIndex(InvalidIndex32)
             , flags(0)
             , baseColor(float3::Zero_)
             , transmittanceColor(float3::Zero_)
@@ -72,19 +72,16 @@ namespace Selas
         {
             for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
                 scalarAttributeValues[scan] = 0.0f;
-                scalarAttributeTextureIndices[scan] = InvalidIndex32;
             }
         }
 
         ShaderType shader;
         uint32 baseColorTextureIndex;
-        uint32 normalTextureIndex;
         uint32 flags;
         float3 baseColor;
         float3 transmittanceColor;
         
         float scalarAttributeValues[eMaterialPropertyCount];
-        uint32 scalarAttributeTextureIndices[eMaterialPropertyCount];
     };
 
     struct CurveMetaData
@@ -114,7 +111,7 @@ namespace Selas
 
         CArray<CameraSettings> cameras;
         CArray<FilePathString> textureResourceNames;
-        CArray<Material>       materials;
+        CArray<MaterialResourceData> materials;
         CArray<Hash32>         materialHashes;
         CArray<MeshMetaData>   meshes;
         CArray<CurveMetaData>  curves;
@@ -151,12 +148,12 @@ namespace Selas
         ModelResourceData* data;
         ModelGeometryData* geometry;
 
-        TextureResource* textures;
+        TextureHandle* textureHandles;
         RTCScene rtcScene;
         CArray<GeometryUserData> userDatas;
         CArray<RTCGeometry> rtcGeometries;
 
-        Material* defaultMaterial;
+        MaterialResourceData* defaultMaterial;
 
         ModelResource();
         ~ModelResource();
@@ -168,7 +165,7 @@ namespace Selas
     void Serialize(CSerializer* serializer, ModelGeometryData& data);
 
     Error ReadModelResource(cpointer filepath, ModelResource* model);
-    Error InitializeModelResource(ModelResource* model);
+    Error InitializeModelResource(ModelResource* model, TextureCache* textureCache);
     void InitializeEmbreeScene(ModelResource* model, RTCDevice rtcDevice);
-    void ShutdownModelResource(ModelResource* model);
+    void ShutdownModelResource(ModelResource* model, TextureCache* textureCache);
 }

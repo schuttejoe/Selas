@@ -54,6 +54,7 @@ namespace Selas
         //=========================================================================================================================
         struct PathTracingKernelData
         {
+            TextureCache* textureCache;
             SceneResource* scene;
             RayCastCameraSettings camera;
             uint pathsPerPixel;
@@ -283,6 +284,7 @@ namespace Selas
             uint height = integratorContext->camera.height;
 
             GIIntegratorContext context;
+            context.textureCache     = integratorContext->textureCache;
             context.rtcScene         = integratorContext->scene->rtcScene;
             context.scene            = integratorContext->scene;
             context.camera           = &integratorContext->camera;
@@ -317,7 +319,8 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(SceneResource* scene, const RayCastCameraSettings& camera, cpointer imageName)
+        void GenerateImage(TextureCache* textureCache, SceneResource* scene, const RayCastCameraSettings& camera,
+                           cpointer imageName)
         {
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, LayerCount_);
@@ -335,6 +338,7 @@ namespace Selas
                           "Path count not divisible by number of threads");
 
             PathTracingKernelData integratorContext;
+            integratorContext.textureCache           = textureCache;
             integratorContext.scene                  = scene;
             integratorContext.camera                 = camera;
             integratorContext.maxBounceCount         = MaxBounceCount_;

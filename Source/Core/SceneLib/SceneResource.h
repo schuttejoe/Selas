@@ -17,6 +17,7 @@
 
 namespace Selas
 {
+    class TextureCache;
     struct ModelResource;
     struct ImageBasedLightResource;
     struct GeometryUserData;
@@ -83,9 +84,9 @@ namespace Selas
     void Serialize(CSerializer* serializer, SceneResourceData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
-    Error InitializeSceneResource(SceneResource* scene);
+    Error InitializeSceneResource(SceneResource* scene, TextureCache* textureCache);
     void InitializeEmbreeScene(SceneResource* scene, RTCDevice rtcDevice);
-    void ShutdownSceneResource(SceneResource* scene);
+    void ShutdownSceneResource(SceneResource* scene, TextureCache* textureCache);
 
     void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
 

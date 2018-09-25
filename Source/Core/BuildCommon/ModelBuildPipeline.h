@@ -20,7 +20,6 @@ namespace Selas
     struct ImportedMaterialData
     {
         FixedString256 shaderName;
-        FilePathString normalTexture;
         FilePathString ptexFolder;
         FilePathString baseColorTexture;
         float3 baseColor;
@@ -64,9 +63,9 @@ namespace Selas
         AxisAlignedBox aaBox;
 
         // -- material information
-        CArray<FilePathString>      textures;
-        CArray<Hash32>              materialHashes;
-        CArray<Material>            materials;
+        CArray<FilePathString>       textures;
+        CArray<Hash32>               materialHashes;
+        CArray<MaterialResourceData> materials;
 
         // -- geometry information
         CArray<MeshMetaData>        meshes;

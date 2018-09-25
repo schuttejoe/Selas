@@ -88,7 +88,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeSceneResource(SceneResource* scene)
+    Error InitializeSceneResource(SceneResource* scene, TextureCache* textureCache)
     {
         uint sceneCount = scene->data->sceneNames.Count();
         uint modelCount = scene->data->modelNames.Count();
@@ -99,7 +99,7 @@ namespace Selas
                 scene->models[scan] = New_(ModelResource);
                 ReturnError_(ReadModelResource(scene->data->modelNames[scan].Ascii(), scene->models[scan]));
 
-                InitializeModelResource(scene->models[scan]);
+                InitializeModelResource(scene->models[scan], textureCache);
             }
         }
 
@@ -110,7 +110,7 @@ namespace Selas
                 scene->scenes[scan] = New_(SceneResource);
                 ReturnError_(ReadSceneResource(scene->data->sceneNames[scan].Ascii(), scene->scenes[scan]));
 
-                InitializeSceneResource(scene->scenes[scan]);
+                InitializeSceneResource(scene->scenes[scan], textureCache);
             }
         }
 
@@ -281,7 +281,8 @@ namespace Selas
                 scene->geomInstanceData[scan].worldToLocal = instance.worldToLocal;
                 scene->geomInstanceData[scan].rtcScene = scene->scenes[sceneIdx]->rtcScene;
                 scene->geomInstanceData[scan].instanceID = offset + (uint32)scan;
-                scene->geomInstanceData[scan].material = nullptr;
+                scene->geomInstanceData[scan].material.resource = nullptr;
+                scene->geomInstanceData[scan].material.baseColorTextureHandle = TextureHandle();
                 scene->geomInstanceData[scan].rtcGeometry = geom;
                 scene->geomInstanceData[scan].flags = 0;
 
@@ -337,7 +338,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void ShutdownSceneResource(SceneResource* scene)
+    void ShutdownSceneResource(SceneResource* scene, TextureCache* textureCache)
     {
         if(scene->iblResource) {
             ShutdownImageBasedLightResource(scene->iblResource);
@@ -345,12 +346,12 @@ namespace Selas
         }
 
         for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            ShutdownModelResource(scene->models[scan]);
+            ShutdownModelResource(scene->models[scan], textureCache);
             Delete_(scene->models[scan]);
         }
 
         for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
-            ShutdownSceneResource(scene->scenes[scan]);
+            ShutdownSceneResource(scene->scenes[scan], textureCache);
             Delete_(scene->scenes[scan]);
         }
 
@@ -372,7 +373,10 @@ namespace Selas
         // -- otherwise search the models for a valid camera
         for(uint scan = 0, count = scene->data->modelNames.Count(); scan < count; ++scan) {
             if(scene->models[scan]->data->cameras.Count() > 0) {
-                InitializeRayCastCamera(scene->models[scan]->data->cameras[0], width, height, camera);
+                CameraSettings settings = scene->models[scan]->data->cameras[0];
+                settings.fov = 50 * Math::DegreesToRadians_;
+                InitializeRayCastCamera(settings, width, height, camera);
+
                 return;
             }
         }

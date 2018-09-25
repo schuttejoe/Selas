@@ -3,7 +3,6 @@
 //=================================================================================================================================
 
 #include "SceneLib/ModelResource.h"
-#include "TextureLib/TextureResource.h"
 #include "Shading/SurfaceParameters.h"
 #include "UtilityLib/BinarySearch.h"
 #include "Assets/AssetFileUtils.h"
@@ -24,7 +23,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1536952591ul;
+    const uint64 ModelResource::kDataVersion = 1537848954ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -135,10 +134,10 @@ namespace Selas
             float displacement = CalculateDisplacement(userData, args->geometry, args->primID, barys);
 
             #if CheckForNaNs_
-            Assert_(!Math::IsNaN(normal.x));
-            Assert_(!Math::IsNaN(normal.y));
-            Assert_(!Math::IsNaN(normal.z));
-            Assert_(!Math::IsNaN(displacement));
+                Assert_(!Math::IsNaN(normal.x));
+                Assert_(!Math::IsNaN(normal.y));
+                Assert_(!Math::IsNaN(normal.z));
+                Assert_(!Math::IsNaN(displacement));
             #endif
 
             float3 deltaPosition = displacement * normal;
@@ -189,9 +188,9 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Material* CreateDefaultMaterial()
+    static MaterialResourceData* CreateDefaultMaterial()
     {
-        Material* defaultMat = New_(Material);
+        MaterialResourceData* defaultMat = New_(MaterialResourceData);
         defaultMat->baseColor = float3(0.6f, 0.6f, 0.6f);
         defaultMat->shader = eDisneySolid;
         defaultMat->scalarAttributeValues[eIor]= 1.5f;
@@ -200,7 +199,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const Material* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
+    static const MaterialResourceData* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
     {
         uint materialCount = model->data->materials.Count();
         if(materialCount == 0) {
@@ -226,7 +225,7 @@ namespace Selas
 
         for(uint32 scan = 0, count = (uint32)modelData->meshes.Count(); scan < count; ++scan) {
             const MeshMetaData& meshData = modelData->meshes[scan];
-            const Material* material = FindMeshMaterial(model, meshData.materialHash);
+            const MaterialResourceData* material = FindMeshMaterial(model, meshData.materialHash);
 
             bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
             bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
@@ -268,7 +267,15 @@ namespace Selas
             userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
                             | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
                             | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-            userData.material = material;
+            
+            userData.material.resource = material;
+            if(material->baseColorTextureIndex != InvalidIndex32) {
+                userData.material.baseColorTextureHandle = model->textureHandles[material->baseColorTextureIndex];
+            }
+            else {
+                userData.material.baseColorTextureHandle = TextureHandle();
+            }
+
             userData.instanceID = RTC_INVALID_GEOMETRY_ID;
             userData.rtcScene = rtcScene;
             userData.rtcGeometry = rtcGeometry;
@@ -296,7 +303,6 @@ namespace Selas
         for(uint32 scan = 0, count = (uint32)modelData->curves.Count(); scan < count; ++scan) {
 
             const CurveMetaData& curve = modelData->curves[scan];
-            const Material* material = FindMeshMaterial(model, curve.nameHash);
 
             uint32 indexByteOffset = curve.indexOffset * sizeof(uint32);
 
@@ -313,7 +319,16 @@ namespace Selas
             userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-            userData.material = material;
+
+            const MaterialResourceData* material = FindMeshMaterial(model, curve.nameHash);
+            userData.material.resource = material;
+            if(material->baseColorTextureIndex != InvalidIndex32) {
+                userData.material.baseColorTextureHandle = model->textureHandles[material->baseColorTextureIndex];
+            }
+            else {
+                userData.material.baseColorTextureHandle = TextureHandle();
+            }
+
             userData.instanceID = RTC_INVALID_GEOMETRY_ID;
             userData.rtcScene = rtcScene;
             userData.rtcGeometry = rtcGeometry;
@@ -350,7 +365,7 @@ namespace Selas
     ModelResource::ModelResource()
         : data(nullptr)
         , geometry(nullptr)
-        , textures(nullptr)
+        , textureHandles(nullptr)
         , rtcScene(nullptr)
         , defaultMaterial(nullptr)
     {
@@ -362,7 +377,7 @@ namespace Selas
     {
         Assert_(data == nullptr);
         Assert_(geometry == nullptr);
-        Assert_(textures == nullptr);
+        Assert_(textureHandles == nullptr);
         Assert_(rtcScene == nullptr);
     }
 
@@ -406,13 +421,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeModelResource(ModelResource* model)
+    Error InitializeModelResource(ModelResource* model, TextureCache* textureCache)
     {
         uint textureCount = model->data->textureResourceNames.Count();
-        model->textures = AllocArray_(TextureResource, textureCount);
+        model->textureHandles = AllocArray_(TextureHandle, textureCount);
 
         for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
-            ReturnError_(ReadTextureResource(model->data->textureResourceNames[scan].Ascii(), &model->textures[scan]));
+            const FilePathString& texturename = model->data->textureResourceNames[scan];
+            ReturnError_(textureCache->LoadTextureResource(texturename, model->textureHandles[scan]));
         }
 
         model->defaultMaterial = CreateDefaultMaterial();
@@ -426,12 +442,11 @@ namespace Selas
         RTCScene rtcScene = rtcNewScene(rtcDevice);
 
         model->rtcScene = rtcScene;
-
         PopulateEmbreeScene(model, rtcDevice, rtcScene);
     }
 
     //=============================================================================================================================
-    void ShutdownModelResource(ModelResource* model)
+    void ShutdownModelResource(ModelResource* model, TextureCache* textureCache)
     {
         if(model->rtcScene) {
             rtcReleaseScene(model->rtcScene);
@@ -439,11 +454,11 @@ namespace Selas
         model->rtcScene = nullptr;
 
         for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
-            ShutdownTextureResource(&model->textures[scan]);
+            textureCache->UnloadTexture(model->textureHandles[scan]);
         }
 
         SafeDelete_(model->defaultMaterial);
-        SafeFree_(model->textures);
+        SafeFree_(model->textureHandles);
         SafeFreeAligned_(model->data);
         SafeFreeAligned_(model->geometry);
     }

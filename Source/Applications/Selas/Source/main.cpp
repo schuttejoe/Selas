@@ -18,6 +18,7 @@
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
+#include "TextureLib/TextureCache.h"
 #include "TextureLib/Framebuffer.h"
 #include "TextureLib/TextureFiltering.h"
 #include "ThreadingLib/JobMgr.h"
@@ -34,6 +35,8 @@
 #include "xmmintrin.h"
 #include "pmmintrin.h"
 #include <stdio.h>
+
+#define TextureCacheSize_ 6 * 1024 * 1024 * 1024ull
 
 using namespace Selas;
 
@@ -88,6 +91,9 @@ int main(int argc, char *argv[])
 
     Environment_Initialize(ProjectRootName_, argv[0]);
 
+    TextureCache textureCache;
+    textureCache.Initialize(TextureCacheSize_);
+
     TextureFiltering::InitializeEWAFilterWeights();
 
     ExitMainOnError_(ValidateAssetsAreBuilt());
@@ -98,7 +104,7 @@ int main(int argc, char *argv[])
 
     auto timer = SystemTime::Now();
     ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
-    ExitMainOnError_(InitializeSceneResource(&sceneResource));
+    ExitMainOnError_(InitializeSceneResource(&sceneResource, &textureCache));
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
@@ -114,13 +120,15 @@ int main(int argc, char *argv[])
     InitializeSceneCamera(&sceneResource, width, height, camera);
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(&sceneResource, camera, "UnidirectionalPT");
+    PathTracer::GenerateImage(&textureCache, &sceneResource, camera, "UnidirectionalPT");
     //VCM::GenerateImage(&sceneResource, camera, "VCM");
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
 
-    ShutdownSceneResource(&sceneResource);
+    ShutdownSceneResource(&sceneResource, &textureCache);
     rtcReleaseDevice(rtcDevice);
+
+    textureCache.Shutdown();
 
     return 0;
 }

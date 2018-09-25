@@ -54,8 +54,8 @@ namespace Selas
     static void BuildMaterial(const ImportedMaterialData& importedMaterialData, Hash32 hash, BuiltModel* built)
     {
         built->materialHashes.Add(hash);
-        Material& material = built->materials.Add();
-        material = Material();
+        MaterialResourceData& material = built->materials.Add();
+        material = MaterialResourceData();
 
         if(importedMaterialData.alphaTested)
             material.flags |= eAlphaTested;
@@ -69,22 +69,11 @@ namespace Selas
         if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
             material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
         }
-        if(StringUtil::Length(importedMaterialData.normalTexture.Ascii())) {
-            material.normalTextureIndex = AddTexture(built, importedMaterialData.normalTexture);
-        }
 
         for(uint property = 0; property < eMaterialPropertyCount; ++property) {
             material.scalarAttributeValues[property] = importedMaterialData.scalarAttributes[property];
-
-            const FilePathString& textureName = importedMaterialData.scalarAttributeTextures[property];
-            if(StringUtil::Length(textureName.Ascii())) {
-                material.scalarAttributeTextureIndices[property] = AddTexture(built, textureName);
-            }
         }
 
-        if(material.scalarAttributeTextureIndices[eDisplacement] != InvalidIndex32) {
-            material.flags |= eDisplacementEnabled;
-        }
         if(material.shader == eDisneySolid) {
             if(material.scalarAttributeValues[eDiffuseTrans] > 0.0f || material.scalarAttributeValues[eSpecTrans] > 0.0f) {
                 material.flags |= eTransparent;

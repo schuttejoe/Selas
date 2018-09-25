@@ -59,7 +59,6 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(filepath, document));
 
         Json::ReadFixedString(document, "shaderName", material->shaderName);
-        Json::ReadFixedString(document, "normalTexture", material->normalTexture);
 
         material->baseColorTexture.Clear();
         if(Json::IsStringAttribute(document, "baseColor")) {
@@ -104,7 +103,6 @@ namespace Selas
             ImportedMaterialData material;
             material.alphaTested = false;
             material.invertDisplacement = false;
-            material.normalTexture.Clear();
             material.baseColorTexture.Clear();
 
             Json::ReadFloat3(element, "baseColor", material.baseColor, float3(1.0f, 1.0f, 1.0f));

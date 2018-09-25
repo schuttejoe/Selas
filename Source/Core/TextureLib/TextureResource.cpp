@@ -42,6 +42,18 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    //Error ReadPtexTexture(cpointer filepath, TextureResource* resource)
+    //{
+    //    void* fileData = nullptr;
+    //    uint64 fileSize = 0;
+    //    ReturnError_(File::ReadWholeFile(filepath, &fileData, &fileSize));
+
+    //    AttachToBinary(resource->data, (uint8*)fileData, fileSize);
+
+    //    return Success_;
+    //}
+
+    //=============================================================================================================================
     Error ReadTextureResource(cpointer textureName, TextureResource* resource)
     {
         FilePathString filepath;
