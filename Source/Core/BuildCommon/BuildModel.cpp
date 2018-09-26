@@ -37,38 +37,21 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static uint32 AddTexture(BuiltModel* builtScene, const FilePathString& path)
+    void BuildMaterial(const ImportedMaterialData& importedMaterialData, MaterialResourceData& material)
     {
-        // JSTODO - Implement a hash set
-        for(uint scan = 0, count = builtScene->textures.Count(); scan < count; ++scan) {
-            if(StringUtil::EqualsIgnoreCase(builtScene->textures[scan].Ascii(), path.Ascii())) {
-                return (uint32)scan;
-            }
-        }
-
-        builtScene->textures.Add(path);
-        return (uint32)builtScene->textures.Count() - 1;
-    }
-
-    //=============================================================================================================================
-    static void BuildMaterial(const ImportedMaterialData& importedMaterialData, Hash32 hash, BuiltModel* built)
-    {
-        built->materialHashes.Add(hash);
-        MaterialResourceData& material = built->materials.Add();
         material = MaterialResourceData();
 
         if(importedMaterialData.alphaTested)
             material.flags |= eAlphaTested;
         if(importedMaterialData.invertDisplacement)
             material.flags |= eInvertDisplacement;
+        if(importedMaterialData.usesPtex)
+            material.flags |= eUsesPtex;
 
         DetermineShaderType(importedMaterialData, material.shader);
         material.baseColor = importedMaterialData.baseColor;
         material.transmittanceColor = importedMaterialData.transmittanceColor;
-
-        if(StringUtil::Length(importedMaterialData.baseColorTexture.Ascii())) {
-            material.baseColorTextureIndex = AddTexture(built, importedMaterialData.baseColorTexture);
-        }
+        material.baseColorTexture.Copy(importedMaterialData.baseColorTexture.Ascii());
 
         for(uint property = 0; property < eMaterialPropertyCount; ++property) {
             material.scalarAttributeValues[property] = importedMaterialData.scalarAttributes[property];
@@ -130,7 +113,8 @@ namespace Selas
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
                 meshData.materialHash = mesh->materialHash;
-                meshData.meshNameHash = mesh->meshNameHash;
+                meshData.nameHash = mesh->nameHash;
+                meshData.name.Copy(mesh->name.Ascii());
                 meshData.indicesPerFace = 3;
                 built->meshes.Add(meshData);
 
@@ -149,7 +133,8 @@ namespace Selas
                 meshData.vertexCount = vertexCount;
                 meshData.vertexOffset = vertexOffset;
                 meshData.materialHash = mesh->materialHash;
-                meshData.meshNameHash = mesh->meshNameHash;
+                meshData.nameHash = mesh->nameHash;
+                meshData.name.Copy(mesh->name.Ascii());
                 meshData.indicesPerFace = 4;
                 built->meshes.Add(meshData);
 
@@ -210,7 +195,6 @@ namespace Selas
             FilePathString materialfile;
             AssetFileUtils::ContentFilePath(prefix, imported->materials[scan].Ascii(), ".json", materialfile);
             if(File::Exists(materialfile.Ascii()) == false) {
-                WriteDebugInfo_("Material file (%s) not found. Using default.", materialfile.Ascii());
                 continue;
             }
 
@@ -218,7 +202,11 @@ namespace Selas
             ReturnError_(ImportMaterial(materialfile.Ascii(), &importedMaterialData));
             context->AddFileDependency(materialfile.Ascii());
             
-            BuildMaterial(importedMaterialData, imported->materialHashes[scan], built);
+            Hash32 hash = imported->materialHashes[scan];
+            built->materialHashes.Add(hash);
+
+            MaterialResourceData& material = built->materials.Add();
+            BuildMaterial(importedMaterialData, material);
         }
 
         QuickSortMatchingArrays(built->materialHashes.DataPointer(), built->materials.DataPointer(), built->materials.Count());
@@ -228,6 +216,8 @@ namespace Selas
     //=============================================================================================================================
     Error BuildModel(BuildProcessorContext* context, cpointer materialPrefix, ImportedModel* imported, BuiltModel* built)
     {
+        built->curveModelNameHash = 0;
+
         ReturnError_(ImportMaterials(context, materialPrefix, imported, built));
         BuildMeshes(imported, built);
 

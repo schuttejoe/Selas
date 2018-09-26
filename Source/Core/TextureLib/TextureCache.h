@@ -8,6 +8,11 @@
 #include "UtilityLib/MurmurHash.h"
 #include "StringLib/FixedString.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#include "ptex/Include/Ptexture.h"
+#pragma warning(pop)
+
 namespace Selas
 {
     struct TextureCacheData;
@@ -39,11 +44,11 @@ namespace Selas
         void Shutdown();
 
         Error LoadTextureResource(const FilePathString& textureName, TextureHandle& handle);
-        //Error LoadTexturePtex(const FilePathString& filepath, TextureHandle& handle);
+        Error LoadTexturePtex(const FilePathString& filepath, TextureHandle& handle);
         void UnloadTexture(TextureHandle handle);
 
-        // -- 
         const TextureResource* FetchTexture(TextureHandle handle);
+        Ptex::PtexTexture* FetchPtex(TextureHandle handle);
         void ReleaseTexture(TextureHandle handle);
    };
 }

@@ -81,7 +81,8 @@ namespace Selas
             bool hasNans = false;
 
             mesh->materialHash = model->materialHashes[aimesh->mMaterialIndex];
-            mesh->meshNameHash = MurmurHash3_x86_32(aimesh->mName.C_Str(), StringUtil::Length(aimesh->mName.C_Str()), 0);
+            mesh->nameHash = MurmurHash3_x86_32(aimesh->mName.C_Str(), StringUtil::Length(aimesh->mName.C_Str()), 0);
+            mesh->name.Copy(aimesh->mName.C_Str());
 
             // -- extract vertices
             uint vertexcount = aimesh->mNumVertices;
@@ -212,7 +213,6 @@ namespace Selas
 
         Assimp::Importer importer;
         const aiScene* aiscene = importer.ReadFile(filepath.Ascii(), aiProcess_GenNormals
-                                                                    | aiProcess_PreTransformVertices
                                                                     | aiProcess_TransformUVCoords);
         if(!aiscene) {
             const char* errstr = importer.GetErrorString();

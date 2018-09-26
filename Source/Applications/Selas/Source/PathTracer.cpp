@@ -42,7 +42,7 @@
 #define MaxBounceCount_         2048
 
 #define EnableMultiThreading_   1
-#define PathsPerPixel_          32
+#define PathsPerPixel_          16
 #define LayerCount_             2
 // -- when zero, PathsPerPixel_ will be used.
 #define IntegrationSeconds_     0.0f
@@ -178,7 +178,7 @@ namespace Selas
 
                     // -- choose a light and sample the light source
                     LightDirectSample lightSample;
-                    NextEventEstimation(context, hit.position, lightSample);
+                    NextEventEstimation(context, hit.position, hit.normal, lightSample);
 
                     if(Dot(lightSample.radiance, float3::One_) > 0) {
                         float forwardPdfW;

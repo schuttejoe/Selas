@@ -70,9 +70,19 @@ namespace Selas
     //}
 
     //=============================================================================================================================
-    static void SampleRectangleLightSolidAngle(GIIntegratorContext* context, const float3& position, const SceneLight& light,
-                                               LightDirectSample& sample)
+    static void SampleRectangleLightSolidAngle(GIIntegratorContext* context, const float3& position, const float3& normal,
+                                               const SceneLight& light, LightDirectSample& sample)
     {
+        float dotNL = Dot(-light.direction, normal);
+        if(dotNL <= 0.0f) {
+            sample.direction = float3::Zero_;
+            sample.distance  = 0.0f;
+            sample.radiance  = float3::Zero_;
+            sample.pdfW      = 1.0f;
+
+            return;
+        }
+
         float3 eX = light.x;
         float3 eZ = light.z;
         float3 s = light.position - 0.5f * eX - 0.5f * eZ;
@@ -95,19 +105,13 @@ namespace Selas
         float distSquared = LengthSquared(ul);
         float dist = Math::Sqrtf(distSquared);
         float3 l = (1.0f / dist) * ul;
+        
+        float areaMeasure = Dot(light.direction, -l) / distSquared;
 
-        if(Dot(-l, lightFacing) > 0) {
-            sample.direction = l;
-            sample.distance  = dist;
-            sample.radiance  = light.radiance;
-            sample.pdfW      = pdf;
-        }
-        else {
-            sample.direction = l;
-            sample.distance  = dist;
-            sample.radiance  = float3::Zero_;
-            sample.pdfW      = pdf;
-        }
+        sample.direction = l;
+        sample.distance  = dist;
+        sample.radiance  = light.radiance * areaMeasure;
+        sample.pdfW      = pdf;
     }
 
     ////=============================================================================================================================
@@ -311,7 +315,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void NextEventEstimation(GIIntegratorContext* context, const float3& position, LightDirectSample& sample)
+    void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal, LightDirectSample& sample)
     {
         uint lightCount = context->scene->data->lights.Count();
         float backgroundProb = lightCount > 0 ? 0.8f : 1.0f;
@@ -329,7 +333,7 @@ namespace Selas
         }
         else {
             uint lightIndex = (uint)(/*(1.0f / backgroundProb) **/ (p0 - backgroundProb) * lightCount);
-            SampleRectangleLightSolidAngle(context, position, context->scene->data->lights[lightIndex], sample);
+            SampleRectangleLightSolidAngle(context, position, normal, context->scene->data->lights[lightIndex], sample);
             sample.pdfW *= perLightProb;
         }
     }

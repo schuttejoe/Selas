@@ -19,12 +19,17 @@ namespace Selas
 
         char* Ascii(void) { return &str[0]; }
         const char* Ascii(void) const { return &str[0]; }
-        uint Capacity() { return T; }
+        uint Capacity() const { return T; }
         void Clear() { str[0] = '\0'; }
 
         void Copy(const char* copyString)
         {
             StringUtil::Copy(Ascii(), T, copyString);
+        }
+
+        uint Length() const
+        {
+            return StringUtil::Length(Ascii());
         }
     };
 

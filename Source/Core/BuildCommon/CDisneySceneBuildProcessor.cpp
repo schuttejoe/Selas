@@ -5,8 +5,12 @@
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
 
 #include "BuildCommon/ImportMaterial.h"
+#include "BuildCommon/ModelBuildPipeline.h"
+#include "BuildCommon/BakeModel.h"
+#include "BuildCommon/BuildModel.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/JsonUtilities.h"
+#include "UtilityLib/MurmurHash.h"
 #include "SceneLib/SceneResource.h"
 #include "Assets/AssetFileUtils.h"
 #include "IoLib/Directory.h"
@@ -30,6 +34,25 @@ namespace Selas
         FilePathString iblFile;
         FilePathString lightsFile;
         CArray<FilePathString> elements;
+    };
+
+    //=============================================================================================================================
+    struct CurveSegment
+    {
+        uint64 startIndex;
+        uint64 controlPointCount;
+    };
+
+    //=============================================================================================================================
+    struct CurveData
+    {
+        float widthTip;
+        float widthRoot;
+        float degrees;
+        bool  faceCamera;
+        CArray<float3> controlPoints;
+        CArray<CurveSegment> segments;
+        Hash32 name;
     };
 
     //=============================================================================================================================
@@ -90,8 +113,99 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ParseCurveElement(BuildProcessorContext* context, const FixedString256& root, const rapidjson::Value& element,
-                                   SceneResourceData* scene)
+    static Error ParseControlPointsFile(BuildProcessorContext* context, cpointer path, CurveData* importedCurve)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(path, filepath);
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
+
+        rapidjson::Document document;
+        ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
+
+        uint totalControlPoints = 0;
+
+        // -- Do a prepass to count the total number of control points
+        uint segmentCount = document.Size();
+        for(const auto& curveElement : document.GetArray()) {
+            uint controlPointCount = curveElement.Size();
+            totalControlPoints += controlPointCount;
+        }
+
+        importedCurve->controlPoints.Resize(totalControlPoints);
+        importedCurve->segments.Resize(segmentCount);
+
+        uint segmentIndex = 0;
+        uint cpIndex = 0;
+
+        for(const auto& curveElement : document.GetArray()) {
+            uint controlPointCount = curveElement.Size();
+
+            importedCurve->segments[segmentIndex].startIndex = cpIndex;
+            importedCurve->segments[segmentIndex].controlPointCount = controlPointCount;
+            ++segmentIndex;
+
+            for(const auto& controlPointElement : curveElement.GetArray()) {
+                float3& controlPoint = importedCurve->controlPoints[cpIndex];
+                ++cpIndex;
+
+                controlPoint.x = controlPointElement[0].GetFloat();
+                controlPoint.y = controlPointElement[1].GetFloat();
+                controlPoint.z = controlPointElement[2].GetFloat();
+            }
+        }
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    static void BuildCurveModel(CurveData* importedCurve, cpointer curveName, BuiltModel& curveModel)
+    {
+        uint controlPointCount = importedCurve->controlPoints.Count();
+        uint curveCount = importedCurve->segments.Count();
+
+        MakeInvalid(&curveModel.aaBox);
+
+        uint curveIndex = 0;
+        uint64 indexOffset = 0;
+
+        curveModel.curveModelNameHash = MurmurHash3_x86_32(curveName, StringUtil::Length(curveName));
+        curveModel.curves.Resize(curveCount);
+        curveModel.curveIndices.Reserve(controlPointCount + curveCount * 3);
+        curveModel.curveVertices.Reserve(controlPointCount + curveCount * 2);
+
+        float widthRoot = importedCurve->widthRoot;
+        float widthTip = importedCurve->widthTip;
+
+        for(uint segIndex = 0, segCount = importedCurve->segments.Count(); segIndex < segCount; ++segIndex) {
+
+            const CurveSegment& segment = importedCurve->segments[segIndex];
+
+            CurveMetaData& curve = curveModel.curves[curveIndex++];
+            curve.indexOffset = CheckedCast<uint32>(curveModel.curveIndices.Count());
+            curve.indexCount = CheckedCast<uint32>(segment.controlPointCount - 1);
+
+            for(uint cpScan = 0; cpScan < segment.controlPointCount - 1; ++cpScan) {
+                curveModel.curveIndices.Add(CheckedCast<uint32>(indexOffset));
+                ++indexOffset;
+            }
+            indexOffset += 3;
+
+            curveModel.curveVertices.Add(float4(importedCurve->controlPoints[segment.startIndex], widthRoot));
+            for(uint cpScan = 0; cpScan < segment.controlPointCount; ++cpScan) {
+
+                float w = Lerp(widthRoot, widthTip, (float)cpScan / (float)(segment.controlPointCount - 1));
+                float3 cpPosition = importedCurve->controlPoints[segment.startIndex + cpScan];
+                IncludePosition(&curveModel.aaBox, cpPosition);
+
+                curveModel.curveVertices.Add(float4(cpPosition, w));
+            }
+            curveModel.curveVertices.Add(float4(importedCurve->controlPoints[segment.startIndex + segment.controlPointCount - 1], widthTip));
+        }
+    }
+
+    //=============================================================================================================================
+    static Error ParseCurveElement(BuildProcessorContext* context, cpointer curveName, const FixedString256& root,
+                                   const rapidjson::Value& element, SceneResourceData* scene)
     {
         FilePathString curveFile;
         if(Json::ReadFixedString(element, "jsonFile", curveFile) == false) {
@@ -99,14 +213,11 @@ namespace Selas
         }
         AssetFileUtils::IndependentPathSeperators(curveFile);
 
-        float widthTip;
-        float widthRoot;
-        float degrees;
-        bool faceCamera;
-        Json::ReadFloat(element, "widthTip", widthTip, 1.0f);
-        Json::ReadFloat(element, "widthRoot", widthRoot, 1.0f);
-        Json::ReadFloat(element, "degrees", degrees, 1.0f);
-        Json::ReadBool(element, "faceCamera", faceCamera, false);
+        CurveData curve;
+        Json::ReadFloat(element, "widthTip", curve.widthTip, 1.0f);
+        Json::ReadFloat(element, "widthRoot", curve.widthRoot, 1.0f);
+        Json::ReadFloat(element, "degrees", curve.degrees, 1.0f);
+        Json::ReadBool(element, "faceCamera", curve.faceCamera, false);
 
         FilePathString controlPointsFile;
         FixedStringSprintf(controlPointsFile, "%s%s", root.Ascii(), curveFile.Ascii());
@@ -114,26 +225,13 @@ namespace Selas
         FilePathString curveModelName;
         FixedStringSprintf(curveModelName, "%s%s%s", root.Ascii(), curveFile.Ascii(), CurveModelNameSuffix_);
        
-        // -- Write a json document containing data for this curve
-        rapidjson::StringBuffer s;
-        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(s);
-        writer.StartObject();
-        writer.Key("widthTip"); writer.Double(widthTip);
-        writer.Key("widthRoot"); writer.Double(widthRoot);
-        writer.Key("degrees"); writer.Double(degrees);
-        writer.Key("faceCamera"); writer.Bool(faceCamera);
-        writer.Key("controlPointsFile"); writer.String(controlPointsFile.Ascii());
-        writer.EndObject();
-
-        const char* jsonString = s.GetString();
-        uint stringLength = s.GetLength();
-
-        FilePathString filepath;
-        AssetFileUtils::AssetFilePath("disneycurve", ModelResource::kDataVersion, curveModelName.Ascii(), filepath);
-
-        Directory::EnsureDirectoryExists(filepath.Ascii());
-        ReturnError_(File::WriteWholeFile(filepath.Ascii(), jsonString, stringLength));
+        ReturnError_(ParseControlPointsFile(context, controlPointsFile.Ascii(), &curve));
         
+        BuiltModel curveModel;
+        BuildCurveModel(&curve, curveName, curveModel);
+
+        ReturnError_(BakeModel(context, curveModelName.Ascii(), curveModel));
+
         Instance curveInstance;
         curveInstance.index = scene->modelNames.Add(curveModelName);
         curveInstance.localToWorld = Matrix4x4::Identity();
@@ -170,7 +268,7 @@ namespace Selas
                 ReturnError_(ParseArchiveFile(context, root, sourceId, scene));
             }
             else if(StringUtil::Equals(type.Ascii(), "curve")) {
-                ReturnError_(ParseCurveElement(context, root, element, scene));
+                ReturnError_(ParseCurveElement(context, keyvalue.name.GetString(), root, element, scene));
             }
         }
 
@@ -180,6 +278,10 @@ namespace Selas
     //=============================================================================================================================
     static Error ParseLightFile(BuildProcessorContext* context, cpointer lightfile, SceneResourceData* scene)
     {
+        if(StringUtil::Length(lightfile) == 0) {
+            return Success_;
+        }
+
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(lightfile, filepath);
         context->AddFileDependency(filepath.Ascii());
@@ -231,22 +333,34 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    //static Error ImportDisneyMaterials(BuildProcessorContext* context, const FilePathString& contentId, cpointer prefix,
-    //                                   ImportedModel* imported)
-    //{
-    //    FilePathString filepath;
-    //    AssetFileUtils::ContentFilePath(contentId.Ascii(), filepath);
-    //    ReturnError_(context->AddFileDependency(filepath.Ascii()));
+    static Error ImportDisneyMaterials(BuildProcessorContext* context, const FilePathString& materialPath, cpointer prefix,
+                                       SceneResourceData* scene)
+    {
+        FilePathString filepath;
+        AssetFileUtils::ContentFilePath(materialPath.Ascii(), filepath);
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
 
-    //    CArray<Hash32> materialHashes;
-    //    CArray<ImportedMaterialData> importedMaterials;
-    //    ReturnError_(ImportDisneyMaterials(filepath.Ascii(), prefix, materialHashes, importedMaterials));
+        CArray<FixedString64> materialNames;
+        CArray<ImportedMaterialData> importedMaterials;
+        ReturnError_(ImportDisneyMaterials(filepath.Ascii(), materialNames, importedMaterials));
 
-    //    //imported->loadedMaterialHashes.Append(materialHashes);
-    //    //imported->loadedMaterials.Append(importedMaterials);
+        scene->sceneMaterialNames.Reserve(scene->sceneMaterialNames.Count() + importedMaterials.Count());
+        scene->sceneMaterials.Reserve(scene->sceneMaterials.Count() + importedMaterials.Count());
+        for(uint scan = 0, count = importedMaterials.Count(); scan < count; ++scan) {
+            
+            if(importedMaterials[scan].baseColorTexture.Length() > 0) {
+                FilePathString temp;
+                temp.Copy(importedMaterials[scan].baseColorTexture.Ascii());
+                FixedStringSprintf(importedMaterials[scan].baseColorTexture, "%s%s", prefix, temp.Ascii());
+            }
 
-    //    return Success_;
-    //}
+            scene->sceneMaterialNames.Add(materialNames[scan]);
+            MaterialResourceData& material = scene->sceneMaterials.Add();
+            BuildMaterial(importedMaterials[scan], material);
+        }
+
+        return Success_;
+    }
 
     //=============================================================================================================================
     static Error ParseSceneFile(BuildProcessorContext* context, SceneFileData& output)
@@ -286,7 +400,9 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(elementFilePath.Ascii(), document));
 
         // -- Get the materials json file path
-        //FixedStringSprintf(mesh->materialFile, "%s%s", root.Ascii(), document["matFile"].GetString());
+        FilePathString materialFile;
+        FixedStringSprintf(materialFile, "%s%s", root.Ascii(), document["matFile"].GetString());
+        ReturnError_(ImportDisneyMaterials(context, materialFile, root.Ascii(), rootScene));
 
         // -- Add the main geometry object file
         FilePathString geomObjFile;
@@ -401,6 +517,7 @@ namespace Selas
     Error CDisneySceneBuildProcessor::Setup()
     {
         AssetFileUtils::EnsureAssetDirectory<SceneResource>();
+        AssetFileUtils::EnsureAssetDirectory<ModelResource>();
         return Success_;
     }
 
@@ -413,7 +530,7 @@ namespace Selas
     //=============================================================================================================================
     uint64 CDisneySceneBuildProcessor::Version()
     {
-        return SceneResource::kDataVersion;
+        return SceneResource::kDataVersion + ModelResource::kDataVersion;
     }
 
     //=============================================================================================================================
@@ -444,10 +561,7 @@ namespace Selas
 
             SceneResourceData* scene = allScenes[scan];
             for(uint scan = 0, count = scene->modelNames.Count(); scan < count; ++scan) {
-                if(StringUtil::EndsWithIgnoreCase(scene->modelNames[scan].Ascii(), CurveModelNameSuffix_)) {
-                    context->AddProcessDependency("disneycurve", scene->modelNames[scan].Ascii());
-                }
-                else {
+                if(!StringUtil::EndsWithIgnoreCase(scene->modelNames[scan].Ascii(), CurveModelNameSuffix_)) {
                     context->AddProcessDependency("model", scene->modelNames[scan].Ascii());
                 }
             }

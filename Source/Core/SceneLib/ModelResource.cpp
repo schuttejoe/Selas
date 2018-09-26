@@ -23,7 +23,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1537848954ul;
+    const uint64 ModelResource::kDataVersion = 1537848960ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -37,7 +37,6 @@ namespace Selas
     {
         Serialize(serializer, data.indexOffset);
         Serialize(serializer, data.indexCount);
-        Serialize(serializer, data.nameHash);
     }
 
     //=============================================================================================================================
@@ -49,7 +48,8 @@ namespace Selas
         Serialize(serializer, data.vertexOffset);
         Serialize(serializer, data.materialHash);
         Serialize(serializer, data.indicesPerFace);
-        Serialize(serializer, data.meshNameHash);
+        Serialize(serializer, data.nameHash);
+        Serialize(serializer, data.name);
     }
 
     //=============================================================================================================================
@@ -58,6 +58,8 @@ namespace Selas
         Serialize(serializer, data.aaBox);
         Serialize(serializer, data.totalVertexCount);
         Serialize(serializer, data.totalCurveVertexCount);
+        Serialize(serializer, data.curveModelName);
+        Serialize(serializer, data.pad);
         Serialize(serializer, data.cameras);
         Serialize(serializer, data.textureResourceNames);
         Serialize(serializer, data.materials);
@@ -199,23 +201,32 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const MaterialResourceData* FindMeshMaterial(ModelResource* model, Hash32 materialHash)
+    static const MaterialResourceData* FindMeshMaterial(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                                        const CArray<MaterialResourceData> sceneMaterials, Hash32 materialHash)
     {
         uint materialCount = model->data->materials.Count();
-        if(materialCount == 0) {
-            return model->defaultMaterial;
+        if(materialCount != 0) {
+            uint materialIndex = BinarySearch(model->data->materialHashes.DataPointer(), materialCount, materialHash);
+            if(materialIndex != (uint)-1) {
+                return &model->data->materials[materialIndex]; 
+            }
         }
 
-        uint materialIndex = BinarySearch(model->data->materialHashes.DataPointer(), materialCount, materialHash);
-        if(materialIndex == (uint)-1) {
-            return model->defaultMaterial;
+        for(uint scan = 0, count = sceneMaterialNames.Count(); scan < count; ++scan) {
+            Hash32 test = MurmurHash3_x86_32(sceneMaterialNames[scan].Ascii(), (uint32)sceneMaterialNames[scan].Length());
+
+            if(test == materialHash) {
+                return &sceneMaterials[scan];
+            }
         }
 
-        return &model->data->materials[materialIndex];
+        return model->defaultMaterial;
     }
 
     //=============================================================================================================================
-    static uint32 InitializeMeshes(ModelResource* model, uint32 offset, RTCDevice rtcDevice, RTCScene rtcScene)
+    static Error InitializeMeshes(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
+                                  RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
     {
         ModelResourceData* modelData = model->data;
         ModelGeometryData* geometry = model->geometry;
@@ -225,7 +236,8 @@ namespace Selas
 
         for(uint32 scan = 0, count = (uint32)modelData->meshes.Count(); scan < count; ++scan) {
             const MeshMetaData& meshData = modelData->meshes[scan];
-            const MaterialResourceData* material = FindMeshMaterial(model, meshData.materialHash);
+            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
+                                                                    meshData.materialHash);
 
             bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
             bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
@@ -269,11 +281,16 @@ namespace Selas
                             | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
             
             userData.material.resource = material;
-            if(material->baseColorTextureIndex != InvalidIndex32) {
-                userData.material.baseColorTextureHandle = model->textureHandles[material->baseColorTextureIndex];
+            if(material->flags & eUsesPtex) {
+                FilePathString contentid;
+                FixedStringSprintf(contentid, "%s\\%s.ptx", material->baseColorTexture.Ascii(), meshData.name.Ascii());
+
+                FilePathString filepath;
+                AssetFileUtils::ContentFilePath(contentid.Ascii(), filepath);
+                ReturnError_(cache->LoadTexturePtex(filepath, userData.material.baseColorTextureHandle));
             }
             else {
-                userData.material.baseColorTextureHandle = TextureHandle();
+                ReturnError_(cache->LoadTextureResource(material->baseColorTexture, userData.material.baseColorTextureHandle));
             }
 
             userData.instanceID = RTC_INVALID_GEOMETRY_ID;
@@ -288,11 +305,14 @@ namespace Selas
             rtcReleaseGeometry(rtcGeometry);
         }
 
-        return offset + (uint32)modelData->meshes.Count();
+        offset += (uint32)modelData->meshes.Count();
+        return Success_;
     }
 
     //=============================================================================================================================
-    static uint32 InitializeCurves(ModelResource* model, uint32 offset, RTCDevice rtcDevice, RTCScene rtcScene)
+    static Error InitializeCurves(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
+                                  RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
     {
         ModelResourceData* modelData = model->data;
         ModelGeometryData* geometry = model->geometry;
@@ -320,14 +340,12 @@ namespace Selas
                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
 
-            const MaterialResourceData* material = FindMeshMaterial(model, curve.nameHash);
+            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
+                                                                    model->data->curveModelName);
+
             userData.material.resource = material;
-            if(material->baseColorTextureIndex != InvalidIndex32) {
-                userData.material.baseColorTextureHandle = model->textureHandles[material->baseColorTextureIndex];
-            }
-            else {
-                userData.material.baseColorTextureHandle = TextureHandle();
-            }
+            userData.material.baseColorTextureHandle = TextureHandle();
+            //ReturnError_(cache->LoadTextureResource(material->baseColorTexture, userData.material.baseColorTextureHandle));
 
             userData.instanceID = RTC_INVALID_GEOMETRY_ID;
             userData.rtcScene = rtcScene;
@@ -341,20 +359,25 @@ namespace Selas
             rtcReleaseGeometry(rtcGeometry);
         }
 
-        return offset + (uint32)modelData->curves.Count();
+        offset += (uint32)modelData->curves.Count();
+        return Success_;
     }
 
     //=============================================================================================================================
-    static void PopulateEmbreeScene(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene)
+    static Error PopulateEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                     const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
+                                     RTCDevice rtcDevice, RTCScene rtcScene)
     {
         model->rtcGeometries.Reserve(model->data->meshes.Count() + model->data->curves.Count());
         model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
 
         uint32 offset = 0;
-        offset = InitializeMeshes(model, offset, rtcDevice, rtcScene);
-        offset = InitializeCurves(model, offset, rtcDevice, rtcScene);
+        ReturnError_(InitializeMeshes(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene, offset));
+        ReturnError_(InitializeCurves(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene, offset));
 
         rtcCommitScene(rtcScene);
+
+        return Success_;
     }
 
     //=============================================================================================================================
@@ -365,7 +388,6 @@ namespace Selas
     ModelResource::ModelResource()
         : data(nullptr)
         , geometry(nullptr)
-        , textureHandles(nullptr)
         , rtcScene(nullptr)
         , defaultMaterial(nullptr)
     {
@@ -377,7 +399,6 @@ namespace Selas
     {
         Assert_(data == nullptr);
         Assert_(geometry == nullptr);
-        Assert_(textureHandles == nullptr);
         Assert_(rtcScene == nullptr);
     }
 
@@ -421,28 +442,19 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeModelResource(ModelResource* model, TextureCache* textureCache)
+    void InitializeModelResource(ModelResource* model)
     {
-        uint textureCount = model->data->textureResourceNames.Count();
-        model->textureHandles = AllocArray_(TextureHandle, textureCount);
-
-        for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
-            const FilePathString& texturename = model->data->textureResourceNames[scan];
-            ReturnError_(textureCache->LoadTextureResource(texturename, model->textureHandles[scan]));
-        }
-
         model->defaultMaterial = CreateDefaultMaterial();
-
-        return Success_;
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(ModelResource* model, RTCDevice rtcDevice)
+    Error InitializeEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache, RTCDevice rtcDevice)
     {
         RTCScene rtcScene = rtcNewScene(rtcDevice);
 
         model->rtcScene = rtcScene;
-        PopulateEmbreeScene(model, rtcDevice, rtcScene);
+        return PopulateEmbreeScene(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene);
     }
 
     //=============================================================================================================================
@@ -453,12 +465,13 @@ namespace Selas
         }
         model->rtcScene = nullptr;
 
-        for(uint scan = 0, count = model->data->textureResourceNames.Count(); scan < count; ++scan) {
-            textureCache->UnloadTexture(model->textureHandles[scan]);
+        for(uint scan = 0, count = model->userDatas.Count(); scan < count; ++scan) {
+            if(model->userDatas[scan].material.baseColorTextureHandle.Valid()) {
+                textureCache->UnloadTexture(model->userDatas[scan].material.baseColorTextureHandle);
+            }
         }
 
         SafeDelete_(model->defaultMaterial);
-        SafeFree_(model->textureHandles);
         SafeFreeAligned_(model->data);
         SafeFreeAligned_(model->geometry);
     }

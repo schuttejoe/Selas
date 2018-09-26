@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1537401793ul;
+    const uint64 SceneResource::kDataVersion = 1537917288ul;
 
     //=============================================================================================================================
     // Serialization
@@ -44,6 +44,8 @@ namespace Selas
         Serialize(serializer, data.sceneInstances);
         Serialize(serializer, data.modelInstances);
         Serialize(serializer, data.lights);
+        Serialize(serializer, data.sceneMaterialNames);
+        Serialize(serializer, data.sceneMaterials);
         Serialize(serializer, data.camera);
     }
 
@@ -88,7 +90,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeSceneResource(SceneResource* scene, TextureCache* textureCache)
+    Error InitializeSceneResource(SceneResource* scene)
     {
         uint sceneCount = scene->data->sceneNames.Count();
         uint modelCount = scene->data->modelNames.Count();
@@ -99,7 +101,7 @@ namespace Selas
                 scene->models[scan] = New_(ModelResource);
                 ReturnError_(ReadModelResource(scene->data->modelNames[scan].Ascii(), scene->models[scan]));
 
-                InitializeModelResource(scene->models[scan], textureCache);
+                InitializeModelResource(scene->models[scan]);
             }
         }
 
@@ -110,7 +112,7 @@ namespace Selas
                 scene->scenes[scan] = New_(SceneResource);
                 ReturnError_(ReadSceneResource(scene->data->sceneNames[scan].Ascii(), scene->scenes[scan]));
 
-                InitializeSceneResource(scene->scenes[scan], textureCache);
+                InitializeSceneResource(scene->scenes[scan]);
             }
         }
 
@@ -303,12 +305,12 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void InitializeChildEmbreeScene(SceneResource* scene, RTCDevice rtcDevice)
+    static void InitializeChildEmbreeScene(SceneResource* scene, SceneResourceData* root, TextureCache* cache, RTCDevice rtcDevice)
     {
         Assert_(scene->data->sceneInstances.Count() == 0);
 
         for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            InitializeEmbreeScene(scene->models[scan], rtcDevice);
+            InitializeEmbreeScene(scene->models[scan], root->sceneMaterialNames, root->sceneMaterials, cache, rtcDevice);
         }
 
         scene->rtcScene = rtcNewScene(rtcDevice);
@@ -319,14 +321,15 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(SceneResource* scene, RTCDevice rtcDevice)
+    void InitializeEmbreeScene(SceneResource* scene, TextureCache* cache, RTCDevice rtcDevice)
     {
         for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            InitializeEmbreeScene(scene->models[scan], rtcDevice);
+            InitializeEmbreeScene(scene->models[scan], scene->data->sceneMaterialNames, scene->data->sceneMaterials,
+                                  cache, rtcDevice);
         }
 
         for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
-            InitializeChildEmbreeScene(scene->scenes[scan], rtcDevice);
+            InitializeChildEmbreeScene(scene->scenes[scan], scene->data, cache, rtcDevice);
         }
 
         scene->rtcScene = rtcNewScene(rtcDevice);

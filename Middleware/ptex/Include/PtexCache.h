@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "PtexPlatform.h"
 #include <cstddef>
+#include <algorithm>
 
 #include "PtexMutex.h"
 #include "PtexHashMap.h"

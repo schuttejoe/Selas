@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <string>
 #include <map>
 #include <errno.h>
+#include <iostream>
 #include "Ptexture.h"
 #include "PtexIO.h"
 #include "PtexUtils.h"

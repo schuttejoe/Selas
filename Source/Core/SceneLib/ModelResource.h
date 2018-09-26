@@ -35,7 +35,8 @@ namespace Selas
         eTransparent              = 1 << 0,
         eAlphaTested              = 1 << 1,
         eDisplacementEnabled      = 1 << 2,
-        eInvertDisplacement       = 1 << 3
+        eInvertDisplacement       = 1 << 3,
+        eUsesPtex                 = 1 << 4
     };
 
     enum ScalarMaterialProperties
@@ -64,8 +65,7 @@ namespace Selas
     struct MaterialResourceData
     {
         MaterialResourceData()
-            : baseColorTextureIndex(InvalidIndex32)
-            , flags(0)
+            : flags(0)
             , baseColor(float3::Zero_)
             , transmittanceColor(float3::Zero_)
             , shader(eDisneyThin)
@@ -75,8 +75,8 @@ namespace Selas
             }
         }
 
+        FilePathString baseColorTexture;
         ShaderType shader;
-        uint32 baseColorTextureIndex;
         uint32 flags;
         float3 baseColor;
         float3 transmittanceColor;
@@ -88,7 +88,6 @@ namespace Selas
     {
         uint32 indexOffset;
         uint32 indexCount;
-        Hash32 nameHash;
     };
 
     struct MeshMetaData
@@ -99,7 +98,8 @@ namespace Selas
         uint32 vertexOffset;
         Hash32 materialHash;
         uint32 indicesPerFace;
-        Hash32 meshNameHash;
+        Hash32 nameHash;
+        FixedString64 name;
     };
 
     struct ModelResourceData
@@ -108,6 +108,8 @@ namespace Selas
         AxisAlignedBox  aaBox;
         uint32          totalVertexCount;
         uint32          totalCurveVertexCount;
+        Hash32          curveModelName;
+        uint32          pad;
 
         CArray<CameraSettings> cameras;
         CArray<FilePathString> textureResourceNames;
@@ -148,7 +150,6 @@ namespace Selas
         ModelResourceData* data;
         ModelGeometryData* geometry;
 
-        TextureHandle* textureHandles;
         RTCScene rtcScene;
         CArray<GeometryUserData> userDatas;
         CArray<RTCGeometry> rtcGeometries;
@@ -165,7 +166,8 @@ namespace Selas
     void Serialize(CSerializer* serializer, ModelGeometryData& data);
 
     Error ReadModelResource(cpointer filepath, ModelResource* model);
-    Error InitializeModelResource(ModelResource* model, TextureCache* textureCache);
-    void InitializeEmbreeScene(ModelResource* model, RTCDevice rtcDevice);
-    void ShutdownModelResource(ModelResource* model, TextureCache* textureCache);
+    void InitializeModelResource(ModelResource* model);
+    Error InitializeEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+                                const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache, RTCDevice rtcDevice);
+    void ShutdownModelResource(ModelResource* model, TextureCache* cache);
 }

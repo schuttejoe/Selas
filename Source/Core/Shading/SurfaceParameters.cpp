@@ -180,31 +180,44 @@ namespace Selas
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
         }
 
-        const TextureResource* baseColorTexture = cache->FetchTexture(material->baseColorTextureHandle);
+        
+        if(materialResource->flags & eUsesPtex) {
+            PtexTexture* texture = cache->FetchPtex(material->baseColorTextureHandle);
+
+            Ptex::PtexFilter::Options opts(Ptex::PtexFilter::FilterType::f_bspline);
+            Ptex::PtexFilter* filter = Ptex::PtexFilter::getFilter(texture, opts);
+
+            filter->eval(&surface.baseColor.x, 0, 3, hit->primId, hit->baryCoords.x, hit->baryCoords.y, 0, 0, 0, 0);
+
+            filter->release();
+            texture->release();
+        }
+        else {
+            const TextureResource* baseColorTexture = cache->FetchTexture(material->baseColorTextureHandle);
+            surface.baseColor = SampleTextureFloat3(baseColorTexture, uvs, true, materialResource->baseColor);
+        }
 
         // -- Calculate tangent space transforms
         float3x3 tangentToWorld = MakeFloat3x3(t, n, b);
-        surface.worldToTangent = MatrixTranspose(tangentToWorld);
 
-        surface.position        = hit->position;
-        surface.error           = hit->error;
-        surface.materialFlags   = materialResource->flags;
-        surface.baseColor = SampleTextureFloat3(baseColorTexture, uvs, true, materialResource->baseColor);
+        surface.worldToTangent     = MatrixTranspose(tangentToWorld);
+        surface.position           = hit->position;
+        surface.error              = hit->error;
+        surface.materialFlags      = materialResource->flags;
         surface.transmittanceColor = materialResource->transmittanceColor;
-
-        surface.sheen           = materialResource->scalarAttributeValues[eSheen];
-        surface.sheenTint       = materialResource->scalarAttributeValues[eSheenTint];
-        surface.clearcoat       = materialResource->scalarAttributeValues[eClearcoat];
-        surface.clearcoatGloss  = materialResource->scalarAttributeValues[eClearcoatGloss];
-        surface.specTrans       = materialResource->scalarAttributeValues[eSpecTrans];
-        surface.diffTrans       = materialResource->scalarAttributeValues[eDiffuseTrans];
-        surface.flatness        = materialResource->scalarAttributeValues[eFlatness];
-        surface.anisotropic     = materialResource->scalarAttributeValues[eAnisotropic];
-        surface.specularTint    = materialResource->scalarAttributeValues[eSpecularTint];
-        surface.roughness       = materialResource->scalarAttributeValues[eRoughness];
-        surface.metallic        = materialResource->scalarAttributeValues[eMetallic];
-        surface.scatterDistance = materialResource->scalarAttributeValues[eScatterDistance];
-        surface.ior             = materialResource->scalarAttributeValues[eIor];
+        surface.sheen              = materialResource->scalarAttributeValues[eSheen];
+        surface.sheenTint          = materialResource->scalarAttributeValues[eSheenTint];
+        surface.clearcoat          = materialResource->scalarAttributeValues[eClearcoat];
+        surface.clearcoatGloss     = materialResource->scalarAttributeValues[eClearcoatGloss];
+        surface.specTrans          = materialResource->scalarAttributeValues[eSpecTrans];
+        surface.diffTrans          = materialResource->scalarAttributeValues[eDiffuseTrans];
+        surface.flatness           = materialResource->scalarAttributeValues[eFlatness];
+        surface.anisotropic        = materialResource->scalarAttributeValues[eAnisotropic];
+        surface.specularTint       = materialResource->scalarAttributeValues[eSpecularTint];
+        surface.roughness          = materialResource->scalarAttributeValues[eRoughness];
+        surface.metallic           = materialResource->scalarAttributeValues[eMetallic];
+        surface.scatterDistance    = materialResource->scalarAttributeValues[eScatterDistance];
+        surface.ior                = materialResource->scalarAttributeValues[eIor];
 
         surface.shader = materialResource->shader;
         surface.view = hit->incDirection;

@@ -20,7 +20,6 @@ namespace Selas
     struct ImportedMaterialData
     {
         FixedString256 shaderName;
-        FilePathString ptexFolder;
         FilePathString baseColorTexture;
         float3 baseColor;
         float3 transmittanceColor;
@@ -30,6 +29,7 @@ namespace Selas
         
         bool alphaTested;
         bool invertDisplacement;
+        bool usesPtex;
     };
 
     //== Import ====================================================================
@@ -44,7 +44,8 @@ namespace Selas
         CArray<uint32> triindices;
         CArray<uint32> quadindices;
         Hash32         materialHash;
-        Hash32         meshNameHash;
+        Hash32         nameHash;
+        FixedString64  name;
     };
 
     struct ImportedModel
@@ -77,6 +78,7 @@ namespace Selas
         CArray<float2>              uvs;
 
         // -- curves
+        Hash32                      curveModelNameHash;
         CArray<CurveMetaData>       curves;
         CArray<uint32>              curveIndices;
         CArray<float4>              curveVertices;

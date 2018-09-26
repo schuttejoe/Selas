@@ -84,32 +84,30 @@ namespace Selas
              
         Json::ReadBool(document, "alphaTesting", material->alphaTested, false);
         Json::ReadBool(document, "invertDisplacement", material->invertDisplacement, false);
-
+        Json::ReadBool(document, "usesPtex", material->usesPtex, false);
+        
         return Success_;
     }
 
     //=============================================================================================================================
-    Error ImportDisneyMaterials(cpointer filepath, cpointer texturePrefix,
-                                CArray<Hash32>& materialHashes, CArray<ImportedMaterialData>& materials)
+    Error ImportDisneyMaterials(cpointer filepath, CArray<FixedString64>& materialNames, CArray<ImportedMaterialData>& materials)
     {
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath, document));
         for(const auto& keyvalue : document.GetObject()) {
             const auto& element = keyvalue.value;
-            
-            cpointer name = keyvalue.name.GetString();
-            Hash32 hash = MurmurHash3_x86_32(name, StringUtil::Length(name), 0);
 
             ImportedMaterialData material;
             material.alphaTested = false;
             material.invertDisplacement = false;
-            material.baseColorTexture.Clear();
+            material.transmittanceColor = float3::One_;
 
-            Json::ReadFloat3(element, "baseColor", material.baseColor, float3(1.0f, 1.0f, 1.0f));
+            Json::ReadFloat3(element, "baseColor", material.baseColor, float3::One_);
             for(uint scan = 0; scan < eMaterialPropertyCount; ++scan) {
                 material.scalarAttributeTextures[scan].Clear();
                 Json::ReadFloat(element, attributes[scan], material.scalarAttributes[scan], attributeDefaults[scan]);
             }
+            material.baseColor = Pow(material.baseColor, 2.2f);
 
             FixedString32 type;
             Json::ReadFixedString(element, "type", type);
@@ -118,14 +116,33 @@ namespace Selas
             else
                 material.shaderName.Copy("DisneyThin");
 
-            if(Json::ReadFixedString(element, "colorMap", texturePrefix, material.ptexFolder) == false) {
-                return Error_("Failed to find colormap for material %s", name);
+            material.usesPtex = false;
+            if(element.HasMember("colorMap")) {
+                if(Json::ReadFixedString(element, "colorMap", material.baseColorTexture) == false) {
+                    return Error_("Failed to find colormap for material %s", keyvalue.name.GetString());
+                }
+                if(material.baseColorTexture.Length() > 0)
+                    material.usesPtex = true;
+            }
+            else {
+                material.baseColorTexture.Clear();
             }
 
-            AssetFileUtils::IndependentPathSeperators(material.ptexFolder);
+            AssetFileUtils::IndependentPathSeperators(material.baseColorTexture);
+
+            FixedString64 name;
+            name.Copy(keyvalue.name.GetString());
 
             materials.Add(material);
-            materialHashes.Add(hash);
+            materialNames.Add(name);
+
+            // -- This is wasteful but we're also going to add a material based on the assignment names so curves can find them.
+            for(const auto& assignment : element["assignment"].GetArray()) {
+
+                name.Copy(assignment.GetString());
+                materialNames.Add(name);
+                materials.Add(material);
+            }
         }
 
         return Success_;

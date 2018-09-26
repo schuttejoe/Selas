@@ -9,12 +9,14 @@
 namespace Selas
 {
     //=============================================================================================================================
-    Error BakeModel(BuildProcessorContext* context, const BuiltModel& model)
+    Error BakeModel(BuildProcessorContext* context, cpointer name, const BuiltModel& model)
     {
         ModelResourceData data;
-        data.aaBox                = model.aaBox;
-        data.totalVertexCount     = (uint32)model.positions.Count();
+        data.aaBox                     = model.aaBox;
+        data.totalVertexCount          = (uint32)model.positions.Count();
         data.totalCurveVertexCount     = (uint32)model.curveVertices.Count();
+        data.curveModelName            = model.curveModelNameHash;
+        data.pad                       = 0;
         data.cameras.Append(model.cameras);
         data.textureResourceNames.Append(model.textures);
         data.materials.Append(model.materials);
@@ -22,7 +24,7 @@ namespace Selas
         data.meshes.Append(model.meshes);
         data.curves.Append(model.curves);
         
-        context->CreateOutput(ModelResource::kDataType, ModelResource::kDataVersion, context->source.name.Ascii(), data);
+        context->CreateOutput(ModelResource::kDataType, ModelResource::kDataVersion, name, data);
 
         ModelGeometryData geometry;
         geometry.indexSize       = model.indices.DataSize();
@@ -43,7 +45,7 @@ namespace Selas
         geometry.curveIndices    = (uint32*)model.curveIndices.DataPointer();
         geometry.curveVertices   = (float4*)model.curveVertices.DataPointer();
 
-        context->CreateOutput(ModelResource::kGeometryDataType, ModelResource::kDataVersion, context->source.name.Ascii(), geometry);
+        context->CreateOutput(ModelResource::kGeometryDataType, ModelResource::kDataVersion, name, geometry);
 
         return Success_;
     }

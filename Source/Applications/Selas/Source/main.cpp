@@ -10,7 +10,6 @@
 #include "BuildCommon/TextureBuildProcessor.h"
 #include "BuildCommon/CModelBuildProcessor.h"
 #include "BuildCommon/CDisneySceneBuildProcessor.h"
-#include "BuildCommon/CDisneyCurveBuildProcessor.h"
 #include "BuildCommon/CSceneBuildProcessor.h"
 #include "BuildCore/BuildCore.h"
 #include "BuildCore/BuildDependencyGraph.h"
@@ -65,7 +64,6 @@ static Error ValidateAssetsAreBuilt()
     CreateAndRegisterBuildProcessor<CTextureBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CModelBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CDisneySceneBuildProcessor>(&buildCore);
-    CreateAndRegisterBuildProcessor<CDisneyCurveBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CSceneBuildProcessor>(&buildCore);
 
     buildCore.BuildAsset(ContentId(sceneType, sceneName));
@@ -104,12 +102,12 @@ int main(int argc, char *argv[])
 
     auto timer = SystemTime::Now();
     ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
-    ExitMainOnError_(InitializeSceneResource(&sceneResource, &textureCache));
+    InitializeSceneResource(&sceneResource);
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     timer = SystemTime::Now();
-    InitializeEmbreeScene(&sceneResource, rtcDevice);
+    InitializeEmbreeScene(&sceneResource, &textureCache, rtcDevice);
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Embree setup time %fms", elapsedMs);
 

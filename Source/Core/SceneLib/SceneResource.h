@@ -55,7 +55,9 @@ namespace Selas
         CArray<Instance> sceneInstances;
         CArray<Instance> modelInstances;
         CArray<SceneLight> lights;
-
+        
+        CArray<FixedString64> sceneMaterialNames;
+        CArray<MaterialResourceData> sceneMaterials;
         CameraSettings camera;
     };
 
@@ -84,8 +86,8 @@ namespace Selas
     void Serialize(CSerializer* serializer, SceneResourceData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
-    Error InitializeSceneResource(SceneResource* scene, TextureCache* textureCache);
-    void InitializeEmbreeScene(SceneResource* scene, RTCDevice rtcDevice);
+    Error InitializeSceneResource(SceneResource* scene);
+    void InitializeEmbreeScene(SceneResource* scene, TextureCache* cache, RTCDevice rtcDevice);
     void ShutdownSceneResource(SceneResource* scene, TextureCache* textureCache);
 
     void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
