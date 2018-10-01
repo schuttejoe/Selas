@@ -143,7 +143,9 @@ namespace Selas
     bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* __restrict hit,
                                 SurfaceParameters& surface)
     {
-        RTCGeometry rtcGeometry = GeometryFromRayIds(context->scene, hit->instId, hit->geomId);
+        float4x4 localToWorld;
+        RTCGeometry rtcGeometry;
+        GeometryFromRayIds(context->scene, hit->instId, hit->geomId, localToWorld, rtcGeometry);
         GeometryUserData* userData = (GeometryUserData*)rtcGetGeometryUserData(rtcGeometry);
 
         TextureCache* cache = context->textureCache;
@@ -154,21 +156,23 @@ namespace Selas
         if(userData->flags & HasNormals) {
             rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+
+            normal = MatrixMultiplyVector(normal, localToWorld);
         }
         else {
-            normal = hit->normal;
+            normal = MatrixMultiplyVector(hit->normal, localToWorld);
         }
 
         float3 n = Normalize(normal);
         float3 t, b;
 
-        Align_(16) float4 tangent;
         if(userData->flags & HasTangents) {
+            Align_(16) float4 localTangent;
             rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tangent.x, 4);
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
 
-            t = tangent.XYZ();
-            b = Cross(normal, t) * tangent.w;
+            t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
+            b = Cross(n, t) * localTangent.w;
         }
         else {
             MakeOrthogonalCoordinateSystem(n, &t, &b);
@@ -179,7 +183,6 @@ namespace Selas
             rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
         }
-
         
         if(materialResource->flags & eUsesPtex) {
             PtexTexture* texture = cache->FetchPtex(material->baseColorTextureHandle);
@@ -187,7 +190,9 @@ namespace Selas
             Ptex::PtexFilter::Options opts(Ptex::PtexFilter::FilterType::f_bspline);
             Ptex::PtexFilter* filter = Ptex::PtexFilter::getFilter(texture, opts);
 
-            filter->eval(&surface.baseColor.x, 0, 3, hit->primId, hit->baryCoords.x, hit->baryCoords.y, 0, 0, 0, 0);
+            float3 sample;
+            filter->eval(&sample.x, 0, 3, hit->primId, hit->baryCoords.x, hit->baryCoords.y, 0, 0, 0, 0);
+            surface.baseColor = Pow(sample, 2.2f);
 
             filter->release();
             texture->release();
@@ -195,6 +200,8 @@ namespace Selas
         else {
             const TextureResource* baseColorTexture = cache->FetchTexture(material->baseColorTextureHandle);
             surface.baseColor = SampleTextureFloat3(baseColorTexture, uvs, true, materialResource->baseColor);
+            surface.baseColor = Pow(surface.baseColor, 2.2f);
+            cache->ReleaseTexture(material->baseColorTextureHandle);
         }
 
         // -- Calculate tangent space transforms
@@ -225,10 +232,6 @@ namespace Selas
         // -- better way to handle this would be for the ray to know what IOR it is within
         surface.relativeIOR = ((materialResource->flags & eTransparent) && Dot(hit->incDirection, n) < 0.0f) 
                             ? surface.ior : 1.0f / surface.ior;
-
-        surface.perturbedNormal = n;
-
-        cache->ReleaseTexture(material->baseColorTextureHandle);
 
         return true;
     }

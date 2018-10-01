@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer ImageBasedLightResource::kDataType = "IBL";
-    const uint64 ImageBasedLightResource::kDataVersion = 1537474488ul;
+    const uint64 ImageBasedLightResource::kDataVersion = 1538087123ul;
 
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, ImageBasedLightResourceData& data)
@@ -142,8 +142,12 @@ namespace Selas
         // convert from texture space to spherical with the inverse of the Jacobian
         float invJacobian = (widthf * heightf) / Math::TwoPi_;
 
-        // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-        pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
+        // -- pdf is probably of x and y sample / sin(theta) to account for the warping along the y axis
+        float sinTheta = Math::Sinf(theta);
+        if(sinTheta > 0)
+            pdf = mdf * cdf * invJacobian / sinTheta;
+        else
+            pdf = 0.0f;
     }
 
     //=============================================================================================================================
@@ -180,8 +184,12 @@ namespace Selas
         // convert from texture space to spherical with the inverse of the Jacobian
         float invJacobian = (widthf * heightf) / Math::TwoPi_;
 
-        // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-        pdf = Math::Sinf(theta) * mdf * cdf * invJacobian;
+        // -- pdf is probably of x and y sample / sin(theta) to account for the warping along the y axis
+        float sinTheta = Math::Sinf(theta);
+        if(sinTheta > 0)
+            pdf = mdf * cdf * invJacobian / sinTheta;
+        else
+            pdf = 0.0f;
 
         return ibl->exposureScale * ibl->lightData[y * ibl->densityfunctions.width + x];
     }
@@ -244,8 +252,12 @@ namespace Selas
         // convert from texture space to spherical with the inverse of the Jacobian
         float invJacobian = (widthf * heightf) / Math::TwoPi_;
 
-        // -- pdf is probably of x and y sample * sin(theta) to account for the warping along the y axis
-        return Math::Sinf(theta) * mdf * cdf * invJacobian;
+        // -- pdf is probably of x and y sample / sin(theta) to account for the warping along the y axis
+        float sinTheta = Math::Sinf(theta);
+        if(sinTheta > 0)
+            return mdf * cdf * invJacobian / sinTheta;
+        else
+            return 0.0f;
     }
 
     //=============================================================================================================================

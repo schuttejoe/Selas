@@ -24,7 +24,8 @@ namespace Selas
     {
         static const char* shaderNames[] = {
             "DisneyThin",
-            "DisneySolid"
+            "DisneySolid",
+            "DeltaTransparent"
         };
         static_assert(CountOf_(shaderNames) == eShaderCount, "Missing shader name");
 

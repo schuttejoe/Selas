@@ -7,6 +7,7 @@
 #include "Shading/SurfaceParameters.h"
 #include "Shading/Lambert.h"
 #include "Shading/Disney.h"
+#include "Shading/DiracTransparent.h"
 #include "SystemLib/JsAssert.h"
 
 namespace Selas
@@ -24,6 +25,9 @@ namespace Selas
             }
             else if(surface.shader == eDisneySolid) {
                 return SampleDisney(sampler, surface, v, false, sample);
+            }
+            else if(surface.shader == eDiracTransparent) {
+                return SampleDiracTransparent(sampler, surface, v, sample);
             }
             else {
                 Assert_(false);
@@ -44,6 +48,9 @@ namespace Selas
             }
             else if(surface.shader == eDisneySolid) {
                 return EvaluateDisney(surface, v, l, false, forwardPdfW, reversePdfW);
+            }
+            else if (surface.shader == eDiracTransparent) {
+                return float3::Zero_;
             }
             else {
                 Assert_(false);

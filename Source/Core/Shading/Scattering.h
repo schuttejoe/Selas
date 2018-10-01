@@ -9,10 +9,11 @@
 namespace Selas
 {
     //=============================================================================================================================
-    enum SurfaceEventTypes
+    enum SurfaceEventFlags
     {
-        eScatterEvent,
-        eTransmissionEvent
+        eScatterEvent        = 0x01,
+        eTransmissionEvent   = 0x02,
+        eDeltaEvent          = 0x04 
     };
 
     //=============================================================================================================================
@@ -32,7 +33,7 @@ namespace Selas
     //=============================================================================================================================
     struct BsdfSample
     {
-        SurfaceEventTypes type;
+        uint32 flags;
 
         MediumParameters medium = MediumParameters();
         float3 reflectance      = float3::Zero_;

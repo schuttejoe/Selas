@@ -177,8 +177,6 @@ namespace Selas
             return nullptr;
         }
 
-        Atomic::Increment64(&obj->second->usageRefCount);
-
         Ptex::String error;
         Ptex::PtexTexture* texture = cacheData->ptexCache->get(obj->second->ptexFilePath.Ascii(), error);
         Assert_(texture != nullptr);

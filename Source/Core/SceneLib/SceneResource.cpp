@@ -17,7 +17,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1537917288ul;
+    const uint64 SceneResource::kDataVersion = 1538428687ul;
 
     //=============================================================================================================================
     // Serialization
@@ -257,7 +257,7 @@ namespace Selas
             rtcSetGeometryTimeStepCount(instance, 1);
 
             rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
-                (void*)&scene->data->modelInstances[scan].localToWorld);
+                                    (void*)&scene->data->modelInstances[scan].localToWorld);
 
             rtcCommitGeometry(instance);
             rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);
@@ -391,17 +391,20 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static RTCGeometry GeometryFromRayIds(const SceneResource* scene, int32 modelID, int32 geomId)
+    static void GeometryFromRayIds(const SceneResource* scene, int32 modelID, int32 geomId,
+                                   float4x4& localToWorld, RTCGeometry& rtcGeometry)
     {
         uint modelCount = scene->data->modelInstances.Count();
         Assert_(modelID < modelCount);
 
         uint modelIndex = scene->data->modelInstances[modelID].index;
-        return scene->models[modelIndex]->rtcGeometries[geomId];
+        rtcGeometry = scene->models[modelIndex]->rtcGeometries[geomId];
+        localToWorld = scene->data->modelInstances[modelID].localToWorld;
     }
 
     //=============================================================================================================================
-    RTCGeometry GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId)
+    void GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
+                            float4x4& localToWorld, RTCGeometry& rtcGeometry)
     {
         static_assert(MaxInstanceLevelCount_ == RTC_MAX_INSTANCE_LEVEL_COUNT,
                       "Embree was compiled with different instance levels count");
@@ -410,7 +413,7 @@ namespace Selas
         uint sceneCount = scene->data->sceneInstances.Count();
 
         if(instIds[0] == RTC_INVALID_GEOMETRY_ID) {
-            return scene->models[0]->rtcGeometries[geomId];
+            Assert_(false);
         }
         else {
             uint32 sceneID = instIds[0];
@@ -418,11 +421,14 @@ namespace Selas
 
             if(sceneID < modelCount) {
                 uint modelIndex = scene->data->modelInstances[sceneID].index;
-                return scene->models[modelIndex]->rtcGeometries[geomId];
+                rtcGeometry = scene->models[modelIndex]->rtcGeometries[geomId];
+                localToWorld = scene->data->modelInstances[sceneID].localToWorld;
+                return;
             }
 
             uint sceneIndex = scene->data->sceneInstances[sceneID - modelCount].index;
-            return GeometryFromRayIds(scene->scenes[sceneIndex], subsceneID, geomId);
+            GeometryFromRayIds(scene->scenes[sceneIndex], subsceneID, geomId, localToWorld, rtcGeometry);
+            localToWorld = MatrixMultiply(localToWorld, scene->data->sceneInstances[sceneID - modelCount].localToWorld);
         }
     }
 }

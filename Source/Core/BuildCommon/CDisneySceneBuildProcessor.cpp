@@ -276,7 +276,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ParseLightFile(BuildProcessorContext* context, cpointer lightfile, SceneResourceData* scene)
+    static Error ParseLightsFile(BuildProcessorContext* context, cpointer lightfile, SceneResourceData* scene)
     {
         if(StringUtil::Length(lightfile) == 0) {
             return Success_;
@@ -284,7 +284,7 @@ namespace Selas
 
         FilePathString filepath;
         AssetFileUtils::ContentFilePath(lightfile, filepath);
-        context->AddFileDependency(filepath.Ascii());
+        ReturnError_(context->AddFileDependency(filepath.Ascii()));
 
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
@@ -300,17 +300,17 @@ namespace Selas
                 continue;
             }
 
-            float3 color;
+            float4 color;
             float exposure;
-            Json::ReadFloat3(lightElementKV.value, "color", color, float3::Zero_);
+            Json::ReadFloat4(lightElementKV.value, "color", color, float4::Zero_);
             Json::ReadFloat(lightElementKV.value, "exposure", exposure, 0.0f);
 
             float width, height;
             Json::ReadFloat(lightElementKV.value, "width", width, 0.0f);
             Json::ReadFloat(lightElementKV.value, "height", height, 0.0f);
 
-            float3 swizzle = float3(color.z, color.y, color.x);
-            float3 radiance = Math::Powf(2.0f, exposure) * Pow(swizzle, 2.2f);
+            float3 rgb = color.XYZ();
+            float3 radiance = Math::Powf(2.0f, exposure) * Pow(rgb, 2.2f);
             if(Dot(radiance, float3::One_) <= 0.0f) {
                 continue;
             }
@@ -550,7 +550,7 @@ namespace Selas
         allScenes.Add(rootScene);
 
         ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene->camera));
-        ReturnError_(ParseLightFile(context, sceneFile.lightsFile.Ascii(), rootScene));
+        ReturnError_(ParseLightsFile(context, sceneFile.lightsFile.Ascii(), rootScene));
         
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
             const FilePathString& elementName = sceneFile.elements[scan];

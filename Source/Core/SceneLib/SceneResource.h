@@ -92,5 +92,6 @@ namespace Selas
 
     void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
 
-    RTCGeometry GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId);
+    void GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
+                            float4x4& localToWorld, RTCGeometry& rtcGeometry);
 }

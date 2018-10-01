@@ -46,6 +46,7 @@ namespace Selas
 
     struct LightDirectSample
     {
+        uint32 index;
         float3 direction;
         float3 radiance;
         float distance;
@@ -58,6 +59,8 @@ namespace Selas
 
     void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal,
                              LightDirectSample& sample);
+    float LightingPdf(GIIntegratorContext* context, const LightDirectSample& light, const float3& position, const float3& wi);
+
     float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi);
     float3 SampleBackground(GIIntegratorContext* context, float3 wi);
     float3 SampleBackgroundMiss(GIIntegratorContext* context, float3 wi);

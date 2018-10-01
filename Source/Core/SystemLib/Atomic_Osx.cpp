@@ -54,14 +54,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    uint32 Atomic::Add32(volatile uint32* destination, uint32 addValue)
+    uint32 Atomic::AddU32(volatile uint32* destination, uint32 addValue)
     {
         uint32 initialValue = __sync_fetch_and_add(destination, addValue);
         return initialValue;
     }
 
     //=============================================================================================================================
-    uint64 Atomic::Add64(volatile uint64* destination, uint64 addValue)
+    uint64 Atomic::AddU64(volatile uint64* destination, uint64 addValue)
     {
         uint64 initialValue = __sync_fetch_and_add(destination, addValue);
         return initialValue;

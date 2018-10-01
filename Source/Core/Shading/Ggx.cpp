@@ -18,10 +18,11 @@ namespace Selas
         //=============================================================================================================================
         float SeparableSmithGGXG1(const float3& w, const float3& wm, float ax, float ay)
         {
-            float dotHW = Dot(w, wm);
-            if (dotHW <= 0.0f) {
-                return 0.0f;
-            }
+            // JSTODO - Why did I have this here?
+            //float dotHW = Dot(w, wm);
+            //if (dotHW <= 0.0f) {
+            //    return 0.0f;
+            //}
 
             float absTanTheta = Absf(TanTheta(w));
             if(IsInf(absTanTheta)) {
@@ -103,10 +104,8 @@ namespace Selas
         //=========================================================================================================================
         float3 SampleGgxVndfAnisotropic(const float3& wo, float ax, float ay, float u1, float u2)
         {
-            float sign = Math::Sign(wo.y);
-
             // -- Stretch the view vector so we are sampling as though roughness==1
-            float3 v = sign * Normalize(float3(wo.x * ax, wo.y, wo.z * ay));
+            float3 v = Normalize(float3(wo.x * ax, wo.y, wo.z * ay));
 
             // -- Build an orthonormal basis with v, t1, and t2
             float3 t1 = (v.y < 0.9999f) ? Normalize(Cross(v, float3::YAxis_)) : float3::XAxis_;
@@ -123,7 +122,7 @@ namespace Selas
             float3 n = p1 * t1 + p2 * t2 + Math::Sqrtf(Max<float>(0.0f, 1.0f - p1 * p1 - p2 * p2)) * v;
 
             // -- unstretch and normalize the normal
-            return sign * Normalize(float3(ax * n.x, Max<float>(0.0f, n.y), ay * n.z));
+            return Normalize(float3(ax * n.x, n.y, ay * n.z));
         }
 
         //=========================================================================================================================

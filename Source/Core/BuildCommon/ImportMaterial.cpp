@@ -107,7 +107,6 @@ namespace Selas
                 material.scalarAttributeTextures[scan].Clear();
                 Json::ReadFloat(element, attributes[scan], material.scalarAttributes[scan], attributeDefaults[scan]);
             }
-            material.baseColor = Pow(material.baseColor, 2.2f);
 
             FixedString32 type;
             Json::ReadFixedString(element, "type", type);

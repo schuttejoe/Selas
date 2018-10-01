@@ -68,7 +68,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    uint32 Atomic::Add32(volatile uint32* destination, uint32 addValue)
+    uint32 Atomic::AddU32(volatile uint32* destination, uint32 addValue)
     {
         static_assert(sizeof(int32) == sizeof(long), "Unexpected primitive size");
 
@@ -77,7 +77,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    uint64 Atomic::Add64(volatile uint64* destAddend, uint64 addValue)
+    uint64 Atomic::AddU64(volatile uint64* destAddend, uint64 addValue)
     {
         static_assert(sizeof(uint64) == sizeof(long long), "Unexpected primitive size");
 

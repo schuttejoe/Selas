@@ -26,6 +26,7 @@ namespace Selas
     {
         eDisneyThin,
         eDisneySolid,
+        eDiracTransparent,
 
         eShaderCount
     };

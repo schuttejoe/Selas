@@ -7,6 +7,7 @@
 #include "SceneLib/ImageBasedLightResource.h"
 #include "TextureLib/StbImage.h"
 #include "MathLib/FloatFuncs.h"
+#include "MathLib/Trigonometric.h"
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/Memory.h"
 
@@ -14,9 +15,9 @@ namespace Selas
 {
 
     //=============================================================================================================================
-    static float CieIntensity(float3 rgb)
+    static float CieLuma(float3 rgb)
     {
-        return rgb.x * 0.2125f + rgb.y * 0.7154f + rgb.z * 0.0721f;
+        return rgb.x * 0.299f + rgb.y * 0.587f + rgb.z * 0.114f;
     }
 
     //=============================================================================================================================
@@ -24,10 +25,16 @@ namespace Selas
     {
         float* intensities = AllocArrayAligned_(float, width * height, 16);
 
+        float heightf = (float)height;
+
         for(uint y = 0; y < height; ++y) {
+
+            float theta = (y + 0.5f) * Math::Pi_ / heightf;
+            float sinTheta = Math::Sinf(theta);
+
             for(uint x = 0; x < width; ++x) {
                 uint index = y * width + x;
-                intensities[index] = CieIntensity(hdr[index]);
+                intensities[index] = sinTheta * CieLuma(hdr[index]);
             }
         }
 

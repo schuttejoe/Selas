@@ -60,7 +60,7 @@ namespace Selas
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         sample.forwardPdfW = dotNL;
         sample.reversePdfW = dotNV;
-        sample.type = SurfaceEventTypes::eScatterEvent;
+        sample.flags = SurfaceEventFlags::eScatterEvent;
 
         return true;
     }

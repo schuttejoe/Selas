@@ -126,7 +126,7 @@ namespace Selas
     //=============================================================================================================================
     static float3 DisneyFresnel(const SurfaceParameters& surface, const float3& wo, const float3& wm, const float3& wi)
     {
-        float dotHV = Absf(Dot(wm, wo));
+        float dotHV = Dot(wm, wo);
 
         float3 tint = CalculateTint(surface.baseColor);
 
@@ -164,6 +164,9 @@ namespace Selas
         float3 f = DisneyFresnel(surface, wo, wm, wi);
 
         Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, ax, ay, fPdf, rPdf);
+        fPdf *= (1.0f / (4 * dotNL));
+        rPdf *= (1.0f / (4 * dotNL));
+
         return d * gl * gv * f / (4.0f * dotNL * dotNV);
     }
 
@@ -201,10 +204,14 @@ namespace Selas
         float G1v = Bsdf::SeparableSmithGGXG1(wo, wm, ax, ay);
         float3 specular = G1v * F;
 
-        sample.type = SurfaceEventTypes::eScatterEvent;
+        sample.flags = SurfaceEventFlags::eScatterEvent;
         sample.reflectance = specular;
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, ax, ay, sample.forwardPdfW, sample.reversePdfW);
+
+        float dotNL = AbsCosTheta(wi);
+        sample.forwardPdfW *= (1.0f / (4 * dotNL));
+        sample.reversePdfW *= (1.0f / (4 * dotNL));
     }
 
     //=============================================================================================================================
@@ -225,7 +232,7 @@ namespace Selas
         float gl = Bsdf::SeparableSmithGGXG1(wi, wm, ax, ay);
         float gv = Bsdf::SeparableSmithGGXG1(wo, wm, ax, ay);
 
-        float f = Fresnel::Dielectric(dotHV, 1.0f, 1.0f / surface.relativeIOR);
+        float f = Fresnel::Dielectric(dotHV, 1.0f, surface.ior);
 
         float3 color;
         if(thin)
@@ -357,21 +364,36 @@ namespace Selas
         float r1 = sampler->UniformFloat();
         float3 wm = Bsdf::SampleGgxVndfAnisotropic(wo, tax, tay, r0, r1);
 
-        float dotVH = Absf(Dot(wo, wm));
+        float dotVH = Dot(wo, wm);
+        if(wm.y < 0.0f) {
+            dotVH = -1.0f;
+        }
+
+        float ni = wo.y > 0.0f ? 1.0f : surface.ior;
+        float nt = wo.y > 0.0f ? surface.ior : 1.0f;
+        float relativeIOR = ni / nt;
 
         // -- Disney uses the full dielectric Fresnel equation for transmission. We also importance sample F to switch between
         // -- refraction and reflection at glancing angles.
-        float F = Fresnel::Dielectric(dotVH, 1.0f, 1.0f / surface.relativeIOR);
-        float scatterPdf;
-        float3 surfaceColor;
+        float F = Fresnel::Dielectric(dotVH, 1.0f, surface.ior);
+        
+        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms.
+        // -- We are left with the weight G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function
+        // -- we get G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
+        float G1v = Bsdf::SeparableSmithGGXG1(wo, wm, tax, tay);
 
-        SurfaceEventTypes eventType = SurfaceEventTypes::eScatterEvent;
+        float pdf;
 
         float3 wi;
         if(sampler->UniformFloat() < F) {
-            wi = Reflect(wm, wo);
-            scatterPdf = F;
-            surfaceColor = surface.baseColor;
+            wi = Normalize(Reflect(wm, wo));
+
+            sample.flags = SurfaceEventFlags::eScatterEvent;
+            sample.reflectance = G1v * surface.baseColor;
+
+            float dotNL = AbsCosTheta(wi);
+            float jacobian = (4 * dotNL);
+            pdf = F / jacobian;
         }
         else {
             if(thin) {
@@ -379,43 +401,43 @@ namespace Selas
                 // -- So the ray is just reflected then flipped and we use the sqrt of the surface color.
                 wi = Reflect(wm, wo);
                 wi.y = -wi.y;
-                surfaceColor = Sqrt(surface.baseColor);
+                sample.reflectance = G1v * Sqrt(surface.baseColor);
+
+                // -- Since this is a thin surface we are not ending up inside of a volume so we treat this as a scatter event.
+                sample.flags = SurfaceEventFlags::eScatterEvent;
             }
             else {
-                surfaceColor = surface.baseColor;
-
-                if(Transmit(wm, wo, surface.relativeIOR, wi)) {
-                    eventType = SurfaceEventTypes::eTransmissionEvent;
-
-                    sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
+                if(Transmit(wm, wo, relativeIOR, wi)) {
+                    sample.flags = SurfaceEventFlags::eTransmissionEvent;
+                    sample.medium.phaseFunction = dotVH > 0.0f ? MediumPhaseFunction::eIsotropic : MediumPhaseFunction::eVacuum;
                     sample.medium.extinction = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
                 }
                 else {
+                    sample.flags = SurfaceEventFlags::eScatterEvent;
                     wi = Reflect(wm, wo);
                 }
+
+                sample.reflectance = G1v * surface.baseColor;
             }
 
-            // -- pdf for importance sampling the fresnel term
-            scatterPdf = 1.0f - F;
+            wi = Normalize(wi);
+            
+            float dotLH = Absf(Dot(wi, wm));
+            float jacobian = dotLH * 1.0f / (Square(dotLH + surface.ior * dotVH));
+            pdf = (1.0f - F) / jacobian;
         }
-        wi = Normalize(wi);
 
-        // -- Since we're sampling the distribution of visible normals the pdf cancels out with a number of other terms.
-        // -- We are left with the weight G2(wi, wo, wm) / G1(wi, wm) and since Disney uses a separable masking function
-        // -- we get G1(wi, wm) * G1(wo, wm) / G1(wi, wm) = G1(wo, wm) as our weight.
-        float G1v = Bsdf::SeparableSmithGGXG1(wo, wm, tax, tay);
-        sample.reflectance = surfaceColor * G1v;
+        if(surface.roughness < 0.01f) {
+            sample.flags |= SurfaceEventFlags::eDeltaEvent;
+        }
 
         // -- calculate pdf terms
         Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, tax, tay, sample.forwardPdfW, sample.reversePdfW);
-        sample.forwardPdfW /= scatterPdf;
-        sample.reversePdfW /= scatterPdf;
+        sample.forwardPdfW *= pdf;
+        sample.reversePdfW *= pdf;
 
         // -- convert wi back to world space
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
-
-        // -- Since this is a thin surface we are not ending up inside of a volume so we treat this as a scatter event.
-        sample.type = eventType;
     }
 
     //=============================================================================================================================
@@ -445,7 +467,7 @@ namespace Selas
 
         float pdf;
 
-        SurfaceEventTypes eventType = SurfaceEventTypes::eScatterEvent;
+        SurfaceEventFlags eventType = SurfaceEventFlags::eScatterEvent;
 
         float3 color = surface.baseColor;
 
@@ -457,7 +479,7 @@ namespace Selas
             if(thin)
                 color = Sqrt(color);
             else {
-                eventType = SurfaceEventTypes::eTransmissionEvent;
+                eventType = SurfaceEventFlags::eTransmissionEvent;
 
                 sample.medium.phaseFunction = MediumPhaseFunction::eIsotropic;
                 sample.medium.extinction = CalculateExtinction(surface.transmittanceColor, surface.scatterDistance);
@@ -472,11 +494,11 @@ namespace Selas
 
         float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
-        sample.reflectance += color * (diffuse / pdf) * Absf(dotNL);
+        sample.reflectance += color * (diffuse / pdf);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         sample.forwardPdfW = Absf(dotNL) / pdf;
         sample.reversePdfW = Absf(dotNV) / pdf;
-        sample.type = eventType;
+        sample.flags = eventType;
     }
 
     //=============================================================================================================================

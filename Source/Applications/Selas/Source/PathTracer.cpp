@@ -41,11 +41,9 @@
 
 #define MaxBounceCount_         2048
 
-#define EnableMultiThreading_   1
-#define PathsPerPixel_          16
+#define AdditionalThreadCount_  6
+#define PathsPerPixel_          32
 #define LayerCount_             2
-// -- when zero, PathsPerPixel_ will be used.
-#define IntegrationSeconds_     0.0f
 
 namespace Selas
 {
@@ -59,10 +57,9 @@ namespace Selas
             RayCastCameraSettings camera;
             uint pathsPerPixel;
             uint maxBounceCount;
-            float integrationSeconds;
             std::chrono::high_resolution_clock::time_point integrationStartTime;
 
-            volatile int64* pathsEvaluatedPerPixel;
+            volatile uint64* pixelIndex;
             volatile int64* completedThreads;
             volatile int64* kernelIndices;
 
@@ -141,18 +138,19 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void EvaluateRayBatch(GIIntegratorContext* __restrict context, Ray ray, uint x, uint y)
+        static void EvaluatePath(GIIntegratorContext* __restrict context, Ray ray, uint x, uint y)
         {
             float3 Ld[LayerCount_];
             Memory::Zero(Ld, sizeof(Ld));
 
             float3 throughput = float3::One_;
-            float3 misThroughput = float3::One_;
 
             MediumParameters vacuum;
             MediumParameters currentMedium = vacuum;
 
             float rayDistance = FloatMax_;
+
+            float isDeltaOnly = true;
 
             uint bounceCount = 0;
             while (bounceCount < context->maxPathLength) {
@@ -168,7 +166,6 @@ namespace Selas
                 }
                 float3 transmission = Transmission(currentMedium, rayDistance);
                 throughput = throughput * transmission;
-                misThroughput = misThroughput * transmission;
 
                 if(rayCastHit) {
                     SurfaceParameters surface;
@@ -178,7 +175,7 @@ namespace Selas
 
                     // -- choose a light and sample the light source
                     LightDirectSample lightSample;
-                    NextEventEstimation(context, hit.position, hit.normal, lightSample);
+                    NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
 
                     if(Dot(lightSample.radiance, float3::One_) > 0) {
                         float forwardPdfW;
@@ -189,13 +186,12 @@ namespace Selas
 
                             if(OcclusionRay(context->scene->rtcScene, surface, lightSample.direction, lightSample.distance)) {
 
-                                float weight = ImportanceSampling::BalanceHeuristic(1, lightSample.pdfW, 1, forwardPdfW);
-
                                 float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.pdfW);
-                                Ld[1] += weight * sample * misThroughput;
+                                Ld[1] += sample * throughput;
                             }
                         }
                     }
+
 
                     {
                         // - sample the bsdf
@@ -204,7 +200,9 @@ namespace Selas
                             break;
                         }
 
-                        if(bsdfSample.type == SurfaceEventTypes::eTransmissionEvent) {
+                        isDeltaOnly = isDeltaOnly && (bsdfSample.flags & SurfaceEventFlags::eDeltaEvent);
+
+                        if(bsdfSample.flags == SurfaceEventFlags::eTransmissionEvent) {
                             // -- Currently we only support "air"(vacuum)-surface interfaces without any nesting.
                             if(currentMedium.phaseFunction == eVacuum)
                                 currentMedium = bsdfSample.medium;
@@ -212,14 +210,17 @@ namespace Selas
                                 currentMedium = vacuum;
                         }
 
-                        float lightPdfW = BackgroundLightingPdf(context, bsdfSample.wi);
-                        float weight = ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
+                        float lightPdfW = LightingPdf(context, lightSample, surface.position, bsdfSample.wi);
+                        float weight = 1.0f;// ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
 
-                        throughput    = throughput * bsdfSample.reflectance;
-                        misThroughput = weight * misThroughput * bsdfSample.reflectance;
+                        throughput = weight * throughput * bsdfSample.reflectance;
 
                         float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
                         ray = MakeRay(offsetOrigin, bsdfSample.wi);
+
+                        if(bounceCount == 0) {
+                            Ld[0] = bsdfSample.reflectance;
+                        }
                     }
                 }
                 else if(currentMedium.phaseFunction != MediumPhaseFunction::eVacuum) {
@@ -230,19 +231,18 @@ namespace Selas
                 }
                 else {
                     float3 sample;
-                    if(bounceCount == 0)
+                    if(isDeltaOnly)
                         sample = SampleBackgroundMiss(context, ray.direction);
                     else
                         sample = SampleBackground(context, ray.direction);
 
-                    Ld[0] += sample * throughput;
-                    Ld[1] += sample * misThroughput;
+                    Ld[1] += sample * throughput;
                     break;
                 }
 
                 ++bounceCount;
 
-                // -- Russian roulette path termination
+                // --Russian roulette path termination
                 if(bounceCount > 8) {
                     float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
                     if(context->sampler.UniformFloat() > continuationProb) {
@@ -256,32 +256,16 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        static void CreatePrimaryRay(GIIntegratorContext* context, uint pixelIndex, uint x, uint y)
-        {
-            Ray ray = JitteredCameraRay(context->camera, &context->sampler, (float)x, (float)y);
-            EvaluateRayBatch(context, ray, x, y);
-        }
-
-        //=========================================================================================================================
-        static void PathTracing(GIIntegratorContext* context, uint raysPerPixel, uint width, uint height)
-        {
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    for(uint scan = 0; scan < raysPerPixel; ++scan) {
-                        CreatePrimaryRay(context, y * width + x, x, y);
-                    }
-                }
-            }
-        }
-
-        //=========================================================================================================================
         static void PathTracerKernel(void* userData)
         {
             PathTracingKernelData* integratorContext = static_cast<PathTracingKernelData*>(userData);
             int64 kernelIndex = Atomic::Increment64(integratorContext->kernelIndices);
 
+            uint pathsPerPixel = integratorContext->pathsPerPixel;
+
             uint width = integratorContext->camera.width;
             uint height = integratorContext->camera.height;
+            uint64 totalPixelCount = width * height;
 
             GIIntegratorContext context;
             context.textureCache     = integratorContext->textureCache;
@@ -293,23 +277,16 @@ namespace Selas
             FramebufferWriter_Initialize(&context.frameWriter, integratorContext->frame,
                                          DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
 
-            if(integratorContext->integrationSeconds > 0.0f) {
+            while(*integratorContext->pixelIndex < totalPixelCount) {
 
-                int64 pathsTracedPerPixel = 0;
-                float elapsedSeconds = 0.0f;
-                while(elapsedSeconds < integratorContext->integrationSeconds) {
-                    PathTracing(&context, 1, width, height);
-                    ++pathsTracedPerPixel;
+                uint64 pixelIndex = Atomic::AddU64(integratorContext->pixelIndex, 1llu) % totalPixelCount;
+                uint y = pixelIndex / width;
+                uint x = pixelIndex - y * width;
 
-                    elapsedSeconds = SystemTime::ElapsedSecondsF(integratorContext->integrationStartTime);
+                for(uint scan = 0; scan < pathsPerPixel; ++scan) {
+                    Ray ray = JitteredCameraRay(context.camera, &context.sampler, (float)x, (float)y);
+                    EvaluatePath(&context, ray, x, y);
                 }
-
-                Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, pathsTracedPerPixel);
-
-            }
-            else {
-                PathTracing(&context, integratorContext->pathsPerPixel, width, height);
-                Atomic::Add64(integratorContext->pathsEvaluatedPerPixel, integratorContext->pathsPerPixel);
             }
 
             context.sampler.Shutdown();
@@ -327,34 +304,26 @@ namespace Selas
 
             int64 completedThreads = 0;
             int64 kernelIndex = 0;
-            int64 pathsEvaluatedPerPixel = 0;
-
-            #if EnableMultiThreading_ 
-                const uint additionalThreadCount = 7;
-            #else
-                const uint additionalThreadCount = 0;
-            #endif
-            static_assert(IntegrationSeconds_ != 0.0f || PathsPerPixel_ % (additionalThreadCount + 1) == 0,
-                          "Path count not divisible by number of threads");
+            //uint64 pixelIndex = 409600;
+            uint64 pixelIndex = 0;
 
             PathTracingKernelData integratorContext;
             integratorContext.textureCache           = textureCache;
             integratorContext.scene                  = scene;
             integratorContext.camera                 = camera;
             integratorContext.maxBounceCount         = MaxBounceCount_;
-            integratorContext.pathsPerPixel          = PathsPerPixel_ / (additionalThreadCount + 1);
+            integratorContext.pathsPerPixel          = PathsPerPixel_;
             integratorContext.integrationStartTime   = SystemTime::Now();
-            integratorContext.integrationSeconds     = IntegrationSeconds_;
-            integratorContext.pathsEvaluatedPerPixel = &pathsEvaluatedPerPixel;
+            integratorContext.pixelIndex             = &pixelIndex;
             integratorContext.completedThreads       = &completedThreads;
             integratorContext.kernelIndices          = &kernelIndex;
             integratorContext.frame                  = &frame;
 
-            #if EnableMultiThreading_
-                ThreadHandle threadHandles[additionalThreadCount];
+            #if AdditionalThreadCount_ > 0
+                ThreadHandle threadHandles[AdditionalThreadCount_];
 
                 // -- fork threads
-                for(uint scan = 0; scan < additionalThreadCount; ++scan) {
+                for(uint scan = 0; scan < AdditionalThreadCount_; ++scan) {
                     threadHandles[scan] = CreateThread(PathTracerKernel, &integratorContext);
                 }
             #endif
@@ -362,17 +331,16 @@ namespace Selas
             // -- do work on the main thread too
             PathTracerKernel(&integratorContext);
 
-            #if EnableMultiThreading_ 
+            #if AdditionalThreadCount_ > 0
                 // -- wait for any other threads to finish
                 while(*integratorContext.completedThreads != *integratorContext.kernelIndices);
 
-                for(uint scan = 0; scan < additionalThreadCount; ++scan) {
+                for(uint scan = 0; scan < AdditionalThreadCount_; ++scan) {
                     ShutdownThread(threadHandles[scan]);
                 }
             #endif
 
-            Logging::WriteDebugInfo("Unidirectional PT integration performed with %lld iterations", pathsEvaluatedPerPixel);
-            FrameBuffer_Normalize(&frame, (1.0f / pathsEvaluatedPerPixel));
+            FrameBuffer_Normalize(&frame, (1.0f / PathsPerPixel_));
 
             FrameBuffer_Save(&frame, imageName);
             FrameBuffer_Shutdown(&frame);

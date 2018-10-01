@@ -18,7 +18,6 @@ namespace Selas
     struct SurfaceParameters
     {
         float3 position;
-        float3 perturbedNormal;
         float3x3 worldToTangent;
         float error;
 

@@ -212,6 +212,8 @@ namespace Selas
             }
         }
 
+        // JSTODO - Convert these to hashes.
+        // JSTODO - If multiple scene files contain materials with the same name this will find the wrong material for some meshes
         for(uint scan = 0, count = sceneMaterialNames.Count(); scan < count; ++scan) {
             Hash32 test = MurmurHash3_x86_32(sceneMaterialNames[scan].Ascii(), (uint32)sceneMaterialNames[scan].Length());
 
@@ -345,7 +347,6 @@ namespace Selas
 
             userData.material.resource = material;
             userData.material.baseColorTextureHandle = TextureHandle();
-            //ReturnError_(cache->LoadTextureResource(material->baseColorTexture, userData.material.baseColorTextureHandle));
 
             userData.instanceID = RTC_INVALID_GEOMETRY_ID;
             userData.rtcScene = rtcScene;
