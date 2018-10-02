@@ -39,6 +39,12 @@ namespace Selas
 
     struct Instance
     {
+        Instance()
+        {
+            localToWorld = Matrix4x4::Identity();
+            worldToLocal = Matrix4x4::Identity();
+        }
+
         uint64 index;
         float4x4 localToWorld;
         float4x4 worldToLocal;

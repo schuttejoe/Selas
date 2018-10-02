@@ -389,6 +389,19 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static SceneResourceData* AllocateNewScene(CArray<SceneResourceData*>& scenes, cpointer name)
+    {
+        SceneResourceData* scene = New_(SceneResourceData);
+        scene->name.Copy(name);
+        scene->iblName.Clear();
+        scene->backgroundIntensity = float4::Zero_;
+        InvalidCameraSettings(&scene->camera);
+
+        scenes.Add(scene);
+        return scene;
+    }
+
+    //=============================================================================================================================
     static Error ParseElementFile(BuildProcessorContext* context, const FixedString256& root, const FilePathString& path,
                                   SceneResourceData* rootScene, CArray<SceneResourceData*>& scenes)
     {
@@ -399,33 +412,35 @@ namespace Selas
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(elementFilePath.Ascii(), document));
 
-        // -- Get the materials json file path
+        // -- Get the materials json file path then import those materials
         FilePathString materialFile;
         FixedStringSprintf(materialFile, "%s%s", root.Ascii(), document["matFile"].GetString());
         ReturnError_(ImportDisneyMaterials(context, materialFile, root.Ascii(), rootScene));
 
-        // -- Add the main geometry object file
+        FilePathString geomSceneName;
+        FixedStringSprintf(geomSceneName, "%s_geometry", path.Ascii());
+
+        SceneResourceData* elementGeometryScene = AllocateNewScene(scenes, geomSceneName.Ascii());
+        uint geometrySceneIndex = rootScene->sceneNames.Add(geomSceneName);
+        
+        Instance geometrySceneInstance;
+        geometrySceneInstance.index = geometrySceneIndex;
+        rootScene->sceneInstances.Add(geometrySceneInstance);
+
+        // -- Add the main geometry file
         FilePathString geomObjFile;
         FixedStringSprintf(geomObjFile, "%s%s", root.Ascii(), document["geomObjFile"].GetString());
         AssetFileUtils::IndependentPathSeperators(geomObjFile);
-        uint rootModelIndex = rootScene->modelNames.Add(geomObjFile);
-
-        uint childSceneIndex = InvalidIndex64;
+        uint rootModelIndex = elementGeometryScene->modelNames.Add(geomObjFile);
 
         // -- create a child scene to contain the instanced primitives
+        uint primitivesSceneIndex = InvalidIndex64;
         if(document.HasMember("instancedPrimitiveJsonFiles")) {
-            SceneResourceData* primitivesScene = New_(SceneResourceData);
-            primitivesScene->name.Copy(path.Ascii());
-            primitivesScene->iblName.Clear();
-            primitivesScene->backgroundIntensity = float4::Zero_;
-            InvalidCameraSettings(&primitivesScene->camera);
-            
-            childSceneIndex = rootScene->sceneNames.Add(primitivesScene->name);
+            SceneResourceData* primitivesScene = AllocateNewScene(scenes, path.Ascii());            
+            primitivesSceneIndex = rootScene->sceneNames.Add(primitivesScene->name);
 
             // -- read the instanced primitives section.
             ReturnError_(ParseInstancePrimitivesSection(context, root, document["instancedPrimitiveJsonFiles"], primitivesScene));
-
-            scenes.Add(primitivesScene);
         }
 
         {
@@ -434,10 +449,10 @@ namespace Selas
             Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
             rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
             rootInstance.index = rootModelIndex;
-            rootScene->modelInstances.Add(rootInstance);
+            elementGeometryScene->modelInstances.Add(rootInstance);
 
-            if(childSceneIndex != InvalidIndex64) {
-                rootInstance.index = childSceneIndex;
+            if(primitivesSceneIndex != InvalidIndex64) {
+                rootInstance.index = primitivesSceneIndex;
                 rootScene->sceneInstances.Add(rootInstance);
             }
         }
@@ -457,28 +472,21 @@ namespace Selas
                     FilePathString altGeomObjFile;
                     FixedStringSprintf(altGeomObjFile, "%s%s", root.Ascii(), instancedCopyKV.value["geomObjFile"].GetString());
                     AssetFileUtils::IndependentPathSeperators(altGeomObjFile);
-                    modelIndex = rootScene->modelNames.Add(altGeomObjFile);
+                    modelIndex = elementGeometryScene->modelNames.Add(altGeomObjFile);
                 }
 
                 copyInstance.index = modelIndex;
-                rootScene->modelInstances.Add(copyInstance);
+                elementGeometryScene->modelInstances.Add(copyInstance);
 
-                uint sceneIndex = childSceneIndex;
+                uint sceneIndex = primitivesSceneIndex;
 
                 if(instancedCopyKV.value.HasMember("instancedPrimitiveJsonFiles")) {
-                    SceneResourceData* altScene = New_(SceneResourceData);
-                    altScene->name.Copy(instancedCopyKV.name.GetString());
 
-                    altScene->iblName.Clear();
-                    altScene->backgroundIntensity = float4::Zero_;
-                    InvalidCameraSettings(&altScene->camera);
-
+                    SceneResourceData* altScene = AllocateNewScene(scenes, instancedCopyKV.name.GetString());
                     sceneIndex = rootScene->sceneNames.Add(altScene->name);
 
                     // -- read the instanced primitives section.
                     ReturnError_(ParseInstancePrimitivesSection(context, root, instancedCopyKV.value["instancedPrimitiveJsonFiles"], altScene));
-
-                    scenes.Add(altScene);
                 }
 
                 if(sceneIndex != InvalidIndex64) {
