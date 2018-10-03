@@ -334,19 +334,19 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ImportDisneyMaterials(BuildProcessorContext* context, const FilePathString& materialPath, cpointer prefix,
-                                       SceneResourceData* scene)
+    static Error ImportDisneyMaterials(BuildProcessorContext* context, cpointer materialPath, cpointer prefix,
+                                       SubsceneResourceData* subscene)
     {
         FilePathString filepath;
-        AssetFileUtils::ContentFilePath(materialPath.Ascii(), filepath);
+        AssetFileUtils::ContentFilePath(materialPath, filepath);
         ReturnError_(context->AddFileDependency(filepath.Ascii()));
 
         CArray<FixedString64> materialNames;
         CArray<ImportedMaterialData> importedMaterials;
         ReturnError_(ImportDisneyMaterials(filepath.Ascii(), materialNames, importedMaterials));
 
-        scene->sceneMaterialNames.Reserve(scene->sceneMaterialNames.Count() + importedMaterials.Count());
-        scene->sceneMaterials.Reserve(scene->sceneMaterials.Count() + importedMaterials.Count());
+        subscene->sceneMaterialNames.Reserve(importedMaterials.Count());
+        subscene->sceneMaterials.Reserve(importedMaterials.Count());
         for(uint scan = 0, count = importedMaterials.Count(); scan < count; ++scan) {
             
             if(importedMaterials[scan].baseColorTexture.Length() > 0) {
@@ -356,9 +356,9 @@ namespace Selas
             }
 
             Hash32 materialNameHash = MurmurHash3_x86_32(materialNames[scan].Ascii(), (int32)materialNames[scan].Length());
-            scene->sceneMaterialNames.Add(materialNameHash);
+            subscene->sceneMaterialNames.Add(materialNameHash);
 
-            MaterialResourceData& material = scene->sceneMaterials.Add();
+            MaterialResourceData& material = subscene->sceneMaterials.Add();
             BuildMaterial(importedMaterials[scan], material);
         }
 
@@ -392,13 +392,17 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static SubsceneResourceData* AllocateSubscene(CArray<SubsceneResourceData*>& scenes, cpointer name)
+    static Error AllocateSubscene(BuildProcessorContext* context, CArray<SubsceneResourceData*>& scenes,
+                                  cpointer name, const FilePathString& materialFile, const FixedString256& root,
+                                  SubsceneResourceData*& scene)
     {
-        SubsceneResourceData* scene = New_(SubsceneResourceData);
+        scene = New_(SubsceneResourceData);
         scene->name.Copy(name);
 
+        ReturnError_(ImportDisneyMaterials(context, materialFile.Ascii(), root.Ascii(), scene));
+
         scenes.Add(scene);
-        return scene;
+        return Success_;
     }
 
     //=============================================================================================================================
@@ -412,15 +416,15 @@ namespace Selas
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(elementFilePath.Ascii(), document));
 
-        // -- Get the materials json file path then import those materials
+        // -- Prepare the materials json file path
         FilePathString materialFile;
         FixedStringSprintf(materialFile, "%s%s", root.Ascii(), document["matFile"].GetString());
-        ReturnError_(ImportDisneyMaterials(context, materialFile, root.Ascii(), rootScene));
 
         FilePathString geomSceneName;
         FixedStringSprintf(geomSceneName, "%s_geometry", path.Ascii());
 
-        SubsceneResourceData* elementGeometryScene = AllocateSubscene(scenes, geomSceneName.Ascii());
+        SubsceneResourceData* elementGeometryScene;
+        ReturnError_(AllocateSubscene(context, scenes, geomSceneName.Ascii(), materialFile, root, elementGeometryScene));
         uint geometrySceneIndex = rootScene->subsceneNames.Add(geomSceneName);
         
         Instance geometrySceneInstance;
@@ -436,7 +440,8 @@ namespace Selas
         // -- create a child scene to contain the instanced primitives
         uint primitivesSceneIndex = InvalidIndex64;
         if(document.HasMember("instancedPrimitiveJsonFiles")) {
-            SubsceneResourceData* primitivesScene = AllocateSubscene(scenes, path.Ascii());            
+            SubsceneResourceData* primitivesScene;
+            ReturnError_(AllocateSubscene(context, scenes, path.Ascii(), materialFile, root, primitivesScene));
             primitivesSceneIndex = rootScene->subsceneNames.Add(primitivesScene->name);
 
             // -- read the instanced primitives section.
@@ -482,11 +487,13 @@ namespace Selas
 
                 if(instancedCopyKV.value.HasMember("instancedPrimitiveJsonFiles")) {
 
-                    SubsceneResourceData* altScene = AllocateSubscene(scenes, instancedCopyKV.name.GetString());
+                    SubsceneResourceData* altScene;
+                    ReturnError_(AllocateSubscene(context, scenes, instancedCopyKV.name.GetString(), materialFile, root, altScene));
                     sceneIndex = rootScene->subsceneNames.Add(altScene->name);
 
                     // -- read the instanced primitives section.
-                    ReturnError_(ParseInstancePrimitivesSection(context, root, instancedCopyKV.value["instancedPrimitiveJsonFiles"], altScene));
+                    ReturnError_(ParseInstancePrimitivesSection(context, root,
+                                                                instancedCopyKV.value["instancedPrimitiveJsonFiles"], altScene));
                 }
 
                 if(sceneIndex != InvalidIndex64) {

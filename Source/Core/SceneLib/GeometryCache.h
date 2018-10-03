@@ -32,7 +32,7 @@ namespace Selas
         void Initialize(uint64 cacheSize);
         void Shutdown();
 
-        void RegisterSubScenes(SubsceneResource** subscenes, uint64 subsceneCount);
+        void RegisterSubscenes(SubsceneResource** subscenes, uint64 subsceneCount);
 
         void EnsureSubsceneGeometryLoaded(SubsceneResource* subscene);
         void FinishUsingSubceneGeometry(SubsceneResource* subscene);

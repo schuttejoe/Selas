@@ -36,8 +36,8 @@
 #include "pmmintrin.h"
 #include <stdio.h>
 
-#define TextureCacheSize_   6 * 1024 * 1024 * 1024ull
-#define GeometryCacheSize_ 16 * 1024 * 1024 * 1024ull
+#define TextureCacheSize_   3 * 1024 * 1024 * 1024ull
+#define GeometryCacheSize_ 22 * 1024 * 1024 * 1024ull
 
 using namespace Selas;
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
-    geometryCache.RegisterSubScenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
+    geometryCache.RegisterSubscenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
 
     Selas::uint width = 1024;
     Selas::uint height = 429;

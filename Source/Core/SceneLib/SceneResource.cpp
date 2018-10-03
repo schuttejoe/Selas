@@ -20,7 +20,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1538524288ul;
+    const uint64 SceneResource::kDataVersion = 1538556969ul;
 
     struct SubsceneInstanceUserData
     {
@@ -54,8 +54,6 @@ namespace Selas
         Serialize(serializer, data.subsceneNames);
         Serialize(serializer, data.subsceneInstances);
         Serialize(serializer, data.lights);
-        Serialize(serializer, data.sceneMaterialNames);
-        Serialize(serializer, data.sceneMaterials);
         Serialize(serializer, data.camera);
     }
 
@@ -271,8 +269,7 @@ namespace Selas
                 scene->subscenes[scan] = New_(SubsceneResource);
                 ReturnError_(ReadSubsceneResource(scene->data->subsceneNames[scan].Ascii(), scene->subscenes[scan]));
 
-                ReturnError_(InitializeSubsceneResource(scene->subscenes[scan], rtcDevice, scene->data->sceneMaterialNames,
-                                                        scene->data->sceneMaterials, textureCache));
+                ReturnError_(InitializeSubsceneResource(scene->subscenes[scan], rtcDevice, textureCache));
             }
         }
 

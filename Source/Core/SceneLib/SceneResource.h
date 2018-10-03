@@ -49,8 +49,6 @@ namespace Selas
         CArray<Instance> subsceneInstances;
         CArray<SceneLight> lights;
         
-        CArray<Hash32> sceneMaterialNames;
-        CArray<MaterialResourceData> sceneMaterials;
         CameraSettings camera;
     };
 

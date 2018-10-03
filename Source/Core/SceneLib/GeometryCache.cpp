@@ -63,7 +63,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void GeometryCache::RegisterSubScenes(SubsceneResource** subscenes_, uint64 subsceneCount)
+    void GeometryCache::RegisterSubscenes(SubsceneResource** subscenes_, uint64 subsceneCount)
     {
         uint offset = subscenes.Count();
         subscenes.Resize(offset + subsceneCount);

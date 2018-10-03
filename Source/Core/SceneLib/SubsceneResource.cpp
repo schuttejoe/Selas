@@ -16,7 +16,7 @@
 namespace Selas
 {
     cpointer SubsceneResource::kDataType = "SubsceneResource";
-    const uint64 SubsceneResource::kDataVersion = 1538438734ul;
+    const uint64 SubsceneResource::kDataVersion = 1538556969ul;
 
     //=============================================================================================================================
     static uint64 EstimateSubsceneSize(SubsceneResource* subscene)
@@ -40,6 +40,8 @@ namespace Selas
         Serialize(serializer, data.name);
         Serialize(serializer, data.modelNames);
         Serialize(serializer, data.modelInstances);
+        Serialize(serializer, data.sceneMaterialNames);
+        Serialize(serializer, data.sceneMaterials);
     }
 
     //=============================================================================================================================
@@ -110,8 +112,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeSubsceneResource(SubsceneResource* subscene, RTCDevice rtcDevice, const CArray<Hash32>& sceneMaterialNames,
-                                     const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
+    Error InitializeSubsceneResource(SubsceneResource* subscene, RTCDevice rtcDevice, TextureCache* cache)
     {
         uint modelCount = subscene->data->modelNames.Count();
         if(modelCount > 0) {
@@ -121,7 +122,7 @@ namespace Selas
                 ReturnError_(ReadModelResource(subscene->data->modelNames[scan].Ascii(), subscene->models[scan]));
 
                 InitializeModelResource(subscene->models[scan], subscene->data->modelNames[scan].Ascii(),
-                                        sceneMaterialNames, sceneMaterials, cache);
+                                        subscene->data->sceneMaterialNames, subscene->data->sceneMaterials, cache);
             }
         }
 

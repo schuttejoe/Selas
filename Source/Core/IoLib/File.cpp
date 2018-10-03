@@ -112,14 +112,17 @@ namespace Selas
         //=========================================================================================================================
         Error Size(cpointer filepath, uint64& size)
         {
-            struct stat fs = { 0 };
-            if(stat(filepath, &fs) == 0) {
-                size = (uint64) fs.st_size;
-                return Success_;
+            FILE* file = OpenFile_(filepath, "rb");
+            if(file == nullptr) {
+                return Error_("Failed to open file: %s", filepath);
             }
 
-            size = (uint64)-1;
-            return Error_("Failed to get file size for file %s", filepath);;
+            fseek(file, 0, SEEK_END);
+            size = _ftelli64(file);
+            fseek(file, 0, SEEK_SET);
+
+            fclose(file);
+            return Success_;
         }
 
         //=========================================================================================================================

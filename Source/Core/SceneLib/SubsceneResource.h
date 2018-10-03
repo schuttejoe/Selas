@@ -42,6 +42,9 @@ namespace Selas
         FilePathString name;
         CArray<FilePathString> modelNames;
         CArray<Instance> modelInstances;
+
+        CArray<Hash32> sceneMaterialNames;
+        CArray<MaterialResourceData> sceneMaterials;
     };
 
     //=============================================================================================================================
@@ -73,8 +76,7 @@ namespace Selas
 
     Error ReadSubsceneResource(cpointer filepath, SubsceneResource* scene);
 
-    Error InitializeSubsceneResource(SubsceneResource* subscene, RTCDevice rtcDevice, const CArray<Hash32>& sceneMaterialNames,
-                                     const CArray<MaterialResourceData> sceneMaterials, TextureCache* textureCache);
+    Error InitializeSubsceneResource(SubsceneResource* subscene, RTCDevice rtcDevice, TextureCache* textureCache);
     void LoadSubsceneGeometry(SubsceneResource* subscene);
     void UnloadSubsceneGeometry(SubsceneResource* subscene);
     void ShutdownSubsceneResource(SubsceneResource* scene, TextureCache* textureCache);
