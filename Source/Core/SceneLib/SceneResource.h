@@ -4,8 +4,9 @@
 // Joe Schutte
 //=================================================================================================================================
 
-#include "Shading/IntegratorContexts.h"
 #include "SceneLib/EmbreeUtils.h"
+#include "SceneLib/SubsceneResource.h"
+#include "Shading/IntegratorContexts.h"
 #include "StringLib/FixedString.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
@@ -17,12 +18,13 @@
 
 namespace Selas
 {
+    class GeometryCache;
     class TextureCache;
-    struct ModelResource;
+    struct SubsceneResource;
     struct ImageBasedLightResource;
-    struct GeometryUserData;
+    struct SubsceneInstanceUserData;
 
-    enum SceneLightType
+    enum SubsceneLightType
     {
         QuadLight
     };
@@ -37,32 +39,17 @@ namespace Selas
         float3 radiance;
     };
 
-    struct Instance
-    {
-        Instance()
-        {
-            localToWorld = Matrix4x4::Identity();
-            worldToLocal = Matrix4x4::Identity();
-        }
-
-        uint64 index;
-        float4x4 localToWorld;
-        float4x4 worldToLocal;
-    };
-
     //=============================================================================================================================
     struct SceneResourceData
     {
         FilePathString name;
         FilePathString iblName;
         float4 backgroundIntensity;
-        CArray<FilePathString> sceneNames;
-        CArray<FilePathString> modelNames;
-        CArray<Instance> sceneInstances;
-        CArray<Instance> modelInstances;
+        CArray<FilePathString> subsceneNames;
+        CArray<Instance> subsceneInstances;
         CArray<SceneLight> lights;
         
-        CArray<FixedString64> sceneMaterialNames;
+        CArray<Hash32> sceneMaterialNames;
         CArray<MaterialResourceData> sceneMaterials;
         CameraSettings camera;
     };
@@ -80,9 +67,8 @@ namespace Selas
         AxisAlignedBox aaBox;
         float4 boundingSphere;
 
-        GeometryUserData* geomInstanceData;
-        SceneResource** scenes;
-        ModelResource** models;
+        SubsceneInstanceUserData* subsceneInstanceUserDatas;
+        SubsceneResource** subscenes;
         ImageBasedLightResource* iblResource;
 
         SceneResource();
@@ -92,12 +78,12 @@ namespace Selas
     void Serialize(CSerializer* serializer, SceneResourceData& data);
 
     Error ReadSceneResource(cpointer filepath, SceneResource* scene);
-    Error InitializeSceneResource(SceneResource* scene);
-    void InitializeEmbreeScene(SceneResource* scene, TextureCache* cache, RTCDevice rtcDevice);
+    Error InitializeSceneResource(SceneResource* scene, TextureCache* cache, GeometryCache* geometryCache, RTCDevice rtcDevice);
     void ShutdownSceneResource(SceneResource* scene, TextureCache* textureCache);
 
-    void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
+    void SetupSceneCamera
+    (const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
 
-    void GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
-                            float4x4& localToWorld, RTCGeometry& rtcGeometry);
+    void ModelDataFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
+                            float4x4& localToWorld, ModelGeometryUserData*& modelData);
 }

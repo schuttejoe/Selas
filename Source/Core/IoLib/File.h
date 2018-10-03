@@ -18,6 +18,8 @@ namespace Selas
         Error ReadWhileFileAsString(cpointer filepath, char** string, uint64* stringSize);
         Error WriteWholeFile(cpointer filepath, const void* data, uint64 size);
 
+        Error Size(cpointer filepath, uint64& size);
+
         bool Exists(cpointer filepath);
     };
 }

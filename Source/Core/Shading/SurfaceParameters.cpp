@@ -144,48 +144,51 @@ namespace Selas
                                 SurfaceParameters& surface)
     {
         float4x4 localToWorld;
-        RTCGeometry rtcGeometry;
-        GeometryFromRayIds(context->scene, hit->instId, hit->geomId, localToWorld, rtcGeometry);
-        GeometryUserData* userData = (GeometryUserData*)rtcGetGeometryUserData(rtcGeometry);
+        ModelGeometryUserData* modelData;
+        ModelDataFromRayIds(context->scene, hit->instId, hit->geomId, localToWorld, modelData);
 
-        TextureCache* cache = context->textureCache;
-        const Material* material = &userData->material;
-        const MaterialResourceData* materialResource = material->resource;
+        TextureCache* textureCache = context->textureCache;
+        GeometryCache* geometryCache = context->geometryCache;
+        const MaterialResourceData* materialResource = modelData->material;
 
         Align_(16) float3 normal;
-        if(userData->flags & HasNormals) {
-            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        //if(modelData->flags & HasNormals) {
+        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
 
-            normal = MatrixMultiplyVector(normal, localToWorld);
-        }
-        else {
+        //    normal = MatrixMultiplyVector(normal, localToWorld);
+        //}
+        //else {
             normal = MatrixMultiplyVector(hit->normal, localToWorld);
-        }
+        //}
 
         float3 n = Normalize(normal);
         float3 t, b;
 
-        if(userData->flags & HasTangents) {
-            Align_(16) float4 localTangent;
-            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
+        //if(modelData->flags & HasTangents) {
+        //    Align_(16) float4 localTangent;
+        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
 
-            t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
-            b = Cross(n, t) * localTangent.w;
-        }
-        else {
+        //    t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
+        //    b = Cross(n, t) * localTangent.w;
+        //}
+        //else {
             MakeOrthogonalCoordinateSystem(n, &t, &b);
-        }
+        //}
 
         Align_(16) float2 uvs = float2(0.0f, 0.0f);
-        if(userData->flags & HasUvs) {
-            rtcInterpolate0(rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
-        }
-        
+        //if(modelData->flags & HasUvs) {
+        //    geometryCache->EnsureSubsceneGeometryLoaded(modelData->subscene);
+
+        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+
+        //    geometryCache->FinishUsingSubceneGeometry(modelData->subscene);
+        //}
+
         if(materialResource->flags & eUsesPtex) {
-            PtexTexture* texture = cache->FetchPtex(material->baseColorTextureHandle);
+            PtexTexture* texture = textureCache->FetchPtex(modelData->baseColorTextureHandle);
 
             Ptex::PtexFilter::Options opts(Ptex::PtexFilter::FilterType::f_bspline);
             Ptex::PtexFilter* filter = Ptex::PtexFilter::getFilter(texture, opts);
@@ -198,10 +201,10 @@ namespace Selas
             texture->release();
         }
         else {
-            const TextureResource* baseColorTexture = cache->FetchTexture(material->baseColorTextureHandle);
+            const TextureResource* baseColorTexture = textureCache->FetchTexture(modelData->baseColorTextureHandle);
             surface.baseColor = SampleTextureFloat3(baseColorTexture, uvs, true, materialResource->baseColor);
             surface.baseColor = Pow(surface.baseColor, 2.2f);
-            cache->ReleaseTexture(material->baseColorTextureHandle);
+            textureCache->ReleaseTexture(modelData->baseColorTextureHandle);
         }
 
         // -- Calculate tangent space transforms
@@ -237,7 +240,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    bool CalculatePassesAlphaTest(const GeometryUserData* geomData, uint32 geomId, uint32 primId, float2 baryCoords)
+    bool CalculatePassesAlphaTest(const ModelGeometryUserData* geomData, uint32 geomId, uint32 primId, float2 baryCoords)
     {
         // JSTODO - Need access to the cache
         return true;
@@ -256,7 +259,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float CalculateDisplacement(const GeometryUserData* userData, RTCGeometry rtcGeometry, uint32 primId, float2 barys)
+    float CalculateDisplacement(const ModelGeometryUserData* userData, RTCGeometry rtcGeometry, uint32 primId, float2 barys)
     {
         // JSTODO - Need access to the cache
         return 0.0f;

@@ -5,6 +5,7 @@
 //=================================================================================================================================
 
 #include "SceneLib/EmbreeUtils.h"
+#include "SceneLib/ModelResource.h"
 #include "TextureLib/TextureCache.h"
 #include "GeometryLib/AxisAlignedBox.h"
 #include "GeometryLib/Camera.h"
@@ -85,6 +86,21 @@ namespace Selas
         float scalarAttributeValues[eMaterialPropertyCount];
     };
 
+    enum EmbreeGeometryFlags
+    {
+        HasNormals = 1 << 0,
+        HasTangents = 1 << 1,
+        HasUvs = 1 << 2
+    };
+
+    struct ModelGeometryUserData
+    {
+        const MaterialResourceData* material;
+        TextureHandle baseColorTextureHandle;
+        RTCGeometry rtcGeometry;
+        uint32 flags;
+    };
+
     struct CurveMetaData
     {
         uint32 indexOffset;
@@ -111,6 +127,15 @@ namespace Selas
         uint32          totalCurveVertexCount;
         Hash32          curveModelName;
         uint32          pad;
+
+        uint64 indexSize;
+        uint64 faceIndexSize;
+        uint64 positionSize;
+        uint64 normalsSize;
+        uint64 tangentsSize;
+        uint64 uvsSize;
+        uint64 curveIndexSize;
+        uint64 curveVertexSize;
 
         CArray<CameraSettings> cameras;
         CArray<FilePathString> textureResourceNames;
@@ -151,10 +176,10 @@ namespace Selas
         ModelResourceData* data;
         ModelGeometryData* geometry;
 
+        FixedString256 name;
+        uint64 geometrySize;
         RTCScene rtcScene;
-        CArray<GeometryUserData> userDatas;
-        CArray<RTCGeometry> rtcGeometries;
-
+        CArray<ModelGeometryUserData> userDatas;
         MaterialResourceData* defaultMaterial;
 
         ModelResource();
@@ -166,9 +191,12 @@ namespace Selas
     void Serialize(CSerializer* serializer, ModelResourceData& data);
     void Serialize(CSerializer* serializer, ModelGeometryData& data);
 
-    Error ReadModelResource(cpointer filepath, ModelResource* model);
-    void InitializeModelResource(ModelResource* model);
-    Error InitializeEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
-                                const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache, RTCDevice rtcDevice);
+    Error ReadModelResource(cpointer assetname, ModelResource* model);
+    
+    Error LoadModelGeometry(ModelResource* model, RTCDevice rtcDevice);
+    void UnloadModelGeometry(ModelResource* model);
+
+    Error InitializeModelResource(ModelResource* model, cpointer assetname, const CArray<Hash32>& sceneMaterialNames,
+                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache);
     void ShutdownModelResource(ModelResource* model, TextureCache* cache);
 }

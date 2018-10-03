@@ -17,6 +17,15 @@ namespace Selas
         data.totalCurveVertexCount     = (uint32)model.curveVertices.Count();
         data.curveModelName            = model.curveModelNameHash;
         data.pad                       = 0;
+        data.indexSize                 = model.indices.DataSize();
+        data.faceIndexSize             = model.faceIndexCounts.DataSize();
+        data.positionSize              = model.positions.DataSize();
+        data.normalsSize               = model.normals.DataSize();
+        data.tangentsSize              = model.tangents.DataSize();
+        data.uvsSize                   = model.uvs.DataSize();
+        data.curveIndexSize            = model.curveIndices.DataSize();
+        data.curveVertexSize           = model.curveVertices.DataSize();
+
         data.cameras.Append(model.cameras);
         data.textureResourceNames.Append(model.textures);
         data.materials.Append(model.materials);

@@ -10,12 +10,14 @@
 
 namespace Selas
 {
+    class GeometryCache;
     class TextureCache;
     struct SceneResource;
     struct RayCastCameraSettings;
 
     namespace PathTracer
     {
-        void GenerateImage(TextureCache* cache, SceneResource* scene, const RayCastCameraSettings& camera, cpointer imageName);
+        void GenerateImage(GeometryCache* geometryCache, TextureCache* textureCache, SceneResource* scene,
+                           const RayCastCameraSettings& camera, cpointer imageName);
     }
 }

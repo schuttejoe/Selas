@@ -17,6 +17,7 @@
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
+#include "SceneLib/GeometryCache.h"
 #include "TextureLib/TextureCache.h"
 #include "TextureLib/Framebuffer.h"
 #include "TextureLib/TextureFiltering.h"
@@ -35,7 +36,8 @@
 #include "pmmintrin.h"
 #include <stdio.h>
 
-#define TextureCacheSize_ 6 * 1024 * 1024 * 1024ull
+#define TextureCacheSize_   6 * 1024 * 1024 * 1024ull
+#define GeometryCacheSize_ 16 * 1024 * 1024 * 1024ull
 
 using namespace Selas;
 
@@ -92,6 +94,9 @@ int main(int argc, char *argv[])
     TextureCache textureCache;
     textureCache.Initialize(TextureCacheSize_);
 
+    GeometryCache geometryCache;
+    geometryCache.Initialize(GeometryCacheSize_);
+
     TextureFiltering::InitializeEWAFilterWeights();
 
     ExitMainOnError_(ValidateAssetsAreBuilt());
@@ -102,23 +107,20 @@ int main(int argc, char *argv[])
 
     auto timer = SystemTime::Now();
     ExitMainOnError_(ReadSceneResource(sceneName, &sceneResource));
-    InitializeSceneResource(&sceneResource);
+    InitializeSceneResource(&sceneResource, &textureCache, &geometryCache, rtcDevice);
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
-    timer = SystemTime::Now();
-    InitializeEmbreeScene(&sceneResource, &textureCache, rtcDevice);
-    elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
-    WriteDebugInfo_("Embree setup time %fms", elapsedMs);
+    geometryCache.RegisterSubScenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
 
     Selas::uint width = 1024;
     Selas::uint height = 429;
 
     RayCastCameraSettings camera;
-    InitializeSceneCamera(&sceneResource, width, height, camera);
+    SetupSceneCamera(&sceneResource, width, height, camera);
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(&textureCache, &sceneResource, camera, "UnidirectionalPT");
+    PathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "UnidirectionalPT");
     //VCM::GenerateImage(&sceneResource, camera, "VCM");
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);
@@ -126,6 +128,7 @@ int main(int argc, char *argv[])
     ShutdownSceneResource(&sceneResource, &textureCache);
     rtcReleaseDevice(rtcDevice);
 
+    geometryCache.Shutdown();
     textureCache.Shutdown();
 
     return 0;

@@ -5,11 +5,14 @@
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ModelResource.h"
 #include "SceneLib/ImageBasedLightResource.h"
+#include "SceneLib/GeometryCache.h"
 #include "Assets/AssetFileUtils.h"
 #include "MathLib/Trigonometric.h"
 #include "MathLib/FloatFuncs.h"
 #include "IoLib/BinaryStreamSerializer.h"
 #include "SystemLib/BasicTypes.h"
+#include "SystemLib/Atomic.h"
+#include "SystemLib/SystemTime.h"
 
 #include "embree3/rtcore.h"
 #include "embree3/rtcore_ray.h"
@@ -17,7 +20,16 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1538438734ul;
+    const uint64 SceneResource::kDataVersion = 1538524288ul;
+
+    struct SubsceneInstanceUserData
+    {
+        GeometryCache* geometryCache;
+        SubsceneResource* subscene;
+        float4x4 worldToLocal;
+        AxisAlignedBox aaBox;
+        uint32 instanceID;
+    };
 
     //=============================================================================================================================
     // Serialization
@@ -39,10 +51,8 @@ namespace Selas
         Serialize(serializer, data.name);
         Serialize(serializer, data.iblName);
         Serialize(serializer, data.backgroundIntensity);
-        Serialize(serializer, data.sceneNames);
-        Serialize(serializer, data.modelNames);
-        Serialize(serializer, data.sceneInstances);
-        Serialize(serializer, data.modelInstances);
+        Serialize(serializer, data.subsceneNames);
+        Serialize(serializer, data.subsceneInstances);
         Serialize(serializer, data.lights);
         Serialize(serializer, data.sceneMaterialNames);
         Serialize(serializer, data.sceneMaterials);
@@ -50,100 +60,13 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    // SceneResource
+    // Embree callback functions
     //=============================================================================================================================
-
-    //=============================================================================================================================
-    SceneResource::SceneResource()
-        : data(nullptr)
-        , geomInstanceData(nullptr)
-        , scenes(nullptr)
-        , models(nullptr)
-        , iblResource(nullptr)
-    {
-
-    }
-
-    //=============================================================================================================================
-    SceneResource::~SceneResource()
-    {
-        Assert_(data == nullptr);
-        Assert_(geomInstanceData == nullptr);
-        Assert_(scenes == nullptr);
-        Assert_(models == nullptr);
-        Assert_(iblResource == nullptr);
-    }
-
-    //=============================================================================================================================
-    Error ReadSceneResource(cpointer assetname, SceneResource* data)
-    {
-        FilePathString filepath;
-        AssetFileUtils::AssetFilePath(SceneResource::kDataType, SceneResource::kDataVersion, assetname, filepath);
-
-        void* fileData = nullptr;
-        uint64 fileSize = 0;
-        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
-
-        AttachToBinary(data->data, (uint8*)fileData, fileSize);
-
-        return Success_;
-    }
-
-    //=============================================================================================================================
-    Error InitializeSceneResource(SceneResource* scene)
-    {
-        uint sceneCount = scene->data->sceneNames.Count();
-        uint modelCount = scene->data->modelNames.Count();
-
-        if(modelCount > 0) {
-            scene->models = AllocArray_(ModelResource*, modelCount);
-            for(uint scan = 0; scan < modelCount; ++scan) {
-                scene->models[scan] = New_(ModelResource);
-                ReturnError_(ReadModelResource(scene->data->modelNames[scan].Ascii(), scene->models[scan]));
-
-                InitializeModelResource(scene->models[scan]);
-            }
-        }
-
-        if(sceneCount > 0) {
-            scene->scenes = AllocArray_(SceneResource*, sceneCount);
-
-            for(uint scan = 0; scan < sceneCount; ++scan) {
-                scene->scenes[scan] = New_(SceneResource);
-                ReturnError_(ReadSceneResource(scene->data->sceneNames[scan].Ascii(), scene->scenes[scan]));
-
-                InitializeSceneResource(scene->scenes[scan]);
-            }
-        }
-
-        if(StringUtil::Length(scene->data->iblName.Ascii()) > 0) {
-            scene->iblResource = New_(ImageBasedLightResource);
-            ReturnError_(ReadImageBasedLightResource(scene->data->iblName.Ascii(), scene->iblResource));
-        }
-
-        MakeInvalid(&scene->aaBox);
-
-        // -- Set up a bounding box for this scene that includes all child models and scenes.
-        for(uint scan = 0, count = scene->data->sceneInstances.Count(); scan < count; ++scan) {
-            uint sceneIndex = scene->data->sceneInstances[scan].index;
-            IncludeBox(&scene->aaBox, scene->data->sceneInstances[scan].localToWorld, scene->scenes[sceneIndex]->aaBox);
-        }
-        for(uint scan = 0, count = scene->data->modelInstances.Count(); scan < count; ++scan) {
-            uint modelIndex = scene->data->modelInstances[scan].index;
-            IncludeBox(&scene->aaBox, scene->data->modelInstances[scan].localToWorld, scene->models[modelIndex]->data->aaBox);
-        }
-
-        // -- JSTODO - initialize the bounding sphere for VCM to work with an IBL.
-        // -- ... though there's an argument to be made the using the scene's bounding sphere for ibl emission is absolutely
-        // -- awful and I should be using something fit to the frustum.
-
-        return Success_;
-    }
 
     //=============================================================================================================================
     static void SceneInstanceBoundsFunction(const struct RTCBoundsFunctionArguments* args)
     {
-        GeometryUserData* data = (GeometryUserData*)args->geometryUserPtr;
+        SubsceneInstanceUserData* data = (SubsceneInstanceUserData*)args->geometryUserPtr;
         RTCBounds* bounds = args->bounds_o;
 
         bounds->lower_x = data->aaBox.min.x;
@@ -162,7 +85,7 @@ namespace Selas
             return;
 
         RTCIntersectContext* context = args->context;
-        const GeometryUserData* instance = (const GeometryUserData*)args->geometryUserPtr;
+        const SubsceneInstanceUserData* instance = (const SubsceneInstanceUserData*)args->geometryUserPtr;
 
         RTCRayN* rays = RTCRayHitN_RayN(args->rayhit, args->N);
         RTCHitN* hits = RTCRayHitN_HitN(args->rayhit, args->N);
@@ -189,14 +112,16 @@ namespace Selas
         rayhit.ray.dir_y = localDirection.y;
         rayhit.ray.dir_z = localDirection.z;
         rayhit.ray.tnear = RTCRayN_tnear(rays, N, 0);
-        rayhit.ray.tfar  = RTCRayN_tfar(rays, N, 0);
-        
+        rayhit.ray.tfar = RTCRayN_tfar(rays, N, 0);
+
         rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
         rayhit.hit.instID[1] = RTC_INVALID_GEOMETRY_ID;
 
-        rtcIntersect1(instance->rtcScene, context, &rayhit);
+        instance->geometryCache->EnsureSubsceneGeometryLoaded(instance->subscene);
+        rtcIntersect1(instance->subscene->rtcScene, context, &rayhit);
+        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
 
         if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
             RTCRayN_tfar(rays, N, 0) = rayhit.ray.tfar;
@@ -214,7 +139,7 @@ namespace Selas
             return;
 
         RTCIntersectContext* context = args->context;
-        const GeometryUserData* instance = (const GeometryUserData*)args->geometryUserPtr;
+        const SubsceneInstanceUserData* instance = (const SubsceneInstanceUserData*)args->geometryUserPtr;
 
         RTCRayN* rays = args->ray;
 
@@ -242,58 +167,53 @@ namespace Selas
         ray.tnear = RTCRayN_tnear(rays, N, 0);
         ray.tfar = RTCRayN_tfar(rays, N, 0);
 
-        rtcOccluded1(instance->rtcScene, context, &ray);
+        instance->geometryCache->EnsureSubsceneGeometryLoaded(instance->subscene);
+        rtcOccluded1(instance->subscene->rtcScene, context, &ray);
+        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
+
         RTCRayN_tfar(rays, N, 0) = ray.tfar;
     }
 
     //=============================================================================================================================
-    static void InitializeModelInstances(SceneResource* scene, RTCDevice rtcDevice)
+    // SceneResource
+    //=============================================================================================================================
+
+    //=============================================================================================================================
+    static void CalculateSceneBoundingBox(SceneResource* scene)
     {
-        for(uint scan = 0, count = scene->data->modelInstances.Count(); scan < count; ++scan) {
-            RTCGeometry instance = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_INSTANCE);
+        MakeInvalid(&scene->aaBox);
 
-            uint modelIdx = scene->data->modelInstances[scan].index;
-            rtcSetGeometryInstancedScene(instance, scene->models[modelIdx]->rtcScene);
-            rtcSetGeometryTimeStepCount(instance, 1);
-
-            rtcSetGeometryTransform(instance, 0, RTC_FORMAT_FLOAT4X4_COLUMN_MAJOR,
-                                    (void*)&scene->data->modelInstances[scan].localToWorld);
-
-            rtcCommitGeometry(instance);
-            rtcAttachGeometryByID(scene->rtcScene, instance, (int32)scan);
-            rtcReleaseGeometry(instance);
+        // -- Set up a bounding box for this scene that includes all child models and scenes.
+        for(uint scan = 0, count = scene->data->subsceneInstances.Count(); scan < count; ++scan) {
+            uint sceneIndex = scene->data->subsceneInstances[scan].index;
+            IncludeBox(&scene->aaBox, scene->data->subsceneInstances[scan].localToWorld, scene->subscenes[sceneIndex]->aaBox);
         }
     }
 
     //=============================================================================================================================
-    static void InitializeSceneInstances(SceneResource* scene, RTCDevice rtcDevice)
+    static void SetupSceneInstances(SceneResource* scene, RTCDevice rtcDevice, GeometryCache* geometryCache)
     {
-        uint32 offset = (uint32)scene->data->modelInstances.Count();
+        if(scene->data->subsceneInstances.Count() > 0) {
+            scene->subsceneInstanceUserDatas = AllocArray_(SubsceneInstanceUserData, scene->data->subsceneInstances.Count());
 
-        if(scene->data->sceneInstances.Count() > 0) {
-            scene->geomInstanceData = AllocArray_(GeometryUserData, scene->data->sceneInstances.Count());
+            for(uint scan = 0, count = scene->data->subsceneInstances.Count(); scan < count; ++scan) {
 
-            for(uint scan = 0, count = scene->data->sceneInstances.Count(); scan < count; ++scan) {
-
-                const Instance& instance = scene->data->sceneInstances[scan];
+                const Instance& instance = scene->data->subsceneInstances[scan];
                 uint sceneIdx = instance.index;
 
                 RTCGeometry geom = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_USER);
 
-                scene->geomInstanceData[scan].worldToLocal = instance.worldToLocal;
-                scene->geomInstanceData[scan].rtcScene = scene->scenes[sceneIdx]->rtcScene;
-                scene->geomInstanceData[scan].instanceID = offset + (uint32)scan;
-                scene->geomInstanceData[scan].material.resource = nullptr;
-                scene->geomInstanceData[scan].material.baseColorTextureHandle = TextureHandle();
-                scene->geomInstanceData[scan].rtcGeometry = geom;
-                scene->geomInstanceData[scan].flags = 0;
+                scene->subsceneInstanceUserDatas[scan].geometryCache = geometryCache;
+                scene->subsceneInstanceUserDatas[scan].worldToLocal = instance.worldToLocal;
+                scene->subsceneInstanceUserDatas[scan].subscene = scene->subscenes[sceneIdx];
+                scene->subsceneInstanceUserDatas[scan].instanceID = (uint32)scan;
 
-                MakeInvalid(&scene->geomInstanceData[scan].aaBox);
-                IncludeBox(&scene->geomInstanceData[scan].aaBox, scene->data->sceneInstances[scan].localToWorld,
-                           scene->scenes[sceneIdx]->aaBox);
+                MakeInvalid(&scene->subsceneInstanceUserDatas[scan].aaBox);
+                IncludeBox(&scene->subsceneInstanceUserDatas[scan].aaBox, scene->data->subsceneInstances[scan].localToWorld,
+                           scene->subscenes[sceneIdx]->aaBox);
 
                 rtcSetGeometryUserPrimitiveCount(geom, 1);
-                rtcSetGeometryUserData(geom, &scene->geomInstanceData[scan]);
+                rtcSetGeometryUserData(geom, &scene->subsceneInstanceUserDatas[scan]);
                 rtcSetGeometryBoundsFunction(geom, SceneInstanceBoundsFunction, nullptr);
                 rtcSetGeometryIntersectFunction(geom, SceneInstanceIntersectFunction);
                 rtcSetGeometryOccludedFunction(geom, InstanceOccludedFunction);
@@ -305,39 +225,69 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void InitializeChildEmbreeScene(SceneResource* scene, SceneResourceData* root, TextureCache* cache, RTCDevice rtcDevice)
+    SceneResource::SceneResource()
+        : data(nullptr)
+        , subsceneInstanceUserDatas(nullptr)
+        , subscenes(nullptr)
+        , iblResource(nullptr)
     {
-        Assert_(scene->data->sceneInstances.Count() == 0);
 
-        for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            InitializeEmbreeScene(scene->models[scan], root->sceneMaterialNames, root->sceneMaterials, cache, rtcDevice);
-        }
-
-        scene->rtcScene = rtcNewScene(rtcDevice);
-
-        InitializeModelInstances(scene, rtcDevice);
-
-        rtcCommitScene(scene->rtcScene);
     }
 
     //=============================================================================================================================
-    void InitializeEmbreeScene(SceneResource* scene, TextureCache* cache, RTCDevice rtcDevice)
+    SceneResource::~SceneResource()
     {
-        for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            InitializeEmbreeScene(scene->models[scan], scene->data->sceneMaterialNames, scene->data->sceneMaterials,
-                                  cache, rtcDevice);
+        Assert_(data == nullptr);
+        Assert_(subsceneInstanceUserDatas == nullptr);
+        Assert_(subscenes == nullptr);
+        Assert_(iblResource == nullptr);
+    }
+
+    //=============================================================================================================================
+    Error ReadSceneResource(cpointer assetname, SceneResource* data)
+    {
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(SceneResource::kDataType, SceneResource::kDataVersion, assetname, filepath);
+
+        void* fileData = nullptr;
+        uint64 fileSize = 0;
+        ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
+
+        AttachToBinary(data->data, (uint8*)fileData, fileSize);
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    Error InitializeSceneResource(SceneResource* scene, TextureCache* textureCache, GeometryCache* geometryCache,
+                                  RTCDevice rtcDevice)
+    {
+        uint subsceneCount = scene->data->subsceneNames.Count();
+
+        if(subsceneCount > 0) {
+            scene->subscenes = AllocArray_(SubsceneResource*, subsceneCount);
+
+            for(uint scan = 0; scan < subsceneCount; ++scan) {
+                scene->subscenes[scan] = New_(SubsceneResource);
+                ReturnError_(ReadSubsceneResource(scene->data->subsceneNames[scan].Ascii(), scene->subscenes[scan]));
+
+                ReturnError_(InitializeSubsceneResource(scene->subscenes[scan], rtcDevice, scene->data->sceneMaterialNames,
+                                                        scene->data->sceneMaterials, textureCache));
+            }
         }
 
-        for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
-            InitializeChildEmbreeScene(scene->scenes[scan], scene->data, cache, rtcDevice);
+        if(StringUtil::Length(scene->data->iblName.Ascii()) > 0) {
+            scene->iblResource = New_(ImageBasedLightResource);
+            ReturnError_(ReadImageBasedLightResource(scene->data->iblName.Ascii(), scene->iblResource));
         }
+
+        CalculateSceneBoundingBox(scene);
 
         scene->rtcScene = rtcNewScene(rtcDevice);
-
-        InitializeModelInstances(scene, rtcDevice);
-        InitializeSceneInstances(scene, rtcDevice);
-
+        SetupSceneInstances(scene, rtcDevice, geometryCache);
         rtcCommitScene(scene->rtcScene);
+
+        return Success_;
     }
 
     //=============================================================================================================================
@@ -348,24 +298,18 @@ namespace Selas
             SafeDelete_(scene->iblResource);
         }
 
-        for(uint scan = 0, modelCount = scene->data->modelNames.Count(); scan < modelCount; ++scan) {
-            ShutdownModelResource(scene->models[scan], textureCache);
-            Delete_(scene->models[scan]);
+        for(uint scan = 0, sceneCount = scene->data->subsceneNames.Count(); scan < sceneCount; ++scan) {
+            ShutdownSubsceneResource(scene->subscenes[scan], textureCache);
+            Delete_(scene->subscenes[scan]);
         }
-
-        for(uint scan = 0, sceneCount = scene->data->sceneNames.Count(); scan < sceneCount; ++scan) {
-            ShutdownSceneResource(scene->scenes[scan], textureCache);
-            Delete_(scene->scenes[scan]);
-        }
-
-        SafeFree_(scene->geomInstanceData);
-        SafeFree_(scene->scenes);
-        SafeFree_(scene->models);
+      
+        SafeFree_(scene->subsceneInstanceUserDatas);
+        SafeFree_(scene->subscenes);
         SafeFreeAligned_(scene->data);
     }
 
     //=============================================================================================================================
-    void InitializeSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera)
+    void SetupSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera)
     {
         // -- if the scene has a camera set on it use that.
         if(ValidCamera(scene->data->camera)) {
@@ -373,16 +317,16 @@ namespace Selas
             return;
         }
 
-        // -- otherwise search the models for a valid camera
-        for(uint scan = 0, count = scene->data->modelNames.Count(); scan < count; ++scan) {
-            if(scene->models[scan]->data->cameras.Count() > 0) {
-                CameraSettings settings = scene->models[scan]->data->cameras[0];
-                settings.fov = 50 * Math::DegreesToRadians_;
-                InitializeRayCastCamera(settings, width, height, camera);
+        //// -- otherwise search the models for a valid camera
+        //for(uint scan = 0, count = scene->data->modelNames.Count(); scan < count; ++scan) {
+        //    if(scene->models[scan]->data->cameras.Count() > 0) {
+        //        CameraSettings settings = scene->models[scan]->data->cameras[0];
+        //        settings.fov = 50 * Math::DegreesToRadians_;
+        //        InitializeRayCastCamera(settings, width, height, camera);
 
-                return;
-            }
-        }
+        //        return;
+        //    }
+        //}
 
         // -- and finally fall back on the default
         CameraSettings defaultCamera;
@@ -391,44 +335,21 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void GeometryFromRayIds(const SceneResource* scene, int32 modelID, int32 geomId,
-                                   float4x4& localToWorld, RTCGeometry& rtcGeometry)
-    {
-        uint modelCount = scene->data->modelInstances.Count();
-        Assert_(modelID < modelCount);
-
-        uint modelIndex = scene->data->modelInstances[modelID].index;
-        rtcGeometry = scene->models[modelIndex]->rtcGeometries[geomId];
-        localToWorld = scene->data->modelInstances[modelID].localToWorld;
-    }
-
-    //=============================================================================================================================
-    void GeometryFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
-                            float4x4& localToWorld, RTCGeometry& rtcGeometry)
+    void ModelDataFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
+                            float4x4& localToWorld, ModelGeometryUserData*& modelData)
     {
         static_assert(MaxInstanceLevelCount_ == RTC_MAX_INSTANCE_LEVEL_COUNT,
                       "Embree was compiled with different instance levels count");
 
-        uint modelCount = scene->data->modelInstances.Count();
-        uint sceneCount = scene->data->sceneInstances.Count();
+        uint sceneCount = scene->data->subsceneInstances.Count();
 
-        if(instIds[0] == RTC_INVALID_GEOMETRY_ID) {
-            Assert_(false);
-        }
-        else {
-            uint32 sceneID = instIds[0];
-            uint32 subsceneID = instIds[1];
+        Assert_(instIds[0] != RTC_INVALID_GEOMETRY_ID);
 
-            if(sceneID < modelCount) {
-                uint modelIndex = scene->data->modelInstances[sceneID].index;
-                rtcGeometry = scene->models[modelIndex]->rtcGeometries[geomId];
-                localToWorld = scene->data->modelInstances[sceneID].localToWorld;
-                return;
-            }
+        uint32 sceneID = instIds[0];
+        uint32 subsceneID = instIds[1];
 
-            uint sceneIndex = scene->data->sceneInstances[sceneID - modelCount].index;
-            GeometryFromRayIds(scene->scenes[sceneIndex], subsceneID, geomId, localToWorld, rtcGeometry);
-            localToWorld = MatrixMultiply(localToWorld, scene->data->sceneInstances[sceneID - modelCount].localToWorld);
-        }
+        uint sceneIndex = scene->data->subsceneInstances[sceneID].index;
+        ModelDataFromRayIds(scene->subscenes[sceneIndex], subsceneID, geomId, localToWorld, modelData);
+        localToWorld = MatrixMultiply(localToWorld, scene->data->subsceneInstances[sceneID].localToWorld);        
     }
 }

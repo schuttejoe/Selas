@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #if IsWindows_
 #define WIN32_LEAN_AND_MEAN
@@ -106,6 +107,19 @@ namespace Selas
             (void)bytes_written;
 
             return Success_;
+        }
+
+        //=========================================================================================================================
+        Error Size(cpointer filepath, uint64& size)
+        {
+            struct stat fs = { 0 };
+            if(stat(filepath, &fs) == 0) {
+                size = (uint64) fs.st_size;
+                return Success_;
+            }
+
+            size = (uint64)-1;
+            return Error_("Failed to get file size for file %s", filepath);;
         }
 
         //=========================================================================================================================

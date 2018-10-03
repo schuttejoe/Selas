@@ -5,7 +5,7 @@
 
 #include "PathTracer.h"
 #include "SceneLib/SceneResource.h"
-
+#include "SceneLib/GeometryCache.h"
 #include "Shading/SurfaceScattering.h"
 #include "Shading/VolumetricScattering.h"
 #include "Shading/SurfaceParameters.h"
@@ -42,7 +42,7 @@
 #define MaxBounceCount_         2048
 
 #define AdditionalThreadCount_  6
-#define PathsPerPixel_          32
+#define PathsPerPixel_          16
 #define LayerCount_             2
 
 namespace Selas
@@ -52,6 +52,7 @@ namespace Selas
         //=========================================================================================================================
         struct PathTracingKernelData
         {
+            GeometryCache* geometryCache;
             TextureCache* textureCache;
             SceneResource* scene;
             RayCastCameraSettings camera;
@@ -268,6 +269,7 @@ namespace Selas
             uint64 totalPixelCount = width * height;
 
             GIIntegratorContext context;
+            context.geometryCache    = integratorContext->geometryCache;
             context.textureCache     = integratorContext->textureCache;
             context.rtcScene         = integratorContext->scene->rtcScene;
             context.scene            = integratorContext->scene;
@@ -296,8 +298,8 @@ namespace Selas
         }
 
         //=========================================================================================================================
-        void GenerateImage(TextureCache* textureCache, SceneResource* scene, const RayCastCameraSettings& camera,
-                           cpointer imageName)
+        void GenerateImage(GeometryCache* geometryCache, TextureCache* textureCache, SceneResource* scene,
+                           const RayCastCameraSettings& camera, cpointer imageName)
         {
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, LayerCount_);
@@ -308,6 +310,7 @@ namespace Selas
             uint64 pixelIndex = 0;
 
             PathTracingKernelData integratorContext;
+            integratorContext.geometryCache          = geometryCache;
             integratorContext.textureCache           = textureCache;
             integratorContext.scene                  = scene;
             integratorContext.camera                 = camera;

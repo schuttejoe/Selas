@@ -23,6 +23,7 @@ namespace Selas
     struct ImageBasedLightResource;
     struct RayCastCameraSettings;
     struct SurfaceParameters;
+    class GeometryCache;
     class TextureCache;
 
     //=============================================================================================================================
@@ -31,6 +32,7 @@ namespace Selas
         RTCScene                                rtcScene;
 
         const SceneResource*                    scene;
+        GeometryCache*                          geometryCache;
         TextureCache*                           textureCache;
         const RayCastCameraSettings* __restrict camera;
         CSampler                                sampler;

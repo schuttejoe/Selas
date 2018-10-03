@@ -23,7 +23,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1537848960ul;
+    const uint64 ModelResource::kDataVersion = 1538470348ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -60,6 +60,16 @@ namespace Selas
         Serialize(serializer, data.totalCurveVertexCount);
         Serialize(serializer, data.curveModelName);
         Serialize(serializer, data.pad);
+
+        Serialize(serializer, data.indexSize);
+        Serialize(serializer, data.faceIndexSize);
+        Serialize(serializer, data.positionSize);
+        Serialize(serializer, data.normalsSize);
+        Serialize(serializer, data.tangentsSize);
+        Serialize(serializer, data.uvsSize);
+        Serialize(serializer, data.curveIndexSize);
+        Serialize(serializer, data.curveVertexSize);
+
         Serialize(serializer, data.cameras);
         Serialize(serializer, data.textureResourceNames);
         Serialize(serializer, data.materials);
@@ -91,14 +101,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    // Embree Setup
+    // Embree callback functions
     //=============================================================================================================================
 
     //=============================================================================================================================
     static void IntersectionFilter(const RTCFilterFunctionNArguments* args)
     {
         int* valid = args->valid;
-        GeometryUserData* geomData = (GeometryUserData*)args->geometryUserPtr;
+        ModelGeometryUserData* geomData = (ModelGeometryUserData*)args->geometryUserPtr;
 
         for(uint32 scan = 0; scan < args->N; ++scan) {
             if(valid[scan] != -1) {
@@ -126,7 +136,7 @@ namespace Selas
 
         unsigned int N = args->N;
 
-        GeometryUserData* userData = (GeometryUserData*)args->geometryUserPtr;
+        ModelGeometryUserData* userData = (ModelGeometryUserData*)args->geometryUserPtr;
 
         for(unsigned int i = 0; i < N; i++) {
             //float3 position = float3(px[i], py[i], pz[i]);
@@ -201,7 +211,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static const MaterialResourceData* FindMeshMaterial(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
+    static const MaterialResourceData* FindMeshMaterial(ModelResource* model, const CArray<Hash32>& sceneMaterialNames,
                                                         const CArray<MaterialResourceData> sceneMaterials, Hash32 materialHash)
     {
         uint materialCount = model->data->materials.Count();
@@ -212,12 +222,9 @@ namespace Selas
             }
         }
 
-        // JSTODO - Convert these to hashes.
         // JSTODO - If multiple scene files contain materials with the same name this will find the wrong material for some meshes
         for(uint scan = 0, count = sceneMaterialNames.Count(); scan < count; ++scan) {
-            Hash32 test = MurmurHash3_x86_32(sceneMaterialNames[scan].Ascii(), (uint32)sceneMaterialNames[scan].Length());
-
-            if(test == materialHash) {
+            if(sceneMaterialNames[scan] == materialHash) {
                 return &sceneMaterials[scan];
             }
         }
@@ -226,9 +233,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error InitializeMeshes(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
-                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
-                                  RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
+    static Error InitializeMeshes(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
     {
         ModelResourceData* modelData = model->data;
         ModelGeometryData* geometry = model->geometry;
@@ -238,8 +243,10 @@ namespace Selas
 
         for(uint32 scan = 0, count = (uint32)modelData->meshes.Count(); scan < count; ++scan) {
             const MeshMetaData& meshData = modelData->meshes[scan];
-            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
-                                                                    meshData.materialHash);
+
+            ModelGeometryUserData& userData = model->userDatas[offset];
+
+            const MaterialResourceData* material = userData.material;
 
             bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
             bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
@@ -275,46 +282,21 @@ namespace Selas
                 rtcSetGeometryIntersectFilterFunction(rtcGeometry, IntersectionFilter);
             }
 
-            model->rtcGeometries.Add(rtcGeometry);
-            GeometryUserData& userData = model->userDatas.Add();
-
-            userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
-                            | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
-                            | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-            
-            userData.material.resource = material;
-            if(material->flags & eUsesPtex) {
-                FilePathString contentid;
-                FixedStringSprintf(contentid, "%s\\%s.ptx", material->baseColorTexture.Ascii(), meshData.name.Ascii());
-
-                FilePathString filepath;
-                AssetFileUtils::ContentFilePath(contentid.Ascii(), filepath);
-                ReturnError_(cache->LoadTexturePtex(filepath, userData.material.baseColorTextureHandle));
-            }
-            else {
-                ReturnError_(cache->LoadTextureResource(material->baseColorTexture, userData.material.baseColorTextureHandle));
-            }
-
-            userData.instanceID = RTC_INVALID_GEOMETRY_ID;
-            userData.rtcScene = rtcScene;
             userData.rtcGeometry = rtcGeometry;
-            userData.worldToLocal = Matrix4x4::Identity();
-            MakeInvalid(&userData.aaBox);
-            rtcSetGeometryUserData(rtcGeometry, &userData);
 
+            rtcSetGeometryUserData(rtcGeometry, &userData);
             rtcCommitGeometry(rtcGeometry);
-            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
+            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset);
             rtcReleaseGeometry(rtcGeometry);
+
+            ++offset;
         }
 
-        offset += (uint32)modelData->meshes.Count();
         return Success_;
     }
 
     //=============================================================================================================================
-    static Error InitializeCurves(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
-                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
-                                  RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
+    static Error InitializeCurves(ModelResource* model, RTCDevice rtcDevice, RTCScene rtcScene, uint32& offset)
     {
         ModelResourceData* modelData = model->data;
         ModelGeometryData* geometry = model->geometry;
@@ -334,51 +316,88 @@ namespace Selas
                                        indexByteOffset, sizeof(uint32), curve.indexCount);
             rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT4, geometry->curveVertices,
                                        0, sizeof(float4), modelData->totalCurveVertexCount);
-
-            model->rtcGeometries.Add(rtcGeometry);
-            GeometryUserData& userData = model->userDatas.Add();
-
-            userData.flags = (geometry->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
-                           | (geometry->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
-                           | (geometry->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
-
-            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
-                                                                    model->data->curveModelName);
-
-            userData.material.resource = material;
-            userData.material.baseColorTextureHandle = TextureHandle();
-
-            userData.instanceID = RTC_INVALID_GEOMETRY_ID;
-            userData.rtcScene = rtcScene;
+           
+            ModelGeometryUserData& userData = model->userDatas[offset];
             userData.rtcGeometry = rtcGeometry;
-            userData.worldToLocal = Matrix4x4::Identity();
-            MakeInvalid(&userData.aaBox);
+            
             rtcSetGeometryUserData(rtcGeometry, &userData);
-
             rtcCommitGeometry(rtcGeometry);
-            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset + scan);
+            rtcAttachGeometryByID(rtcScene, rtcGeometry, offset);
             rtcReleaseGeometry(rtcGeometry);
+
+            ++offset;
         }
 
-        offset += (uint32)modelData->curves.Count();
         return Success_;
     }
 
     //=============================================================================================================================
-    static Error PopulateEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
-                                     const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache,
-                                     RTCDevice rtcDevice, RTCScene rtcScene)
+    static Error InitializeGeometryUserDatas(ModelResource* model, const CArray<Hash32>& sceneMaterialNames,
+                                             const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
     {
-        model->rtcGeometries.Reserve(model->data->meshes.Count() + model->data->curves.Count());
-        model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
+        ModelResourceData* modelData = model->data;
 
-        uint32 offset = 0;
-        ReturnError_(InitializeMeshes(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene, offset));
-        ReturnError_(InitializeCurves(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene, offset));
+        // -- Mesh user datas
+        for(uint32 scan = 0, count = (uint32)modelData->meshes.Count(); scan < count; ++scan) {
+            const MeshMetaData& meshData = modelData->meshes[scan];
+            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
+                                                                    meshData.materialHash);
 
-        rtcCommitScene(rtcScene);
+            ModelGeometryUserData& userData = model->userDatas.Add();
+            Memory::Zero(&userData, sizeof(userData));
+
+            userData.flags = (modelData->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+                           | (modelData->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
+                           | (modelData->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
+
+            userData.material = material;
+            if(material->flags & eUsesPtex) {
+                FilePathString contentid;
+                FixedStringSprintf(contentid, "%s\\%s.ptx", material->baseColorTexture.Ascii(), meshData.name.Ascii());
+
+                FilePathString filepath;
+                AssetFileUtils::ContentFilePath(contentid.Ascii(), filepath);
+                ReturnError_(cache->LoadTexturePtex(filepath, userData.baseColorTextureHandle));
+            }
+            else {
+                ReturnError_(cache->LoadTextureResource(material->baseColorTexture, userData.baseColorTextureHandle));
+            }
+        }
+
+        // -- Curve user datas
+        for(uint32 scan = 0, count = (uint32)modelData->curves.Count(); scan < count; ++scan) {
+            const CurveMetaData& curve = modelData->curves[scan];
+
+            ModelGeometryUserData& userData = model->userDatas.Add();
+            Memory::Zero(&userData, sizeof(userData));
+
+            userData.flags = (modelData->normalsSize > 0 ? EmbreeGeometryFlags::HasNormals : 0)
+                           | (modelData->tangentsSize > 0 ? EmbreeGeometryFlags::HasTangents : 0)
+                           | (modelData->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
+
+            const MaterialResourceData* material = FindMeshMaterial(model, sceneMaterialNames, sceneMaterials,
+                                                                    model->data->curveModelName);
+
+            userData.material = material;
+            userData.baseColorTextureHandle = TextureHandle();
+        }
 
         return Success_;
+    }
+
+    //=============================================================================================================================
+    uint64 ModelGeometrySize(ModelResource* model)
+    {
+        FilePathString filepath;
+        AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, model->name.Ascii(),
+                                      filepath);
+
+        uint64 estimate;
+        File::Size(filepath.Ascii(), estimate);
+
+        Assert_(estimate != (uint64)-1);
+
+        return estimate;
     }
 
     //=============================================================================================================================
@@ -404,7 +423,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadModelResourceData(cpointer assetname, ModelResource* data)
+    static Error ReadModelHeaderData(cpointer assetname, ModelResource* data)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(ModelResource::kDataType, ModelResource::kDataVersion, assetname, filepath);
@@ -419,61 +438,77 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadModelGeometryData(cpointer assetname, ModelResource* data)
+    Error ReadModelResource(cpointer assetname, ModelResource* model)
     {
+        ReturnError_(ReadModelHeaderData(assetname, model));
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    Error LoadModelGeometry(ModelResource* model, RTCDevice rtcDevice)
+    {
+        Assert_(model->geometry == nullptr);
+
         FilePathString filepath;
-        AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, assetname, filepath);
+        AssetFileUtils::AssetFilePath(ModelResource::kGeometryDataType, ModelResource::kDataVersion, model->name.Ascii(),
+                                      filepath);
 
         void* fileData = nullptr;
         uint64 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        AttachToBinary(data->geometry, (uint8*)fileData, fileSize);
+        AttachToBinary(model->geometry, (uint8*)fileData, fileSize);
 
-        return Success_;
-    }
-
-    //=============================================================================================================================
-    Error ReadModelResource(cpointer assetname, ModelResource* data)
-    {
-        ReturnError_(ReadModelResourceData(assetname, data));
-        ReturnError_(ReadModelGeometryData(assetname, data));
-
-        return Success_;
-    }
-
-    //=============================================================================================================================
-    void InitializeModelResource(ModelResource* model)
-    {
-        model->defaultMaterial = CreateDefaultMaterial();
-    }
-
-    //=============================================================================================================================
-    Error InitializeEmbreeScene(ModelResource* model, const CArray<FixedString64>& sceneMaterialNames,
-                                const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache, RTCDevice rtcDevice)
-    {
         RTCScene rtcScene = rtcNewScene(rtcDevice);
-
         model->rtcScene = rtcScene;
-        return PopulateEmbreeScene(model, sceneMaterialNames, sceneMaterials, cache, rtcDevice, rtcScene);
+
+        uint32 offset = 0;
+        ReturnError_(InitializeMeshes(model, rtcDevice, rtcScene, offset));
+        ReturnError_(InitializeCurves(model, rtcDevice, rtcScene, offset));
+
+        rtcCommitScene(rtcScene);
+
+        return Success_;
     }
 
     //=============================================================================================================================
-    void ShutdownModelResource(ModelResource* model, TextureCache* textureCache)
+    void UnloadModelGeometry(ModelResource* model)
     {
         if(model->rtcScene) {
             rtcReleaseScene(model->rtcScene);
         }
         model->rtcScene = nullptr;
 
+        SafeFreeAligned_(model->geometry);
+    }
+
+    //=============================================================================================================================
+    Error InitializeModelResource(ModelResource* model, cpointer assetname, const CArray<Hash32>& sceneMaterialNames,
+                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
+    {
+        model->defaultMaterial = CreateDefaultMaterial();
+        model->name.Copy(assetname);
+        model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
+        model->geometrySize = ModelGeometrySize(model);
+
+        ReturnError_(InitializeGeometryUserDatas(model, sceneMaterialNames, sceneMaterials, cache));
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    void ShutdownModelResource(ModelResource* model, TextureCache* textureCache)
+    {
+        UnloadModelGeometry(model);
+
         for(uint scan = 0, count = model->userDatas.Count(); scan < count; ++scan) {
-            if(model->userDatas[scan].material.baseColorTextureHandle.Valid()) {
-                textureCache->UnloadTexture(model->userDatas[scan].material.baseColorTextureHandle);
+            if(model->userDatas[scan].baseColorTextureHandle.Valid()) {
+                textureCache->UnloadTexture(model->userDatas[scan].baseColorTextureHandle);
             }
         }
+        model->userDatas.Shutdown();
 
         SafeDelete_(model->defaultMaterial);
         SafeFreeAligned_(model->data);
-        SafeFreeAligned_(model->geometry);
     }
 }

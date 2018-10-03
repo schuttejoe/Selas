@@ -5,6 +5,7 @@
 #include "BuildCommon/CSceneBuildProcessor.h"
 #include "BuildCore/BuildContext.h"
 #include "SceneLib/SceneResource.h"
+#include "SceneLib/SubsceneResource.h"
 #include "UtilityLib/JsonUtilities.h"
 #include "Assets/AssetFileUtils.h"
 #include "MathLib/FloatFuncs.h"
@@ -93,6 +94,7 @@ namespace Selas
         CSet<Hash32> sceneHashes;
 
         SceneResourceData scene;
+        SubsceneResourceData subscene;
         InvalidCameraSettings(&scene.camera);
 
         scene.backgroundIntensity = float4(sceneDesc.backgroundIntensity, 1.0f);
@@ -102,18 +104,28 @@ namespace Selas
             context->AddProcessDependency("HDR", scene.iblName.Ascii());
         }
 
+        FilePathString sceneName;
+        sceneName.Copy(context->source.name.Ascii());
+
+
+        uint subSceneIndex = scene.subsceneNames.Add(sceneName);
+        Instance& instance = scene.subsceneInstances.Add();
+        instance.index = subSceneIndex;
+        instance.localToWorld = Matrix4x4::Identity();
+        instance.worldToLocal = Matrix4x4::Identity();
+
         for(uint scan = 0, count = sceneDesc.modelInstances.Count(); scan < count; ++scan) {
             InstanceDescription& instanceDesc = sceneDesc.modelInstances[scan];
 
             Hash32 hash = MurmurHash3_x86_32(instanceDesc.asset.Ascii(), StringUtil::Length(instanceDesc.asset.Ascii()));
 
             uint64 modelindex = modelHashes.Add(hash);
-            if(modelindex >= scene.modelNames.Count()) {
+            if(modelindex >= subscene.modelNames.Count()) {
                 context->AddProcessDependency("model", instanceDesc.asset.Ascii());
-                scene.modelNames.Add(instanceDesc.asset);
+                subscene.modelNames.Add(instanceDesc.asset);
             }
 
-            Instance& instance = scene.modelInstances.Add();
+            Instance& instance = subscene.modelInstances.Add();
             instance.index = modelindex;
             instance.localToWorld = instanceDesc.localToWorld;
             instance.worldToLocal = instanceDesc.worldToLocal;
@@ -125,18 +137,19 @@ namespace Selas
             Hash32 hash = MurmurHash3_x86_32(instanceDesc.asset.Ascii(), StringUtil::Length(instanceDesc.asset.Ascii()));
 
             uint64 sceneIndex = sceneHashes.Add(hash);
-            if(sceneIndex >= scene.sceneNames.Count()) {
+            if(sceneIndex >= scene.subsceneNames.Count()) {
                 context->AddProcessDependency("scene", instanceDesc.asset.Ascii());
-                scene.sceneNames.Add(instanceDesc.asset);
+                scene.subsceneNames.Add(instanceDesc.asset);
             }
 
-            Instance& instance = scene.sceneInstances.Add();
+            Instance& instance = scene.subsceneInstances.Add();
             instance.index = sceneIndex;
             instance.localToWorld = instanceDesc.localToWorld;
             instance.worldToLocal = instanceDesc.worldToLocal;
         }
 
         context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), scene);
+        context->CreateOutput(SubsceneResource::kDataType, SubsceneResource::kDataVersion, context->source.name.Ascii(), subscene);
 
         return Success_;
     }
