@@ -1,10 +1,5 @@
 
 local platform = ...
 
-includedirs { MiddlewareDir .. "stb" }
-if platform == "Win64" then
-    table.insert(middlewareLinkDirectories, "ptex/Release")
-    table.insert(middlewareLibraries, "Ptex")
-    table.insert(postBuildCopies, "ptex\\Release\\Ptex.dll $(TargetDir)Ptex.dll")
-    table.insert(postBuildCopies, "ptex\\Release\\zlib.dll $(TargetDir)zlib.dll")
-end 
+loadfile(RootDirectory .. "ProjectGen\\Middlewares\\stb.lua")(platform)
+loadfile(RootDirectory .. "ProjectGen\\Middlewares\\ptex.lua")(platform)

@@ -16,6 +16,8 @@
 
 #include <map>
 
+#include <tbb/task.h>
+
 #define RunMultiThreaded_ true
 
 namespace Selas
@@ -39,6 +41,12 @@ namespace Selas
         QueueList failedQueue;
 
         JobGroup jobGroup;
+    };
+
+    //=============================================================================================================================
+    class BuildCoreTask : public tbb::task
+    {
+
     };
 
     //=============================================================================================================================

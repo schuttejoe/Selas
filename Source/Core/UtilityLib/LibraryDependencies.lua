@@ -1,4 +1,4 @@
 
 local platform = ...
 
-includedirs { MiddlewareDir .. "rapidjson\\include" }
+loadfile(RootDirectory .. "ProjectGen\\Middlewares\\rapidjson.lua")(platform)
