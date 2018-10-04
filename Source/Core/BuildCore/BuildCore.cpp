@@ -6,13 +6,13 @@
 #include "BuildCore/BuildProcessor.h"
 #include "BuildCore/BuildContext.h"
 #include "UtilityLib/MurmurHash.h"
-#include "ThreadingLib/JobMgr.h"
 #include "StringLib/StringUtil.h"
 #include "ContainersLib/QueueList.h"
 #include "SystemLib/OSThreading.h"
 #include "SystemLib/JsAssert.h"
 #include "SystemLib/MemoryAllocation.h"
 #include "SystemLib/MinMax.h"
+#include "SystemLib/Atomic.h"
 
 #include <map>
 
@@ -32,7 +32,7 @@ namespace Selas
         ProcessorMap buildProcessors;
         CBuildDependencyGraph* __restrict depGraph;
 
-        QueueList jobDataFreeList;
+        QueueList taskDataFreeList;
 
         QueueList pendingQueue;
 
@@ -40,40 +40,60 @@ namespace Selas
         QueueList completedQueue;
         QueueList failedQueue;
 
-        JobGroup jobGroup;
+        int64 activeTaskCount;
+    };
+
+    //=============================================================================================================================
+    struct BuildCoreTaskData
+    {
+        CBuildProcessor* processor;
+        BuildProcessDependencies* deps;
+        BuildCoreData* coreData;
+        BuildProcessorContext context;
     };
 
     //=============================================================================================================================
     class BuildCoreTask : public tbb::task
     {
+    public:
+        BuildCoreTaskData* data;
 
+        tbb::task* execute()
+        {
+            Error result = data->processor->Process(&data->context);
+
+            if(Successful_(result)) {
+                EnterSpinLock(data->coreData->mtQueuesSpinlock);
+                QueueList_Push(&data->coreData->completedQueue, data);
+                LeaveSpinLock(data->coreData->mtQueuesSpinlock);
+            }
+            else {
+                EnterSpinLock(data->coreData->mtQueuesSpinlock);
+                QueueList_Push(&data->coreData->failedQueue, data);
+                LeaveSpinLock(data->coreData->mtQueuesSpinlock);
+            }
+
+            Atomic::Decrement64(&data->coreData->activeTaskCount);
+            return nullptr;
+        }
     };
 
     //=============================================================================================================================
-    struct BuildCoreJobData
+    static BuildCoreTaskData* AllocateTaskData(BuildCoreData* coreData)
     {
-        CBuildProcessor* processor;
-        BuildProcessDependencies* deps;
-        BuildCoreData* coreData;
+        Atomic::Increment64(&coreData->activeTaskCount);
 
-        BuildProcessorContext context;
-    };
-
-    //=============================================================================================================================
-    static BuildCoreJobData* AllocateJobData(BuildCoreData* coreData)
-    {
-        BuildCoreJobData* jobData = QueueList_Pop<BuildCoreJobData*>(&coreData->jobDataFreeList);
-        if(jobData) {
-            return jobData;
+        BuildCoreTaskData* taskData = QueueList_Pop<BuildCoreTaskData*>(&coreData->taskDataFreeList);
+        if(taskData) {
+            return taskData;
         }
 
-        return New_(BuildCoreJobData);
+        return New_(BuildCoreTaskData);
     }
 
     //=============================================================================================================================
     CBuildCore::CBuildCore()
-        : _jobMgr(nullptr)
-        , _coreData(nullptr)
+        : _coreData(nullptr)
     {
 
     }
@@ -81,19 +101,17 @@ namespace Selas
     //=============================================================================================================================
     CBuildCore::~CBuildCore()
     {
-        AssertMsg_(_jobMgr == nullptr, "Shutdown not called on CBuildCore");
         AssertMsg_(_coreData == nullptr, "Shutdown not called on CBuildCore");
     }
 
     //=============================================================================================================================
-    void CBuildCore::Initialize(CJobMgr* jobMgr, CBuildDependencyGraph* depGraph)
+    void CBuildCore::Initialize(CBuildDependencyGraph* depGraph)
     {
-        _jobMgr = jobMgr;
-
         _coreData = New_(BuildCoreData);
         _coreData->depGraph = depGraph;
+        _coreData->activeTaskCount = 0;
 
-        QueueList_Initialize(&_coreData->jobDataFreeList, /*maxFreeListSize=*/64);
+        QueueList_Initialize(&_coreData->taskDataFreeList, /*maxFreeListSize=*/64);
         QueueList_Initialize(&_coreData->pendingQueue, /*maxFreeListSize=*/64);
         QueueList_Initialize(&_coreData->failedQueue, /*maxFreeListSize=*/0);
 
@@ -108,21 +126,19 @@ namespace Selas
             Delete_(it->second);
         }
 
-        BuildCoreJobData* jobData = QueueList_Pop<BuildCoreJobData*>(&_coreData->jobDataFreeList);
-        while(jobData != nullptr) {
-            Delete_(jobData);
-            jobData = QueueList_Pop<BuildCoreJobData*>(&_coreData->jobDataFreeList);
+        BuildCoreTaskData* taskData = QueueList_Pop<BuildCoreTaskData*>(&_coreData->taskDataFreeList);
+        while(taskData != nullptr) {
+            Delete_(taskData);
+            taskData = QueueList_Pop<BuildCoreTaskData*>(&_coreData->taskDataFreeList);
         }
 
-        QueueList_Shutdown(&_coreData->jobDataFreeList);
+        QueueList_Shutdown(&_coreData->taskDataFreeList);
         QueueList_Shutdown(&_coreData->pendingQueue);
         QueueList_Shutdown(&_coreData->completedQueue);
         QueueList_Shutdown(&_coreData->failedQueue);
 
         CloseSpinlock(_coreData->mtQueuesSpinlock);
         SafeDelete_(_coreData);
-
-        _jobMgr = nullptr;
     }
 
     //=============================================================================================================================
@@ -219,7 +235,7 @@ namespace Selas
     //=============================================================================================================================
     bool CBuildCore::IsBuildComplete()
     {
-        bool hasPendingJobs = _jobMgr->GroupDone(&_coreData->jobGroup) == false;
+        bool hasPendingJobs = _coreData->activeTaskCount > 0;
         bool hasPendingWork = QueueList_Empty(&_coreData->pendingQueue) == false;
         bool hasCompletedJob = HasCompletedProcesses();
 
@@ -240,7 +256,7 @@ namespace Selas
     bool CBuildCore::ProcessCompletedQueue()
     {
         EnterSpinLock(_coreData->mtQueuesSpinlock);
-        BuildCoreJobData* jobData = QueueList_Pop<BuildCoreJobData*>(&_coreData->completedQueue);
+        BuildCoreTaskData* jobData = QueueList_Pop<BuildCoreTaskData*>(&_coreData->completedQueue);
         LeaveSpinLock(_coreData->mtQueuesSpinlock);
         if(jobData == nullptr) {
             return false;
@@ -265,28 +281,9 @@ namespace Selas
         jobData->context.processDependencies.Shutdown();
         jobData->context.contentDependencies.Shutdown();
         
-        QueueList_Push(&_coreData->jobDataFreeList, jobData);
+        QueueList_Push(&_coreData->taskDataFreeList, jobData);
 
         return true;
-    }
-
-    //=============================================================================================================================
-    static void ExecuteBuildJob(void* userData)
-    {
-        BuildCoreJobData* jobData = (BuildCoreJobData*)userData;
-
-        Error result = jobData->processor->Process(&jobData->context);
-
-        if(Successful_(result)) {
-            EnterSpinLock(jobData->coreData->mtQueuesSpinlock);
-            QueueList_Push(&jobData->coreData->completedQueue, jobData);
-            LeaveSpinLock(jobData->coreData->mtQueuesSpinlock);
-        }
-        else {
-            EnterSpinLock(jobData->coreData->mtQueuesSpinlock);
-            QueueList_Push(&jobData->coreData->failedQueue, jobData);
-            LeaveSpinLock(jobData->coreData->mtQueuesSpinlock);
-        }
     }
 
     //=============================================================================================================================
@@ -308,18 +305,15 @@ namespace Selas
             return true;
         }
 
-        BuildCoreJobData* jobData = AllocateJobData(_coreData);
-        jobData->processor = processor;
-        jobData->deps = next;
-        jobData->coreData = _coreData;
-        jobData->context.Initialize(next->source, next->id);
+        BuildCoreTask& task = *new(tbb::task::allocate_root()) BuildCoreTask();
+        task.data = AllocateTaskData(_coreData);
 
-        if(RunMultiThreaded_) {
-            _jobMgr->CreateJob(ExecuteBuildJob, jobData, &_coreData->jobGroup);
-        }
-        else {
-            ExecuteBuildJob(jobData);
-        }
+        task.data->processor = processor;
+        task.data->deps = next;
+        task.data->coreData = _coreData;
+        task.data->context.Initialize(next->source, next->id);
+
+        tbb::task::enqueue(task);
 
         return true;
     }

@@ -21,7 +21,6 @@
 #include "TextureLib/TextureCache.h"
 #include "TextureLib/Framebuffer.h"
 #include "TextureLib/TextureFiltering.h"
-#include "ThreadingLib/JobMgr.h"
 #include "IoLib/Environment.h"
 #include "StringLib/FixedString.h"
 #include "SystemLib/Error.h"
@@ -52,14 +51,11 @@ static Error ValidateAssetsAreBuilt()
 {
     auto timer = SystemTime::Now();
 
-    CJobMgr* jobMgr = New_(CJobMgr);
-    jobMgr->Initialize();
-
     CBuildDependencyGraph depGraph;
     ReturnError_(depGraph.Initialize());
 
     CBuildCore buildCore;
-    buildCore.Initialize(jobMgr, &depGraph);
+    buildCore.Initialize(&depGraph);
 
     CreateAndRegisterBuildProcessor<CImageBasedLightBuildProcessor>(&buildCore);
     CreateAndRegisterBuildProcessor<CDualImageBasedLightBuildProcessor>(&buildCore);
@@ -74,8 +70,6 @@ static Error ValidateAssetsAreBuilt()
     buildCore.Shutdown();
 
     ReturnError_(depGraph.Shutdown());
-    jobMgr->Shutdown();
-    Delete_(jobMgr);
 
     float elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene build time %fms", elapsedMs);

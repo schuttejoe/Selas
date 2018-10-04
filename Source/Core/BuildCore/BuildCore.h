@@ -11,7 +11,6 @@
 
 namespace Selas
 {
-    class CJobMgr;
     class CBuildProcessor;
 
     struct BuildCoreData;
@@ -22,7 +21,7 @@ namespace Selas
         CBuildCore();
         ~CBuildCore();
 
-        void Initialize(CJobMgr* jobMgr, CBuildDependencyGraph* depGraph);
+        void Initialize(CBuildDependencyGraph* depGraph);
         void Shutdown();
 
         void RegisterBuildProcessor(CBuildProcessor* processor);
@@ -31,7 +30,6 @@ namespace Selas
         Error Execute();
 
     private:
-        CJobMgr*        _jobMgr;
         BuildCoreData*  _coreData;
 
         void EnqueueInternal(ContentId source, AssetId id);
