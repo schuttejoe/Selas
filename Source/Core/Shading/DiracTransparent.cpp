@@ -58,7 +58,7 @@ namespace Selas
             pdf = (1.0f - F);
         }
 
-        sample.flags |= eDeltaEvent;
+        sample.flags |= eDiracEvent;
         sample.reflectance = surface.baseColor / pdf;
         sample.wi = wi;
         sample.forwardPdfW = pdf;

@@ -151,27 +151,29 @@ namespace Selas
             built->positions.Append(mesh->positions);
             built->uvs.Append(mesh->uv0);
 
-            for(uint i = 0; i < vertexCount; ++i) {
+            if(mesh->tangents.Count() > 0 || mesh->bitangents.Count() > 0) {
+                for(uint i = 0; i < vertexCount; ++i) {
 
-                float3 n = mesh->normals[i];
-                float3 t;
-                float3 b;
-                if(i < mesh->tangents.Count() && i < mesh->bitangents.Count()) {
-                    t = mesh->tangents[i];
-                    b = mesh->bitangents[i];
+                    float3 n = mesh->normals[i];
+                    float3 t;
+                    float3 b;
+                    if(i < mesh->tangents.Count() && i < mesh->bitangents.Count()) {
+                        t = mesh->tangents[i];
+                        b = mesh->bitangents[i];
+                    }
+                    else {
+                        MakeOrthogonalCoordinateSystem(n, &t, &b);
+                    }
+
+                    // -- Gram-Schmidt to make sure they are orthogonal
+                    t = t - Dot(n, t) * n;
+
+                    // -- calculate handedness of input bitangent
+                    float handedness = (Dot(Cross(n, t), b) < 0.0f) ? -1.0f : 1.0f;
+
+                    built->normals.Add(n);
+                    built->tangents.Add(float4(t, handedness));
                 }
-                else {
-                    MakeOrthogonalCoordinateSystem(n, &t, &b);
-                }
-
-                // -- Gram-Schmidt to make sure they are orthogonal
-                t = t - Dot(n, t) * n;
-
-                // -- calculate handedness of input bitangent
-                float handedness = (Dot(Cross(n, t), b) < 0.0f) ? -1.0f : 1.0f;
-
-                built->normals.Add(n);
-                built->tangents.Add(float4(t, handedness));
             }
 
             vertexOffset += vertexCount;

@@ -37,9 +37,11 @@ namespace Selas
     void FrameBuffer_Initialize(Framebuffer* frame, uint32 width, uint32 height, uint32 layerCount);
     void FrameBuffer_Shutdown(Framebuffer* frame);
     void FrameBuffer_Save(Framebuffer* frame, cpointer name);
-    void FrameBuffer_Normalize(Framebuffer* frame, float value);
+    void FrameBuffer_Scale(Framebuffer* frame, float value);
 
-    void FramebufferWriter_Initialize(FramebufferWriter* writer, Framebuffer* frame, uint32 capacity, uint32 softCapacity);
+    void FramebufferWriter_Initialize(FramebufferWriter* writer, Framebuffer* frame,
+                                      uint32 capacity = DefaultFrameWriterCapacity_,
+                                      uint32 softCapacity = DefaultFrameWriterSoftCapacity_);
     void FramebufferWriter_Write(FramebufferWriter* writer, float3* samples, uint32 layerCount, uint32 x, uint32 y);
     void FramebufferWriter_Write(FramebufferWriter* writer, float3* samples, uint32 layerCount, uint32 index);
     void FramebufferWriter_Flush(FramebufferWriter* writer);

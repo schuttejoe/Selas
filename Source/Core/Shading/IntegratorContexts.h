@@ -45,12 +45,14 @@ namespace Selas
     {
         float3 position;
         float3 normal;
-        float3 incDirection; // points in the direction the path that hit this position came from
+        float3 view;
+        float3 throughput;
         float error;
         int32 geomId;
         int32 primId;
         int32 instId[MaxInstanceLevelCount_];
-
+        uint32 index            : 30;
+        uint32 diracScatterOnly : 31;
         float2 baryCoords;
     };
 

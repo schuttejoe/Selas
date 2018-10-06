@@ -87,22 +87,22 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    int32 Atomic::CompareExchange32(volatile int32* destination, int32 exchangeWith, int32 compareTo)
+    bool Atomic::CompareExchange32(volatile int32* destination, int32 exchangeWith, int32 compareTo)
     {
         static_assert(sizeof(int32) == sizeof(long), "Unexpected primitive size");
 
         long initialValue = InterlockedCompareExchange(reinterpret_cast<long volatile*>(destination), exchangeWith, compareTo);
-        return initialValue;
+        return initialValue == compareTo;
     }
 
     //=============================================================================================================================
-    int64 Atomic::CompareExchange64(volatile int64* destination, int64 exchangeWith, int64 compareTo)
+    bool Atomic::CompareExchange64(volatile int64* destination, int64 exchangeWith, int64 compareTo)
     {
         static_assert(sizeof(int64) == sizeof(long long), "Unexpected primitive size");
 
         long long initialValue = InterlockedCompareExchange64(reinterpret_cast<long long volatile*>(destination), exchangeWith,
                                                                compareTo);
-        return initialValue;
+        return initialValue == compareTo;
     }
 }
 

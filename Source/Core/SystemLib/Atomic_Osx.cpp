@@ -68,17 +68,15 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    int32 Atomic::CompareExchange32(volatile int32* destination, int32 exchangeWith, int32 compareTo)
+    bool Atomic::CompareExchange32(volatile int32* destination, int32 exchangeWith, int32 compareTo)
     {
-        int32 initialValue = __sync_val_compare_and_swap(destination, compareTo, exchangeWith);
-        return initialValue;
+        return  __sync_bool_compare_and_swap (destination, compareTo, exchangeWith);
     }
 
     //=============================================================================================================================
-    int64 Atomic::CompareExchange64(volatile int64* destination, int64 exchangeWith, int64 compareTo)
+    bool Atomic::CompareExchange64(volatile int64* destination, int64 exchangeWith, int64 compareTo)
     {
-        int64 initialValue = __sync_val_compare_and_swap(destination, compareTo, exchangeWith);
-        return initialValue;
+        return __sync_bool_compare_and_swap (destination, compareTo, exchangeWith);
     }
 }
 

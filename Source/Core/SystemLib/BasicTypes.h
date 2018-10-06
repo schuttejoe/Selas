@@ -38,6 +38,10 @@ typedef const char*        cpointer;
 #define FloatInfinityBits_         0x7F800000
 #define FloatNegativeInfinityBits_ 0xFF800000
 
+#define Kb_ * 1024
+#define Mb_ * 1024 * 1024
+#define Gb_ * 1024 * 1024 * 1024
+
 namespace Selas
 {
     typedef uint64  uint;

@@ -59,7 +59,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void FrameBuffer_Normalize(Framebuffer* __restrict frame, float term)
+    void FrameBuffer_Scale(Framebuffer* __restrict frame, float term)
     {
         uint indexcount = frame->width * frame->height;
         for(uint layer = 0; layer < frame->layerCount; ++layer) {

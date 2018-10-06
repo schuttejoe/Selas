@@ -129,7 +129,7 @@ namespace Selas
             hit.primId = rayhit.hit.primID;
             hit.instId[0] = rayhit.hit.instID[0];
             hit.instId[1] = rayhit.hit.instID[1];
-            hit.incDirection = -ray.direction;
+            hit.view = -ray.direction;
 
             const float kErr = 32.0f * 1.19209e-07f;
             hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z),
@@ -201,7 +201,7 @@ namespace Selas
                             break;
                         }
 
-                        isDeltaOnly = isDeltaOnly && (bsdfSample.flags & SurfaceEventFlags::eDeltaEvent);
+                        isDeltaOnly = isDeltaOnly && (bsdfSample.flags & SurfaceEventFlags::eDiracEvent);
 
                         if(bsdfSample.flags == SurfaceEventFlags::eTransmissionEvent) {
                             // -- Currently we only support "air"(vacuum)-surface interfaces without any nesting.
@@ -276,8 +276,7 @@ namespace Selas
             context.camera           = &integratorContext->camera;
             context.sampler.Initialize((uint32)kernelIndex);
             context.maxPathLength    = integratorContext->maxBounceCount;
-            FramebufferWriter_Initialize(&context.frameWriter, integratorContext->frame,
-                                         DefaultFrameWriterCapacity_, DefaultFrameWriterSoftCapacity_);
+            FramebufferWriter_Initialize(&context.frameWriter, integratorContext->frame);
 
             while(*integratorContext->pixelIndex < totalPixelCount) {
 
@@ -343,7 +342,7 @@ namespace Selas
                 }
             #endif
 
-            FrameBuffer_Normalize(&frame, (1.0f / PathsPerPixel_));
+            FrameBuffer_Scale(&frame, (1.0f / PathsPerPixel_));
 
             FrameBuffer_Save(&frame, imageName);
             FrameBuffer_Shutdown(&frame);

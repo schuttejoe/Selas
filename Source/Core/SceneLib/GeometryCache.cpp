@@ -59,7 +59,8 @@ namespace Selas
     //=============================================================================================================================
     void GeometryCache::Shutdown()
     {
-
+        CloseSpinlock(spinlock);
+        spinlock = nullptr;
     }
 
     //=============================================================================================================================
@@ -74,9 +75,18 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    void GeometryCache::PreloadSubscene(uint index)
+    {
+        EnsureSubsceneGeometryLoaded(subscenes[index]);
+    }
+
+    //=============================================================================================================================
     void GeometryCache::EnsureSubsceneGeometryLoaded(SubsceneResource* subscene)
     {
         Atomic::Increment64(&subscene->refCount);
+
+        while(subscene->geometryLoading == 1) { }
+
         if(subscene->geometryLoaded == 0) {
             Atomic::Decrement64(&subscene->refCount);
 
@@ -84,21 +94,31 @@ namespace Selas
 
             EnterSpinLock(spinlock);
 
-            if(subscene->geometryLoaded == 0) {
+            if(subscene->geometryLoaded == 0 && subscene->geometryLoading == 0) {
                 Assert_(subsceneSizeEstimate <= loadedGeometryCapacity);
                 while(loadedGeometrySize + subsceneSizeEstimate > loadedGeometryCapacity) {
                     UnloadLruSubscene();
                 }
 
-                WriteDebugInfo_("Loading subscene: %s", subscene->data->name.Ascii());
-
-                LoadSubsceneGeometry(subscene);
                 loadedGeometrySize += subsceneSizeEstimate;
+                Atomic::Increment64(&subscene->refCount);
+
+                subscene->geometryLoading = 1;
+                LeaveSpinLock(spinlock);
+
+                WriteDebugInfo_("Loading subscene: %s", subscene->data->name.Ascii());
+                LoadSubsceneGeometry(subscene);
+
+                EnterSpinLock(spinlock);
+                subscene->geometryLoading = 0;
             }
 
             Atomic::Increment64(&subscene->refCount);
             LeaveSpinLock(spinlock);
         }
+
+        while(subscene->geometryLoading == 1) { }
+        Assert_(subscene->geometryLoaded == 1);
 
         // -- Try to update the last access timestamp. No big deal if we fail though.
         int64 prevTime = subscene->lastAccessDt;

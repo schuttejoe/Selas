@@ -342,7 +342,7 @@ namespace Selas
     static float3 CalculateExtinction(float3 apparantColor, float scatterDistance)
     {
         float3 a = apparantColor;
-        float3 s = float3(1.0f) - a + 3.5f * (a - float3(0.8f)) * (a - float3(0.8f));
+        float3 s = float3(1.9f) - a + 3.5f * (a - float3(0.8f)) * (a - float3(0.8f));
 
         return 1.0f / (s * scatterDistance);
     }
@@ -428,7 +428,7 @@ namespace Selas
         }
 
         if(surface.roughness < 0.01f) {
-            sample.flags |= SurfaceEventFlags::eDeltaEvent;
+            sample.flags |= SurfaceEventFlags::eDiracEvent;
         }
 
         // -- calculate pdf terms

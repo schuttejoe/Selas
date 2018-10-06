@@ -66,6 +66,7 @@ namespace Selas
 
         Align_(CacheLineSize_) volatile int64 refCount;
         Align_(CacheLineSize_) volatile int64 geometryLoaded;
+        Align_(CacheLineSize_) volatile int64 geometryLoading;
         Align_(CacheLineSize_) volatile int64 lastAccessDt;
 
         SubsceneResource();

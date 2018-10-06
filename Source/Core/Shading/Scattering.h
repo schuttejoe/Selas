@@ -13,7 +13,7 @@ namespace Selas
     {
         eScatterEvent        = 0x01,
         eTransmissionEvent   = 0x02,
-        eDeltaEvent          = 0x04 
+        eDiracEvent          = 0x04 
     };
 
     //=============================================================================================================================

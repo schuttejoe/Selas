@@ -4,6 +4,7 @@
 //=================================================================================================================================
 
 #include "PathTracer.h"
+#include "DeferredPathTracer.h"
 #include "VCM.h"
 
 #include "BuildCommon/ImageBasedLightBuildProcessor.h"
@@ -36,7 +37,7 @@
 #include <stdio.h>
 
 #define TextureCacheSize_   3 * 1024 * 1024 * 1024ull
-#define GeometryCacheSize_ 22 * 1024 * 1024 * 1024ull
+#define GeometryCacheSize_ 18 * 1024 * 1024 * 1024ull
 
 using namespace Selas;
 
@@ -106,6 +107,14 @@ int main(int argc, char *argv[])
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     geometryCache.RegisterSubscenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
+    geometryCache.PreloadSubscene(0);
+    geometryCache.PreloadSubscene(1);
+    geometryCache.PreloadSubscene(2);
+    geometryCache.PreloadSubscene(3);
+    geometryCache.PreloadSubscene(81);
+    geometryCache.PreloadSubscene(82);
+    geometryCache.PreloadSubscene(83);
+    geometryCache.PreloadSubscene(84);
 
     Selas::uint width = 1024;
     Selas::uint height = 429;
@@ -114,7 +123,8 @@ int main(int argc, char *argv[])
     SetupSceneCamera(&sceneResource, width, height, camera);
 
     timer = SystemTime::Now();
-    PathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "UnidirectionalPT");
+    //PathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "UnidirectionalPT");
+    DeferredPathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "DeferredPT");
     //VCM::GenerateImage(&sceneResource, camera, "VCM");
     elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
     WriteDebugInfo_("Scene render time %fms", elapsedMs);

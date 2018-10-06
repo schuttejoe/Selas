@@ -84,6 +84,7 @@ namespace Selas
         , models(nullptr)
         , refCount(0)
         , geometryLoaded(0)
+        , geometryLoading()
         , lastAccessDt(0)
     {
 

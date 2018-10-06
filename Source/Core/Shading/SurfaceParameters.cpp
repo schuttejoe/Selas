@@ -151,6 +151,8 @@ namespace Selas
         GeometryCache* geometryCache = context->geometryCache;
         const MaterialResourceData* materialResource = modelData->material;
 
+        // JSTODO - Repair all of this.
+
         Align_(16) float3 normal;
         //if(modelData->flags & HasNormals) {
         //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
@@ -230,10 +232,10 @@ namespace Selas
         surface.ior                = materialResource->scalarAttributeValues[eIor];
 
         surface.shader = materialResource->shader;
-        surface.view = hit->incDirection;
+        surface.view = hit->view;
 
         // -- better way to handle this would be for the ray to know what IOR it is within
-        surface.relativeIOR = ((materialResource->flags & eTransparent) && Dot(hit->incDirection, n) < 0.0f) 
+        surface.relativeIOR = ((materialResource->flags & eTransparent) && Dot(hit->view, n) < 0.0f) 
                             ? surface.ior : 1.0f / surface.ior;
 
         return true;

@@ -78,98 +78,104 @@ namespace Selas
     //=============================================================================================================================
     static void SceneInstanceIntersectFunction(const RTCIntersectFunctionNArguments* args)
     {
-        Assert_(args->N == 1);
-        if(!args->valid[0])
-            return;
-
         RTCIntersectContext* context = args->context;
         const SubsceneInstanceUserData* instance = (const SubsceneInstanceUserData*)args->geometryUserPtr;
 
         RTCRayN* rays = RTCRayHitN_RayN(args->rayhit, args->N);
         RTCHitN* hits = RTCRayHitN_HitN(args->rayhit, args->N);
 
-        float3 origin;
-        float3 direction;
-
         const uint32 N = args->N;
-        origin.x = RTCRayN_org_x(rays, N, 0);
-        origin.y = RTCRayN_org_y(rays, N, 0);
-        origin.z = RTCRayN_org_z(rays, N, 0);
-        direction.x = RTCRayN_dir_x(rays, N, 0);
-        direction.y = RTCRayN_dir_y(rays, N, 0);
-        direction.z = RTCRayN_dir_z(rays, N, 0);
-
-        float3 localOrigin = MatrixMultiplyPoint(origin, instance->worldToLocal);
-        float3 localDirection = MatrixMultiplyVector(direction, instance->worldToLocal);
-
-        RTCRayHit rayhit;
-        rayhit.ray.org_x = localOrigin.x;
-        rayhit.ray.org_y = localOrigin.y;
-        rayhit.ray.org_z = localOrigin.z;
-        rayhit.ray.dir_x = localDirection.x;
-        rayhit.ray.dir_y = localDirection.y;
-        rayhit.ray.dir_z = localDirection.z;
-        rayhit.ray.tnear = RTCRayN_tnear(rays, N, 0);
-        rayhit.ray.tfar = RTCRayN_tfar(rays, N, 0);
-
-        rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-        rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
-        rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-        rayhit.hit.instID[1] = RTC_INVALID_GEOMETRY_ID;
 
         instance->geometryCache->EnsureSubsceneGeometryLoaded(instance->subscene);
-        rtcIntersect1(instance->subscene->rtcScene, context, &rayhit);
-        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
 
-        if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-            RTCRayN_tfar(rays, N, 0) = rayhit.ray.tfar;
-            rtcCopyHitToHitN(hits, &rayhit.hit, N, 0);
-            RTCHitN_instID(hits, N, 0, 0) = instance->instanceID;
-            RTCHitN_instID(hits, N, 0, 1) = rayhit.hit.instID[0];
+        for(uint32 scan = 0; scan < N; ++scan) {
+            if(args->valid[scan] == 0)
+                continue;
+
+            float3 origin;
+            float3 direction;
+            
+            origin.x = RTCRayN_org_x(rays, N, scan);
+            origin.y = RTCRayN_org_y(rays, N, scan);
+            origin.z = RTCRayN_org_z(rays, N, scan);
+            direction.x = RTCRayN_dir_x(rays, N, scan);
+            direction.y = RTCRayN_dir_y(rays, N, scan);
+            direction.z = RTCRayN_dir_z(rays, N, scan);
+
+            float3 localOrigin = MatrixMultiplyPoint(origin, instance->worldToLocal);
+            float3 localDirection = MatrixMultiplyVector(direction, instance->worldToLocal);
+
+            RTCRayHit rayhit;
+            rayhit.ray.org_x = localOrigin.x;
+            rayhit.ray.org_y = localOrigin.y;
+            rayhit.ray.org_z = localOrigin.z;
+            rayhit.ray.dir_x = localDirection.x;
+            rayhit.ray.dir_y = localDirection.y;
+            rayhit.ray.dir_z = localDirection.z;
+            rayhit.ray.tnear = RTCRayN_tnear(rays, N, scan);
+            rayhit.ray.tfar = RTCRayN_tfar(rays, N, scan);
+
+            rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+            rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+            rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+            rayhit.hit.instID[1] = RTC_INVALID_GEOMETRY_ID;
+
+            rtcIntersect1(instance->subscene->rtcScene, context, &rayhit);
+
+            if(rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
+                RTCRayN_tfar(rays, N, scan) = rayhit.ray.tfar;
+                rtcCopyHitToHitN(hits, &rayhit.hit, N, scan);
+                RTCHitN_instID(hits, N, scan, 0) = instance->instanceID;
+                RTCHitN_instID(hits, N, scan, 1) = rayhit.hit.instID[0];
+            }
         }
+
+        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
     }
 
     //=============================================================================================================================
     static void InstanceOccludedFunction(const RTCOccludedFunctionNArguments* args)
     {
-        Assert_(args->N == 1);
-        if(!args->valid[0])
-            return;
-
         RTCIntersectContext* context = args->context;
         const SubsceneInstanceUserData* instance = (const SubsceneInstanceUserData*)args->geometryUserPtr;
 
         RTCRayN* rays = args->ray;
 
-        float3 origin;
-        float3 direction;
-
         const uint32 N = args->N;
-        origin.x = RTCRayN_org_x(rays, N, 0);
-        origin.y = RTCRayN_org_y(rays, N, 0);
-        origin.z = RTCRayN_org_z(rays, N, 0);
-        direction.x = RTCRayN_dir_x(rays, N, 0);
-        direction.y = RTCRayN_dir_y(rays, N, 0);
-        direction.z = RTCRayN_dir_z(rays, N, 0);
-
-        float3 localOrigin = MatrixMultiplyPoint(origin, instance->worldToLocal);
-        float3 localDirection = MatrixMultiplyVector(direction, instance->worldToLocal);
-
-        RTCRay ray;
-        ray.org_x = localOrigin.x;
-        ray.org_y = localOrigin.y;
-        ray.org_z = localOrigin.z;
-        ray.dir_x = localDirection.x;
-        ray.dir_y = localDirection.y;
-        ray.dir_z = localDirection.z;
-        ray.tnear = RTCRayN_tnear(rays, N, 0);
-        ray.tfar = RTCRayN_tfar(rays, N, 0);
 
         instance->geometryCache->EnsureSubsceneGeometryLoaded(instance->subscene);
-        rtcOccluded1(instance->subscene->rtcScene, context, &ray);
-        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
+        for(uint32 scan = 0; scan < N; ++scan) {
+            if(args->valid[scan] == 0)
+                continue;
 
-        RTCRayN_tfar(rays, N, 0) = ray.tfar;
+            float3 origin;
+            float3 direction;
+
+            origin.x = RTCRayN_org_x(rays, N, scan);
+            origin.y = RTCRayN_org_y(rays, N, scan);
+            origin.z = RTCRayN_org_z(rays, N, scan);
+            direction.x = RTCRayN_dir_x(rays, N, scan);
+            direction.y = RTCRayN_dir_y(rays, N, scan);
+            direction.z = RTCRayN_dir_z(rays, N, scan);
+
+            float3 localOrigin = MatrixMultiplyPoint(origin, instance->worldToLocal);
+            float3 localDirection = MatrixMultiplyVector(direction, instance->worldToLocal);
+
+            RTCRay ray;
+            ray.org_x = localOrigin.x;
+            ray.org_y = localOrigin.y;
+            ray.org_z = localOrigin.z;
+            ray.dir_x = localDirection.x;
+            ray.dir_y = localDirection.y;
+            ray.dir_z = localDirection.z;
+            ray.tnear = RTCRayN_tnear(rays, N, scan);
+            ray.tfar = RTCRayN_tfar(rays, N, scan);
+
+            rtcOccluded1(instance->subscene->rtcScene, context, &ray);
+
+            RTCRayN_tfar(rays, N, scan) = ray.tfar;
+        }
+        instance->geometryCache->FinishUsingSubceneGeometry(instance->subscene);
     }
 
     //=============================================================================================================================

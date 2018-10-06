@@ -22,7 +22,7 @@ namespace Selas
         uint32 AddU32(volatile uint32* dest, uint32 add);
         uint64 AddU64(volatile uint64* dest, uint64 add);
 
-        int32 CompareExchange32(volatile int32* dest, int32 exchange_with, int32 compare_to);
-        int64 CompareExchange64(volatile int64* dest, int64 exchange_with, int64 compare_to);
+        bool CompareExchange32(volatile int32* dest, int32 exchange_with, int32 compare_to);
+        bool CompareExchange64(volatile int64* dest, int64 exchange_with, int64 compare_to);
     }
 }
