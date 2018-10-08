@@ -23,8 +23,10 @@ namespace Selas
         Ray ray;
         float3 throughput; 
         
-        uint32 index : 30;
-        uint32 diracScatterOnly : 31;
+        uint32 index            : 26;
+        uint32 trackedBounces   : 3;
+        uint32 diracScatterOnly : 1;
+        uint32 unused           : 2;
 
         float  error;
     };

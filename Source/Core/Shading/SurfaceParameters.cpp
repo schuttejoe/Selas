@@ -221,13 +221,13 @@ namespace Selas
         surface.sheenTint          = materialResource->scalarAttributeValues[eSheenTint];
         surface.clearcoat          = materialResource->scalarAttributeValues[eClearcoat];
         surface.clearcoatGloss     = materialResource->scalarAttributeValues[eClearcoatGloss];
-        surface.specTrans          = materialResource->scalarAttributeValues[eSpecTrans];
-        surface.diffTrans          = materialResource->scalarAttributeValues[eDiffuseTrans];
+        surface.specTrans          = Saturate(materialResource->scalarAttributeValues[eSpecTrans]);
+        surface.diffTrans          = Saturate(materialResource->scalarAttributeValues[eDiffuseTrans]);
         surface.flatness           = materialResource->scalarAttributeValues[eFlatness];
         surface.anisotropic        = materialResource->scalarAttributeValues[eAnisotropic];
         surface.specularTint       = materialResource->scalarAttributeValues[eSpecularTint];
         surface.roughness          = materialResource->scalarAttributeValues[eRoughness];
-        surface.metallic           = materialResource->scalarAttributeValues[eMetallic];
+        surface.metallic           = Saturate(materialResource->scalarAttributeValues[eMetallic]);
         surface.scatterDistance    = materialResource->scalarAttributeValues[eScatterDistance];
         surface.ior                = materialResource->scalarAttributeValues[eIor];
 

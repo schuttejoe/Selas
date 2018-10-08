@@ -40,6 +40,8 @@ namespace Selas
         uint                                    maxPathLength;
     };
 
+    #define MaxTrackedBounces_ ((1 << 3) - 1)
+
     //=============================================================================================================================
     struct HitParameters
     {
@@ -51,8 +53,10 @@ namespace Selas
         int32 geomId;
         int32 primId;
         int32 instId[MaxInstanceLevelCount_];
-        uint32 index            : 30;
-        uint32 diracScatterOnly : 31;
+        uint32 index            : 26;
+        uint32 trackedBounces   :  3;
+        uint32 diracScatterOnly :  1;
+        uint32 unused           :  2;
         float2 baryCoords;
     };
 

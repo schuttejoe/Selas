@@ -34,8 +34,9 @@
 #include "embree3/rtcore_ray.h"
 
 #define MaxBounceCount_         2048
-#define WorkerThreadCount_         5
-#define PathsPerPixelPerThread_    4
+#define WorkerThreadCount_         4
+#define PathsPerPixelPerThread_    8
+#define OutputLayers_              3
 
 namespace Selas
 {
@@ -52,6 +53,86 @@ namespace Selas
             GeometryCache*               geometryCache;
             TextureCache*                textureCache;
         };
+
+        //=========================================================================================================================
+        static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
+                                     const HitParameters& hit)
+        {
+            // SHADING
+            SurfaceParameters surface;
+            if(CalculateSurfaceParams(context, &hit, surface) == false) {
+                return;
+            }
+
+            // -- choose a light and sample the light source
+            LightDirectSample lightSample;
+            NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
+
+            if(Dot(lightSample.radiance, float3::One_) > 0) {
+                float forwardPdfW;
+                float reversePdfW;
+                float3 reflectance = EvaluateBsdf(surface, hit.view, lightSample.direction, forwardPdfW,
+                                                  reversePdfW);
+
+                float weight = 1.0f;// ImportanceSampling::BalanceHeuristic(1, lightSample.pdfW, 1, forwardPdfW);
+
+                float3 sample = weight * reflectance * lightSample.radiance * (1.0f / lightSample.pdfW);
+                if(Dot(sample, float3::One_) > 0) {
+                    float3 offset = OffsetRayOrigin(surface, lightSample.direction, 0.1f);
+
+                    OcclusionRay occlusionRay;
+                    occlusionRay.ray = MakeRay(offset, lightSample.direction);
+                    occlusionRay.distance = lightSample.distance;
+                    occlusionRay.index = hit.index;
+                    occlusionRay.value = sample * hit.throughput;
+                    ptBatcher->AddUnsortedOcclusionRay(occlusionRay);
+                }
+            }
+
+            {
+                // - sample the bsdf
+                BsdfSample bsdfSample;
+                if(SampleBsdfFunction(&context->sampler, surface, hit.view, bsdfSample) == false) {
+                    return;
+                }
+
+                if(Dot(bsdfSample.reflectance, float3::One_) > 0 && hit.trackedBounces == 0) {
+                    float3 Ld[OutputLayers_];
+                    Memory::Zero(Ld, sizeof(Ld));
+
+                    float f, r;
+                    Ld[1] = EvaluateBsdf(surface, hit.view, bsdfSample.wi, f, r);
+                    Ld[2] = bsdfSample.reflectance;
+
+                    FramebufferWriter_Write(&context->frameWriter, Ld, OutputLayers_, hit.index);
+                }
+
+                float lightPdfW = LightingPdf(context, lightSample, surface.position, bsdfSample.wi);
+                float weight = 1.0f;// ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
+
+                float3 throughput = weight * hit.throughput * bsdfSample.reflectance;
+
+                // --Russian roulette path termination
+                if(hit.trackedBounces >= MaxTrackedBounces_) {
+                    float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
+                    if(context->sampler.UniformFloat() > continuationProb) {
+                        return;
+                    }
+                    throughput = throughput * (1.0f / continuationProb);
+                }
+
+                float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
+
+                DeferredRay bounceRay;
+                bounceRay.error = hit.error;
+                bounceRay.index = hit.index;
+                bounceRay.diracScatterOnly = hit.diracScatterOnly && bsdfSample.flags & SurfaceEventFlags::eDiracEvent;
+                bounceRay.ray = MakeRay(offsetOrigin, bsdfSample.wi);
+                bounceRay.throughput = throughput;
+                bounceRay.trackedBounces = Min<uint32>(MaxTrackedBounces_, hit.trackedBounces + 1);
+                ptBatcher->AddUnsortedDeferredRay(bounceRay);
+            }
+        }
 
         //=========================================================================================================================
         static void TraceRayBatch(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
@@ -96,7 +177,7 @@ namespace Selas
                 rtcIntersect8(valid, context->rtcScene, &rtcContext, &rayhit);
 
                 for(uint scan = 0; scan < BatchSize_; ++scan) {
-                    float3 Ld[1];
+                    float3 Ld[OutputLayers_];
                     Memory::Zero(Ld, sizeof(Ld));
 
                     if(valid[scan] == 0 || rayhit.hit.geomID[scan] == RTC_INVALID_GEOMETRY_ID) {
@@ -108,8 +189,7 @@ namespace Selas
                             sample = SampleBackground(context, startRay[scan].ray.direction);
 
                         Ld[0] += sample * startRay[scan].throughput;
-                        FramebufferWriter_Write(&context->frameWriter, Ld, 1, startRay[scan].index);
-
+                        FramebufferWriter_Write(&context->frameWriter, Ld, OutputLayers_, startRay[scan].index);
                         continue;
                     }
 
@@ -127,9 +207,11 @@ namespace Selas
                     hit.instId[1] = rayhit.hit.instID[1][scan];
                     hit.index = startRay[scan].index;
                     hit.diracScatterOnly = startRay[scan].diracScatterOnly;
+                    hit.trackedBounces = startRay[scan].trackedBounces;
                     hit.throughput = startRay[scan].throughput;
 
-                    ptBatcher->AddUnsortedHit(hit);
+                    //ptBatcher->AddUnsortedHit(hit);
+                    ShadeHitPosition(context, ptBatcher, hit);
                 }
             }
         }
@@ -172,73 +254,13 @@ namespace Selas
                 for(uint scan = 0; scan < BatchSize_; ++scan) {
                     if(valid[scan] == -1 && ray.tfar[scan] >= 0.0f) {
 
-                        float3 Ld[1];
+                        float3 Ld[OutputLayers_];
+                        Memory::Zero(Ld, sizeof(Ld));
+
                         Ld[0] = startRay[scan].value;
-                        FramebufferWriter_Write(&context->frameWriter, Ld, 1, startRay[scan].index);
+                        FramebufferWriter_Write(&context->frameWriter, Ld, OutputLayers_, startRay[scan].index);
                     }
                 }
-            }
-        }
-
-        //=========================================================================================================================
-        static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
-                                     const HitParameters& hit)
-        {
-            // SHADING
-            SurfaceParameters surface;
-            if(CalculateSurfaceParams(context, &hit, surface) == false) {
-                return;
-            }
-
-            // -- choose a light and sample the light source
-            LightDirectSample lightSample;
-            NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
-
-            if(Dot(lightSample.radiance, float3::One_) > 0) {
-                float forwardPdfW;
-                float reversePdfW;
-                float3 reflectance = EvaluateBsdf(surface, hit.view, lightSample.direction, forwardPdfW,
-                                                  reversePdfW);
-                if(Dot(reflectance, float3::One_) > 0) {
-
-                    float3 sample = reflectance * lightSample.radiance * (1.0f / lightSample.pdfW);
-
-                    float3 offset = OffsetRayOrigin(surface, lightSample.direction, 0.1f);
-
-                    OcclusionRay occlusionRay;
-                    occlusionRay.ray = MakeRay(offset, lightSample.direction);
-                    occlusionRay.distance = lightSample.distance;
-                    occlusionRay.index = hit.index;
-                    occlusionRay.value = sample * hit.throughput;
-                    ptBatcher->AddUnsortedOcclusionRay(occlusionRay);
-                }
-            }
-
-            {
-                // - sample the bsdf
-                BsdfSample bsdfSample;
-                if(SampleBsdfFunction(&context->sampler, surface, hit.view, bsdfSample) == false) {
-                    return;
-                }
-
-                //    // --Russian roulette path termination
-                //    if(bounceCount > 8) {
-                //        float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
-                //        if(context->sampler.UniformFloat() > continuationProb) {
-                //            break;
-                //        }
-                //        throughput = throughput * (1.0f / continuationProb);
-                //    }
-
-                float3 offsetOrigin = OffsetRayOrigin(surface, bsdfSample.wi, 1.0f);
-
-                DeferredRay bounceRay;
-                bounceRay.error = hit.error;
-                bounceRay.index = hit.index;
-                bounceRay.diracScatterOnly = hit.diracScatterOnly && bsdfSample.flags & SurfaceEventFlags::eDiracEvent;
-                bounceRay.ray = MakeRay(offsetOrigin, bsdfSample.wi);
-                bounceRay.throughput = hit.throughput * bsdfSample.reflectance;
-                ptBatcher->AddUnsortedDeferredRay(bounceRay);
             }
         }
 
@@ -266,7 +288,9 @@ namespace Selas
                         dr.ray = JitteredCameraRay(kernelData->camera, sampler, (float)x, (float)y);
                         dr.error = 0.0f;
                         dr.index = (uint32)(y * width + x);
+                        dr.diracScatterOnly = 1;
                         dr.throughput = float3::One_;
+                        dr.trackedBounces = 0;
                         kernelData->ptBatcher->AddUnsortedDeferredRay(dr);
                     }
                 }
@@ -333,7 +357,7 @@ namespace Selas
             ptBatcher.Initialize(camera.width * camera.height, 256 Kb_);
 
             Framebuffer frame;
-            FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, 1);
+            FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, OutputLayers_);
 
             KernelData kernelData;
             kernelData.camera = &camera;

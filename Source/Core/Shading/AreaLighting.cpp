@@ -86,16 +86,6 @@ namespace Selas
     static void SampleRectangleLightSolidAngle(GIIntegratorContext* context, const float3& position, const float3& normal,
                                                const SceneLight& light, LightDirectSample& sample)
     {
-        float dotNL = Dot(-light.direction, normal);
-        if(dotNL <= 0.0f) {
-            sample.direction = float3::Zero_;
-            sample.distance  = 0.0f;
-            sample.radiance  = float3::Zero_;
-            sample.pdfW      = 1.0f;
-
-            return;
-        }
-
         float3 eX = light.x;
         float3 eZ = light.z;
         float3 s = light.position - 0.5f * eX - 0.5f * eZ;
@@ -121,10 +111,18 @@ namespace Selas
         
         float areaMeasure = Dot(light.direction, -l) / distSquared;
 
-        sample.direction = l;
-        sample.distance  = dist;
-        sample.radiance  = light.radiance * areaMeasure;
-        sample.pdfW      = pdf;
+        if(areaMeasure > 0) {
+            sample.direction = l;
+            sample.distance = dist;
+            sample.radiance = light.radiance * areaMeasure;
+            sample.pdfW = pdf * areaMeasure;
+        }
+        else {
+            sample.direction = float3::Zero_;
+            sample.distance = 0.0f;
+            sample.radiance = float3::Zero_;
+            sample.pdfW = 1.0f;
+        }
     }
 
     ////=============================================================================================================================
@@ -328,7 +326,7 @@ namespace Selas
     void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal, LightDirectSample& sample)
     {
         uint lightCount = context->scene->data->lights.Count();
-        float backgroundProb = lightCount > 0 ? 0.5f : 1.0f;
+        float backgroundProb = lightCount > 0 ? 0.0f : 1.0f;
         float perLightProb = lightCount > 0 ? (1.0f - backgroundProb) / lightCount : 0.0f;
 
         float p0 = context->sampler.UniformFloat();
@@ -344,7 +342,7 @@ namespace Selas
         }
         else {
             uint lightIndex = (uint)(/*(1.0f / backgroundProb) **/ (p0 - backgroundProb) * lightCount);
-            IntegrateRectangleLightWithArea(context, position, normal, context->scene->data->lights[lightIndex], sample);
+            SampleRectangleLightSolidAngle(context, position, normal, context->scene->data->lights[lightIndex], sample);
             sample.pdfW *= perLightProb;
             sample.index = (uint32)lightIndex;
         }
