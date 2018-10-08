@@ -114,10 +114,7 @@ namespace Selas
             return float3::Zero_;
         }
 
-        float dotHL = Dot(wm, wi);
-        if(dotHL < 0.0f) {
-            return float3::Zero_;
-        }
+        float dotHL = Absf(Dot(wm, wi));
 
         float3 tint = CalculateTint(surface.baseColor);
         return surface.sheen * Lerp(float3(1.0f), tint, surface.sheenTint) * Fresnel::SchlickWeight(dotHL);
@@ -239,7 +236,6 @@ namespace Selas
             color = Sqrt(surface.baseColor);
         else
             color = surface.baseColor;
-        
 
         // Note that we are intentionally leaving out the 1/n2 spreading factor since for VCM we will be evaluating particles with
         // this. That means we'll need to model the air-[other medium] transmission if we ever place the camera inside a non-air
@@ -291,7 +287,7 @@ namespace Selas
         float retro = EvaluateDisneyRetroDiffuse(surface, wo, wm, wi);
         float subsurfaceApprox = Lerp(lambert, hanrahanKrueger, thin ? surface.flatness : 0.0f);
 
-        return InvPi_ *(retro + subsurfaceApprox * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv));
+        return InvPi_ * (retro + subsurfaceApprox * (1.0f - 0.5f * fl) * (1.0f - 0.5f * fv));
     }
 
     //=============================================================================================================================
@@ -490,11 +486,10 @@ namespace Selas
         }
 
         float3 sheen = EvaluateSheen(surface, wo, wm, wi);
-        sample.reflectance = sheen;
 
         float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
-        sample.reflectance += color * (diffuse / pdf);
+        sample.reflectance = sheen + color * (diffuse / pdf);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         sample.forwardPdfW = Absf(dotNL) / pdf;
         sample.reversePdfW = Absf(dotNV) / pdf;
@@ -626,6 +621,7 @@ namespace Selas
         }
 
         if(pLobe > 0.0f) {
+            sample.reflectance = sample.reflectance * (1.0f / pLobe);
             sample.forwardPdfW /= pLobe;
             sample.reversePdfW /= pLobe;
         }
