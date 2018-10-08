@@ -2,6 +2,7 @@ _Assets
 _BuildTemp
 _Projects
 _Images
+_Temp
 Scripts/pythoncd.sh
 Scripts/pythoncd.bat
 Scripts/ls.py
