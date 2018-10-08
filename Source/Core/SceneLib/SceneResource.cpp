@@ -20,7 +20,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1538556969ul;
+    const uint64 SceneResource::kDataVersion = 1538786049ul;
 
     struct SubsceneInstanceUserData
     {
@@ -353,6 +353,6 @@ namespace Selas
 
         uint sceneIndex = scene->data->subsceneInstances[sceneID].index;
         ModelDataFromRayIds(scene->subscenes[sceneIndex], subsceneID, geomId, localToWorld, modelData);
-        localToWorld = MatrixMultiply(localToWorld, scene->data->subsceneInstances[sceneID].localToWorld);        
+        localToWorld = MatrixMultiply(localToWorld, scene->data->subsceneInstances[sceneID].localToWorld);
     }
 }

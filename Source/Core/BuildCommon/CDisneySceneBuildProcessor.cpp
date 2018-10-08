@@ -485,7 +485,8 @@ namespace Selas
 
                 uint sceneIndex = primitivesSceneIndex;
 
-                if(instancedCopyKV.value.HasMember("instancedPrimitiveJsonFiles")) {
+                if(instancedCopyKV.value.HasMember("instancedPrimitiveJsonFiles")
+                   && instancedCopyKV.value["instancedPrimitiveJsonFiles"].MemberCount() > 0) {
 
                     SubsceneResourceData* altScene;
                     ReturnError_(AllocateSubscene(context, scenes, instancedCopyKV.name.GetString(), materialFile, root, altScene));
