@@ -107,14 +107,16 @@ int main(int argc, char *argv[])
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     geometryCache.RegisterSubscenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
-    geometryCache.PreloadSubscene(0);
-    geometryCache.PreloadSubscene(1);
-    geometryCache.PreloadSubscene(2);
-    geometryCache.PreloadSubscene(3);
-    geometryCache.PreloadSubscene(81);
-    geometryCache.PreloadSubscene(82);
-    geometryCache.PreloadSubscene(83);
-    geometryCache.PreloadSubscene(84);
+
+    // -- preload these so they remain always loaded.
+    geometryCache.PreloadSubscene("Scenes~island~json~isMountainA~isMountainA.json_geometry");
+    geometryCache.PreloadSubscene("Scenes~island~json~isMountainA~isMountainA.json");
+    geometryCache.PreloadSubscene("Scenes~island~json~isMountainB~isMountainB.json_geometry");
+    geometryCache.PreloadSubscene("Scenes~island~json~isMountainB~isMountainB.json");
+    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodB~isIronwoodB.json_geometry");
+    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodB~isIronwoodB.json");
+    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json_geometry");
+    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json");
 
     Selas::uint width = 1024;
     Selas::uint height = 429;
