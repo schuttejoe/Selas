@@ -8,6 +8,7 @@
 #include "StringLib/FixedString.h"
 #include "StringLib/StringUtil.h"
 #include "MathLib/Trigonometric.h"
+#include "MathLib/FloatFuncs.h"
 #include "IoLib/Directory.h"
 #include "IoLib/Environment.h"
 #include "SystemLib/Atomic.h"
@@ -87,20 +88,22 @@ namespace Selas
 
     //=================================================================================================================================
     template<typename Type_>
-    static RayBatchCategory DetermineRayCategory(const Type_& dr)
+    static RayBatchCategory DetermineRayCategory(const Type_& dray)
     {
-        float ax = Math::Absf(dr.ray.direction.x);
-        float ay = Math::Absf(dr.ray.direction.y);
-        float az = Math::Absf(dr.ray.direction.z);
+        Assert_(LengthSquared(dray.ray.direction) > 0.0f);
+
+        float ax = Math::Absf(dray.ray.direction.x);
+        float ay = Math::Absf(dray.ray.direction.y);
+        float az = Math::Absf(dray.ray.direction.z);
 
         if(ax > ay && ax > az) {
-            return dr.ray.direction.x > 0.0f ? PositiveX : NegativeX;
+            return dray.ray.direction.x > 0.0f ? PositiveX : NegativeX;
         }
         else if(ay > az) {
-            return dr.ray.direction.y > 0.0f ? PositiveY : NegativeY;
+            return dray.ray.direction.y > 0.0f ? PositiveY : NegativeY;
         }
         else {
-            return dr.ray.direction.z > 0.0f ? PositiveZ : NegativeZ;
+            return dray.ray.direction.z > 0.0f ? PositiveZ : NegativeZ;
         }
     }
 
@@ -456,11 +459,18 @@ namespace Selas
     }
 
     //=================================================================================================================================
-    void PathTracingBatcher::AddUnsortedDeferredRay(const DeferredRay& ray)
+    void PathTracingBatcher::AddUnsortedDeferredRay(const DeferredRay& dray)
     {
         Atomic::AddU64(&totalEntriesAdded, 1);
 
-        RayBatchCategory category = DetermineRayCategory(ray);
+        Assert_(Math::IsInf(dray.throughput.x) == false);
+        Assert_(Math::IsInf(dray.throughput.y) == false);
+        Assert_(Math::IsInf(dray.throughput.z) == false);
+        Assert_(Math::IsNaN(dray.throughput.x) == false);
+        Assert_(Math::IsNaN(dray.throughput.y) == false);
+        Assert_(Math::IsNaN(dray.throughput.z) == false);
+
+        RayBatchCategory category = DetermineRayCategory(dray);
 
         while(true) {
             DeferredBatch* batch = currentDeferred[category];
@@ -473,7 +483,7 @@ namespace Selas
 
             if(Atomic::CompareExchange64(&batch->batchHead, head + 1, head)) {
                 
-                batch->rays[head] = ray;
+                batch->rays[head] = dray;
 
                 int64 after = Atomic::Add64(&batch->batchTail, 1) + 1;
                 if(after == rayBatchCapacity) {
@@ -488,11 +498,18 @@ namespace Selas
     }
 
     //=================================================================================================================================
-    void PathTracingBatcher::AddUnsortedOcclusionRay(const OcclusionRay& ray)
+    void PathTracingBatcher::AddUnsortedOcclusionRay(const OcclusionRay& oray)
     {
+        Assert_(Math::IsInf(oray.value.x) == false);
+        Assert_(Math::IsInf(oray.value.y) == false);
+        Assert_(Math::IsInf(oray.value.z) == false);
+        Assert_(Math::IsNaN(oray.value.x) == false);
+        Assert_(Math::IsNaN(oray.value.y) == false);
+        Assert_(Math::IsNaN(oray.value.z) == false);
+
         Atomic::AddU64(&totalEntriesAdded, 1);
 
-        RayBatchCategory category = DetermineRayCategory(ray);
+        RayBatchCategory category = DetermineRayCategory(oray);
 
         while(true) {
             OcclusionBatch* batch = currentOcclusion[category];
@@ -505,7 +522,7 @@ namespace Selas
 
             if(Atomic::CompareExchange64(&batch->batchHead, head + 1, head)) {
 
-                batch->rays[head] = ray;
+                batch->rays[head] = oray;
 
                 int64 after = Atomic::Add64(&batch->batchTail, 1) + 1;
                 if(after == rayBatchCapacity) {

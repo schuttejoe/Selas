@@ -36,7 +36,7 @@
 #include "pmmintrin.h"
 #include <stdio.h>
 
-#define TextureCacheSize_   3 * 1024 * 1024 * 1024ull
+#define TextureCacheSize_   4 * 1024 * 1024 * 1024ull
 #define GeometryCacheSize_ 18 * 1024 * 1024 * 1024ull
 
 using namespace Selas;

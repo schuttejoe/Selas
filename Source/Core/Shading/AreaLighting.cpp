@@ -326,41 +326,29 @@ namespace Selas
     void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal, LightDirectSample& sample)
     {
         uint lightCount = context->scene->data->lights.Count();
-        float backgroundProb = lightCount > 0 ? 0.0f : 1.0f;
-        float perLightProb = lightCount > 0 ? (1.0f - backgroundProb) / lightCount : 0.0f;
+        if(lightCount == 0) {
+            return;
+        }
+
+        float perLightProb = 1.0f / lightCount;
 
         float p0 = context->sampler.UniformFloat();
-        if(p0 < backgroundProb) {
-            sample.index = InvalidIndex32;
-            if(context->scene->iblResource) {
-                DirectIblLightSample(context, sample);
-            }
-            else {
-                BackgroundLightSample(context, sample);
-            }
-            sample.pdfW *= backgroundProb;
-        }
-        else {
-            uint lightIndex = (uint)(/*(1.0f / backgroundProb) **/ (p0 - backgroundProb) * lightCount);
-            SampleRectangleLightSolidAngle(context, position, normal, context->scene->data->lights[lightIndex], sample);
-            sample.pdfW *= perLightProb;
-            sample.index = (uint32)lightIndex;
-        }
+        uint lightIndex = (uint)(p0 * lightCount);
+        SampleRectangleLightSolidAngle(context, position, normal, context->scene->data->lights[lightIndex], sample);
+        sample.pdfW *= perLightProb;
+        sample.index = (uint32)lightIndex;
     }
 
     //=============================================================================================================================
     float LightingPdf(GIIntegratorContext* context, const LightDirectSample& light, const float3& position, const float3& wi)
     {
         uint lightCount = context->scene->data->lights.Count();
-        float backgroundProb = lightCount > 0 ? 0.5f : 1.0f;
-        float perLightProb = lightCount > 0 ? (1.0f - backgroundProb) / lightCount : 0.0f;
+        if(lightCount == 0) {
+            return 0.0f;
+        }
 
-        if(light.index == InvalidIndex32) {
-            return BackgroundLightingPdf(context, wi) * backgroundProb;
-        }
-        else {
-            return QuadLightAreaPdf(context->scene->data->lights[light.index], position, wi) * perLightProb;
-        }
+        float perLightProb = 1.0f / lightCount;
+        return QuadLightAreaPdf(context->scene->data->lights[light.index], position, wi) * perLightProb;
     }
 
     //=============================================================================================================================

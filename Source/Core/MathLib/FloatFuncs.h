@@ -220,6 +220,21 @@ namespace Selas
         return (lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z) + (lhs.w * rhs.w);
     }
 
+    ForceInline_ float AbsDot(float2 lhs, float2 rhs)
+    {
+        return Math::Absf((lhs.x * rhs.x) + (lhs.y * rhs.y));
+    }
+
+    ForceInline_ float AbsDot(float3 lhs, float3 rhs)
+    {
+        return Math::Absf((lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z));
+    }
+
+    ForceInline_ float AbsDot(float4 lhs, float4 rhs)
+    {
+        return Math::Absf((lhs.x * rhs.x) + (lhs.y * rhs.y) + (lhs.z * rhs.z) + (lhs.w * rhs.w));
+    }
+
     ForceInline_ float LengthSquared(float2 vec)
     {
         return Dot(vec, vec);

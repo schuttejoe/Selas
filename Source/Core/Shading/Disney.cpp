@@ -101,8 +101,8 @@ namespace Selas
         float gl = Bsdf::SeparableSmithGGXG1(wi, 0.25f);
         float gv = Bsdf::SeparableSmithGGXG1(wo, 0.25f);
 
-        fPdfW = d / (4.0f * absDotNL);
-        rPdfW = d / (4.0f * absDotNV);
+        fPdfW = d / (4.0f * AbsDot(wo, wm));
+        rPdfW = d / (4.0f * AbsDot(wi, wm));
 
         return 0.25f * clearcoat * d * f * gl * gv;
     }
@@ -161,14 +161,14 @@ namespace Selas
         float3 f = DisneyFresnel(surface, wo, wm, wi);
 
         Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, ax, ay, fPdf, rPdf);
-        fPdf *= (1.0f / (4 * dotNL));
-        rPdf *= (1.0f / (4 * dotNL));
+        fPdf *= (1.0f / (4 * AbsDot(wo, wm)));
+        rPdf *= (1.0f / (4 * AbsDot(wi, wm)));
 
         return d * gl * gv * f / (4.0f * dotNL * dotNV);
     }
 
     //=============================================================================================================================
-    static void SampleDisneyBRDF(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
+    static bool SampleDisneyBRDF(CSampler* sampler, const SurfaceParameters& surface, float3 v, BsdfSample& sample)
     {
         float3 wo = Normalize(MatrixMultiply(v, surface.worldToTangent));
 
@@ -188,7 +188,7 @@ namespace Selas
             sample.reversePdfW = 0.0f;
             sample.reflectance = float3::Zero_;
             sample.wi = float3::Zero_;
-            return;
+            return false;
         }
 
         // -- Fresnel term for this lobe is complicated since we're blending with both the metallic and the specularTint
@@ -206,9 +206,10 @@ namespace Selas
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
         Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, ax, ay, sample.forwardPdfW, sample.reversePdfW);
 
-        float dotNL = AbsCosTheta(wi);
-        sample.forwardPdfW *= (1.0f / (4 * dotNL));
-        sample.reversePdfW *= (1.0f / (4 * dotNL));
+        sample.forwardPdfW *= (1.0f / (4 * AbsDot(wo, wm)));
+        sample.reversePdfW *= (1.0f / (4 * AbsDot(wi, wm)));
+
+        return true;
     }
 
     //=============================================================================================================================
@@ -344,7 +345,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SampleDisneySpecTransmission(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin,
+    static bool SampleDisneySpecTransmission(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin,
                                              BsdfSample& sample)
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
@@ -387,8 +388,7 @@ namespace Selas
             sample.flags = SurfaceEventFlags::eScatterEvent;
             sample.reflectance = G1v * surface.baseColor;
 
-            float dotNL = AbsCosTheta(wi);
-            float jacobian = (4 * dotNL);
+            float jacobian = (4 * AbsDot(wo, wm));
             pdf = F / jacobian;
         }
         else {
@@ -419,7 +419,7 @@ namespace Selas
             wi = Normalize(wi);
             
             float dotLH = Absf(Dot(wi, wm));
-            float jacobian = dotLH * 1.0f / (Square(dotLH + surface.ior * dotVH));
+            float jacobian = dotLH * 1.0f / (Square(dotLH + surface.relativeIOR * dotVH));
             pdf = (1.0f - F) / jacobian;
         }
 
@@ -434,6 +434,8 @@ namespace Selas
 
         // -- convert wi back to world space
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
+
+        return true;
     }
 
     //=============================================================================================================================
@@ -446,7 +448,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void SampleDisneyDiffuse(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin, BsdfSample& sample)
+    static bool SampleDisneyDiffuse(CSampler* sampler, const SurfaceParameters& surface, float3 v, bool thin, BsdfSample& sample)
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
@@ -468,7 +470,7 @@ namespace Selas
         float3 color = surface.baseColor;
 
         float p = sampler->UniformFloat();
-        if(p < surface.diffTrans) {
+        if(p <= surface.diffTrans) {
             wi = -wi;
             pdf = surface.diffTrans;
 
@@ -489,11 +491,13 @@ namespace Selas
 
         float diffuse = EvaluateDisneyDiffuse(surface, wo, wm, wi, thin);
 
+        Assert_(pdf > 0.0f);
         sample.reflectance = sheen + color * (diffuse / pdf);
         sample.wi = Normalize(MatrixMultiply(wi, MatrixTranspose(surface.worldToTangent)));
-        sample.forwardPdfW = Absf(dotNL) / pdf;
-        sample.reversePdfW = Absf(dotNV) / pdf;
+        sample.forwardPdfW = Absf(dotNL) * pdf;
+        sample.reversePdfW = Absf(dotNV) * pdf;
         sample.flags = eventType;
+        return true;
     }
 
     //=============================================================================================================================
@@ -595,22 +599,24 @@ namespace Selas
         float pTransmission;
         CalculateLobePdfs(surface, pSpecular, pDiffuse, pClearcoat, pTransmission);
 
+        bool success = false;
+
         float pLobe = 0.0f;
         float p = sampler->UniformFloat();
         if(p <= pSpecular) {
-            SampleDisneyBRDF(sampler, surface, v, sample);
+            success = SampleDisneyBRDF(sampler, surface, v, sample);
             pLobe = pSpecular;
         }
         else if(p > pSpecular && p <= (pSpecular + pClearcoat)) {
-            SampleDisneyClearcoat(sampler, surface, v, sample);
+            success = SampleDisneyClearcoat(sampler, surface, v, sample);
             pLobe = pClearcoat;
         }
         else if(p > pSpecular + pClearcoat && p <= (pSpecular + pClearcoat + pDiffuse)) {
-            SampleDisneyDiffuse(sampler, surface, v, thin, sample);
+            success = SampleDisneyDiffuse(sampler, surface, v, thin, sample);
             pLobe = pDiffuse;
         }
         else if(pTransmission >= 0.0f) {
-            SampleDisneySpecTransmission(sampler, surface, v, thin, sample);
+            success = SampleDisneySpecTransmission(sampler, surface, v, thin, sample);
             pLobe = pTransmission;
         }
         else {
@@ -622,10 +628,10 @@ namespace Selas
 
         if(pLobe > 0.0f) {
             sample.reflectance = sample.reflectance * (1.0f / pLobe);
-            sample.forwardPdfW /= pLobe;
-            sample.reversePdfW /= pLobe;
+            sample.forwardPdfW *= pLobe;
+            sample.reversePdfW *= pLobe;
         }
 
-        return true;
+        return success;
     }
 }

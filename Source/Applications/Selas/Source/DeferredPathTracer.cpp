@@ -34,9 +34,9 @@
 #include "embree3/rtcore_ray.h"
 
 #define MaxBounceCount_         2048
-#define WorkerThreadCount_         4
-#define PathsPerPixelPerThread_    8
-#define OutputLayers_              3
+#define WorkerThreadCount_        12
+#define PathsPerPixelPerThread_   10
+#define OutputLayers_              1
 
 namespace Selas
 {
@@ -58,6 +58,13 @@ namespace Selas
         static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
                                      const HitParameters& hit)
         {
+            Assert_(Math::IsInf(hit.throughput.x) == false);
+            Assert_(Math::IsInf(hit.throughput.y) == false);
+            Assert_(Math::IsInf(hit.throughput.z) == false);
+            Assert_(Math::IsNaN(hit.throughput.x) == false);
+            Assert_(Math::IsNaN(hit.throughput.y) == false);
+            Assert_(Math::IsNaN(hit.throughput.z) == false);
+
             // SHADING
             SurfaceParameters surface;
             if(CalculateSurfaceParams(context, &hit, surface) == false) {
@@ -96,28 +103,18 @@ namespace Selas
                     return;
                 }
 
-                if(Dot(bsdfSample.reflectance, float3::One_) > 0 && hit.trackedBounces == 0) {
-                    float3 Ld[OutputLayers_];
-                    Memory::Zero(Ld, sizeof(Ld));
-
-                    float f, r;
-                    Ld[1] = EvaluateBsdf(surface, hit.view, bsdfSample.wi, f, r);
-                    Ld[2] = bsdfSample.reflectance;
-
-                    FramebufferWriter_Write(&context->frameWriter, Ld, OutputLayers_, hit.index);
+                float3 throughput = hit.throughput * bsdfSample.reflectance;
+                if(LengthSquared(throughput) == 0.0f) {
+                    return;
                 }
-
-                float lightPdfW = LightingPdf(context, lightSample, surface.position, bsdfSample.wi);
-                float weight = 1.0f;// ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
-
-                float3 throughput = weight * hit.throughput * bsdfSample.reflectance;
 
                 // --Russian roulette path termination
                 if(hit.trackedBounces >= MaxTrackedBounces_) {
                     float continuationProb = Max<float>(Max<float>(throughput.x, throughput.y), throughput.z);
-                    if(context->sampler.UniformFloat() > continuationProb) {
+                    if(context->sampler.UniformFloat() >= continuationProb) {
                         return;
                     }
+                    Assert_(continuationProb > 0.0f);
                     throughput = throughput * (1.0f / continuationProb);
                 }
 
