@@ -61,7 +61,8 @@ namespace Selas
                              LightDirectSample& sample);
     float LightingPdf(GIIntegratorContext* context, const LightDirectSample& light, const float3& position, const float3& wi);
 
+    void SampleBackground(GIIntegratorContext* context, LightDirectSample& sample);
     float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi);
-    float3 SampleBackground(GIIntegratorContext* context, float3 wi);
-    float3 SampleBackgroundMiss(GIIntegratorContext* context, float3 wi);
+    float3 EvaluateBackground(GIIntegratorContext* context, float3 wi);
+    float3 EvaluateBackgroundMiss(GIIntegratorContext* context, float3 wi);
 }

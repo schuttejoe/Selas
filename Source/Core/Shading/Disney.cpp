@@ -350,6 +350,14 @@ namespace Selas
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
 
+        if(CosTheta(wo) == 0.0) {
+            sample.forwardPdfW = 0.0f;
+            sample.reversePdfW = 0.0f;
+            sample.reflectance = float3::Zero_;
+            sample.wi = float3::Zero_;
+            return false;
+        }
+
         // -- Scale roughness based on IOR
         float rscaled = thin ? ThinTransmissionRoughness(surface.ior, surface.roughness) : surface.roughness;
          
@@ -382,7 +390,7 @@ namespace Selas
         float pdf;
 
         float3 wi;
-        if(sampler->UniformFloat() < F) {
+        if(sampler->UniformFloat() <= F) {
             wi = Normalize(Reflect(wm, wo));
 
             sample.flags = SurfaceEventFlags::eScatterEvent;
@@ -419,8 +427,16 @@ namespace Selas
             wi = Normalize(wi);
             
             float dotLH = Absf(Dot(wi, wm));
-            float jacobian = dotLH * 1.0f / (Square(dotLH + surface.relativeIOR * dotVH));
+            float jacobian = dotLH / (Square(dotLH + surface.relativeIOR * dotVH));
             pdf = (1.0f - F) / jacobian;
+        }
+
+        if(CosTheta(wi) == 0.0f) {
+            sample.forwardPdfW = 0.0f;
+            sample.reversePdfW = 0.0f;
+            sample.reflectance = float3::Zero_;
+            sample.wi = float3::Zero_;
+            return false;
         }
 
         if(surface.roughness < 0.01f) {
@@ -461,6 +477,14 @@ namespace Selas
         float3 wm = Normalize(wi + wo);
 
         float dotNL = CosTheta(wi);
+        if(dotNL == 0.0f) {
+            sample.forwardPdfW = 0.0f;
+            sample.reversePdfW = 0.0f;
+            sample.reflectance = float3::Zero_;
+            sample.wi = float3::Zero_;
+            return false;
+        }
+
         float dotNV = CosTheta(wo);
 
         float pdf;
@@ -551,8 +575,8 @@ namespace Selas
 
             reflectance += diffuseWeight * (diffuse * surface.baseColor + sheen);
 
-            forwardPdf += pDiffuse * forwardDiffusePdfW;
-            reversePdf += pDiffuse * reverseDiffusePdfW;
+            forwardPdf += pDiffuse * forwardDiffusePdfW * (1.0f - surface.diffTrans);
+            reversePdf += pDiffuse * reverseDiffusePdfW * (1.0f - surface.diffTrans);
         }
 
         // -- transmission
@@ -570,8 +594,11 @@ namespace Selas
             float reverseTransmissivePdfW;
             Bsdf::GgxVndfAnisotropicPdf(wi, wm, wo, tax, tay, forwardTransmissivePdfW, reverseTransmissivePdfW);
 
-            forwardPdf += pSpecTrans * forwardTransmissivePdfW;
-            reversePdf += pSpecTrans * reverseTransmissivePdfW;
+            float dotLH = Dot(wm, wi);
+            float dotVH = Dot(wm, wo);
+
+            forwardPdf += pSpecTrans * forwardTransmissivePdfW / (Square(dotLH + surface.relativeIOR * dotVH));
+            reversePdf += pSpecTrans * reverseTransmissivePdfW / (Square(dotVH + surface.relativeIOR * dotLH));
         }
 
         // -- specular
@@ -579,10 +606,10 @@ namespace Selas
             float forwardMetallicPdfW;
             float reverseMetallicPdfW;
             float3 specular = EvaluateDisneyBRDF(surface, wo, wm, wi, forwardMetallicPdfW, reverseMetallicPdfW);
-            
+
             reflectance += specular;
-            forwardPdf += pBRDF * forwardMetallicPdfW;
-            reversePdf += pBRDF * reverseMetallicPdfW;
+            forwardPdf += pBRDF * forwardMetallicPdfW / (4 * AbsDot(wo, wm));
+            reversePdf += pBRDF * reverseMetallicPdfW / (4 * AbsDot(wi, wm));
         }
 
         reflectance = reflectance * Absf(dotNL);

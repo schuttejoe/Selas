@@ -233,9 +233,9 @@ namespace Selas
                 else {
                     float3 sample;
                     if(isDeltaOnly)
-                        sample = SampleBackgroundMiss(context, ray.direction);
+                        sample = EvaluateBackgroundMiss(context, ray.direction);
                     else
-                        sample = SampleBackground(context, ray.direction);
+                        sample = EvaluateBackground(context, ray.direction);
 
                     Ld[1] += sample * throughput;
                     break;

@@ -463,13 +463,6 @@ namespace Selas
     {
         Atomic::AddU64(&totalEntriesAdded, 1);
 
-        Assert_(Math::IsInf(dray.throughput.x) == false);
-        Assert_(Math::IsInf(dray.throughput.y) == false);
-        Assert_(Math::IsInf(dray.throughput.z) == false);
-        Assert_(Math::IsNaN(dray.throughput.x) == false);
-        Assert_(Math::IsNaN(dray.throughput.y) == false);
-        Assert_(Math::IsNaN(dray.throughput.z) == false);
-
         RayBatchCategory category = DetermineRayCategory(dray);
 
         while(true) {
@@ -500,13 +493,6 @@ namespace Selas
     //=================================================================================================================================
     void PathTracingBatcher::AddUnsortedOcclusionRay(const OcclusionRay& oray)
     {
-        Assert_(Math::IsInf(oray.value.x) == false);
-        Assert_(Math::IsInf(oray.value.y) == false);
-        Assert_(Math::IsInf(oray.value.z) == false);
-        Assert_(Math::IsNaN(oray.value.x) == false);
-        Assert_(Math::IsNaN(oray.value.y) == false);
-        Assert_(Math::IsNaN(oray.value.z) == false);
-
         Atomic::AddU64(&totalEntriesAdded, 1);
 
         RayBatchCategory category = DetermineRayCategory(oray);

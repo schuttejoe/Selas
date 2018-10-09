@@ -15,6 +15,7 @@
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/Trigonometric.h"
 #include "MathLib/ImportanceSampling.h"
+#include "MathLib/GeometryIntersection.h"
 #include "MathLib/Random.h"
 #include "MathLib/Projection.h"
 #include "MathLib/Quaternion.h"
@@ -26,16 +27,42 @@ namespace Selas
     //=============================================================================================================================
     float QuadLightAreaPdf(const SceneLight& light, const float3& position, const float3& wi)
     {
-        // JSTODO - Test if this actually hits.
         float3 eX = light.x;
         float3 eZ = light.z;
-        float3 s = light.position - 0.5f * eX - 0.5f * eZ;
+        float3 v00 = light.position - 0.5f * eX - 0.5f * eZ;
+        float3 v01 = light.position - 0.5f * eX + 0.5f * eZ;
+        float3 v10 = light.position + 0.5f * eX - 0.5f * eZ;
+        float3 v11 = light.position + 0.5f * eX + 0.5f * eZ;
 
-        float eXLength = Length(eX);
-        float eZLength = Length(eZ);
+        if(Intersection::RayQuad(position, wi, v00, v10, v01, v11)) {
+            float eXLength = Length(eX);
+            float eZLength = Length(eZ);
 
-        float pdf = 1.0f / (eXLength * eZLength);
-        return pdf;
+            float pdf = 1.0f / (eXLength * eZLength);
+            return pdf;
+        }
+
+        return 0.0f;
+    }
+
+    //=============================================================================================================================
+    float QuadLightSolidAnglePdf(const SceneLight& light, const float3& position, const float3& wi)
+    {
+        float3 eX = light.x;
+        float3 eZ = light.z;
+        float3 v00 = light.position - 0.5f * eX - 0.5f * eZ;
+        float3 v01 = light.position - 0.5f * eX + 0.5f * eZ;
+        float3 v10 = light.position + 0.5f * eX - 0.5f * eZ;
+        float3 v11 = light.position + 0.5f * eX + 0.5f * eZ;
+
+        if(Intersection::RayQuad(position, wi, v00, v10, v01, v11)) {
+            RectangleLightSampler quadsampler;
+            InitializeRectangleLightSampler(v00, eX, eZ, position, quadsampler);
+
+            return 1.0f / quadsampler.S;
+        }
+
+        return 0.0f;
     }
 
     //=============================================================================================================================
@@ -304,7 +331,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void BackgroundLightSample(GIIntegratorContext* __restrict context, LightDirectSample& sample)
+    static void BackgroundLightSample(GIIntegratorContext* __restrict context, LightDirectSample& sample)
     {
         // -- choose direction to sample the ibl
         float r0 = context->sampler.UniformFloat();
@@ -348,7 +375,18 @@ namespace Selas
         }
 
         float perLightProb = 1.0f / lightCount;
-        return QuadLightAreaPdf(context->scene->data->lights[light.index], position, wi) * perLightProb;
+        return QuadLightSolidAnglePdf(context->scene->data->lights[light.index], position, wi) * perLightProb;
+    }
+
+    //=============================================================================================================================
+    void SampleBackground(GIIntegratorContext* context, LightDirectSample& sample)
+    {
+        if(context->scene->iblResource) {
+            return DirectIblLightSample(context, sample);
+        }
+        else {
+            return BackgroundLightSample(context, sample);
+        }
     }
 
     //=============================================================================================================================
@@ -363,7 +401,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 SampleBackground(GIIntegratorContext* context, float3 wi)
+    float3 EvaluateBackground(GIIntegratorContext* context, float3 wi)
     {
         if(context->scene->iblResource) {
             float pdf;
@@ -375,7 +413,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    float3 SampleBackgroundMiss(GIIntegratorContext* context, float3 wi)
+    float3 EvaluateBackgroundMiss(GIIntegratorContext* context, float3 wi)
     {
         if(context->scene->iblResource) {
             float pdf;

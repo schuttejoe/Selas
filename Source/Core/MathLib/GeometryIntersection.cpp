@@ -13,6 +13,8 @@ namespace Selas
 {
     namespace Intersection
     {
+        #define IntersectionEpsilon_ 0.00001f
+
         //=========================================================================================================================
         void RaySphereNearest(float3 o, float3 d, float3 center, float r, float3& p)
         {
@@ -153,13 +155,12 @@ namespace Selas
             float c = cc - r2;
 
             // -- If a is zero then both spheres are moving at the same velocity. Since we already know they don't currently
-            // -- intersect, we know they will forever drift through cold space alone and un-touching.
-            if(a < 0.00001f) {
+            // -- intersect, we know they will never hit.
+            if(a < IntersectionEpsilon_) {
                 return false;
             }
 
             float determinant = b * b - 4.0f * a * c;
-            // -- Two spheres walking down the street politely move around each other and say cheers.
             if(determinant < 0.0f) {
                 return false;
             }
@@ -174,8 +175,64 @@ namespace Selas
                 return true;
             }
 
-            // They hit... but not yet. Not now. They wait, silently, for the opportune moment to strike.
+            // They hit eventually... but not in this interval
             return false;
+        }
+
+        //=========================================================================================================================
+        bool RayQuad(float3 o, float3 d, float3 v00, float3 v10, float3 v01, float3 v11)
+        {
+            // -- http://graphics.cs.kuleuven.be/publications/LD05ERQIT/LD05ERQIT_paper.pdf
+
+            float3 e01 = v10 - v00;
+            float3 e03 = v01 - v00;
+            float3 p = Cross(d, e03);
+
+            float det = Dot(e01, p);
+            if(Math::Absf(det) < IntersectionEpsilon_) {
+                return false;
+            }
+
+            float3 t = o - v00;
+            float alpha = Dot(t, p) / det;
+            if(alpha < 0 || alpha > 1) {
+                return false;
+            }
+
+            float3 q = Cross(t, e01);
+            float beta = Dot(d, q) / det;
+            if(beta < 0 || beta > 1) {
+                return false;
+            }
+
+            float tau = Dot(e03, q) / det;
+            if(tau < 0) {
+                return false;
+            }
+
+            if((alpha + beta) > 1) {
+                float3 e23 = v01 - v11;
+                float3 e21 = v10 - v11;
+                float3 pp = Cross(d, e21);
+                float detp = Dot(e23, pp);
+                if(Math::Absf(detp) < IntersectionEpsilon_) {
+                    return false;
+                }
+
+                float3 tp = o - v11;
+                float alphap = Dot(tp, pp) / detp;
+                if(alphap < 0) {
+                    return false;
+                }
+
+                float3 qp = Cross(tp, e23);
+                float betap = Dot(d, qp) / detp;
+                if(betap < 0.0f) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

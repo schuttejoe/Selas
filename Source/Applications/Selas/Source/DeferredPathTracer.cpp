@@ -34,8 +34,8 @@
 #include "embree3/rtcore_ray.h"
 
 #define MaxBounceCount_         2048
-#define WorkerThreadCount_        12
-#define PathsPerPixelPerThread_   10
+#define WorkerThreadCount_         7
+#define SamplesPerPixel_         256
 #define OutputLayers_              1
 
 namespace Selas
@@ -47,8 +47,8 @@ namespace Selas
             const RayCastCameraSettings* camera;
             PathTracingBatcher*          ptBatcher;
             Framebuffer*                 frame;
-            int64                        kernelCounter;
-            int64                        pathsPerPixel;
+            volatile int64               kernelCounter;
+            volatile int64               pixelIndex;
             const SceneResource*         scene;
             GeometryCache*               geometryCache;
             TextureCache*                textureCache;
@@ -58,13 +58,6 @@ namespace Selas
         static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
                                      const HitParameters& hit)
         {
-            Assert_(Math::IsInf(hit.throughput.x) == false);
-            Assert_(Math::IsInf(hit.throughput.y) == false);
-            Assert_(Math::IsInf(hit.throughput.z) == false);
-            Assert_(Math::IsNaN(hit.throughput.x) == false);
-            Assert_(Math::IsNaN(hit.throughput.y) == false);
-            Assert_(Math::IsNaN(hit.throughput.z) == false);
-
             // SHADING
             SurfaceParameters surface;
             if(CalculateSurfaceParams(context, &hit, surface) == false) {
@@ -74,7 +67,6 @@ namespace Selas
             // -- choose a light and sample the light source
             LightDirectSample lightSample;
             NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
-
             if(Dot(lightSample.radiance, float3::One_) > 0) {
                 float forwardPdfW;
                 float reversePdfW;
@@ -96,6 +88,28 @@ namespace Selas
                 }
             }
 
+            LightDirectSample skySample;
+            SampleBackground(context, skySample);
+            if(Dot(skySample.radiance, float3::One_) > 0) {
+                float forwardPdfW;
+                float reversePdfW;
+                float3 reflectance = EvaluateBsdf(surface, hit.view, skySample.direction, forwardPdfW, reversePdfW);
+
+                float misWeight = ImportanceSampling::BalanceHeuristic(1, skySample.pdfW, 1, forwardPdfW);
+
+                float3 sample = misWeight * reflectance * skySample.radiance * (1.0f / skySample.pdfW);
+                if(Dot(sample, float3::One_) > 0) {
+                    float3 offset = OffsetRayOrigin(surface, skySample.direction, 0.1f);
+
+                    OcclusionRay occlusionRay;
+                    occlusionRay.ray = MakeRay(offset, skySample.direction);
+                    occlusionRay.distance = skySample.distance;
+                    occlusionRay.index = hit.index;
+                    occlusionRay.value = sample * hit.throughput;
+                    ptBatcher->AddUnsortedOcclusionRay(occlusionRay);
+                }
+            }
+
             {
                 // - sample the bsdf
                 BsdfSample bsdfSample;
@@ -103,7 +117,10 @@ namespace Selas
                     return;
                 }
 
-                float3 throughput = hit.throughput * bsdfSample.reflectance;
+                float skyPdfW = BackgroundLightingPdf(context, bsdfSample.wi);
+                float misWeight = ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, skyPdfW);
+
+                float3 throughput = misWeight * hit.throughput * bsdfSample.reflectance;
                 if(LengthSquared(throughput) == 0.0f) {
                     return;
                 }
@@ -181,9 +198,9 @@ namespace Selas
 
                         float3 sample;
                         if(startRay[scan].diracScatterOnly)
-                            sample = SampleBackgroundMiss(context, startRay[scan].ray.direction);
+                            sample = EvaluateBackgroundMiss(context, startRay[scan].ray.direction);
                         else
-                            sample = SampleBackground(context, startRay[scan].ray.direction);
+                            sample = EvaluateBackground(context, startRay[scan].ray.direction);
 
                         Ld[0] += sample * startRay[scan].throughput;
                         FramebufferWriter_Write(&context->frameWriter, Ld, OutputLayers_, startRay[scan].index);
@@ -273,27 +290,31 @@ namespace Selas
         //=========================================================================================================================
         static void GeneratePrimaryRays(CSampler* sampler, KernelData* __restrict kernelData)
         {
-            uint pathsPerPixel = PathsPerPixelPerThread_;
             uint width = kernelData->camera->width;
             uint height = kernelData->camera->height;
 
-            for(uint y = 0; y < height; ++y) {
-                for(uint x = 0; x < width; ++x) {
-                    for(uint count = 0; count < pathsPerPixel; ++count) {
-                        
-                        DeferredRay dr;
-                        dr.ray = JitteredCameraRay(kernelData->camera, sampler, (float)x, (float)y);
-                        dr.error = 0.0f;
-                        dr.index = (uint32)(y * width + x);
-                        dr.diracScatterOnly = 1;
-                        dr.throughput = float3::One_;
-                        dr.trackedBounces = 0;
-                        kernelData->ptBatcher->AddUnsortedDeferredRay(dr);
-                    }
+            int64 endIndex = width * height;
+
+            while(true) {
+                int64 index = Atomic::Increment64(&kernelData->pixelIndex);
+                if(index >= endIndex) {
+                    break;
+                }
+
+                uint y = index / width;
+                uint x = index - (y * width);
+
+                for(uint count = 0; count < SamplesPerPixel_; ++count) {
+                    DeferredRay dr;
+                    dr.ray              = JitteredCameraRay(kernelData->camera, sampler, (float)x, (float)y);
+                    dr.error            = 0.0f;
+                    dr.index            = (uint32)(y * width + x);
+                    dr.diracScatterOnly = 1;
+                    dr.throughput       = float3::One_;
+                    dr.trackedBounces   = 0;
+                    kernelData->ptBatcher->AddUnsortedDeferredRay(dr);
                 }
             }
-
-            Atomic::Add64(&kernelData->pathsPerPixel, pathsPerPixel);
         }
 
         //=========================================================================================================================
@@ -359,7 +380,7 @@ namespace Selas
             KernelData kernelData;
             kernelData.camera = &camera;
             kernelData.kernelCounter = 0;
-            kernelData.pathsPerPixel = 0;
+            kernelData.pixelIndex = 0;
             kernelData.ptBatcher = &ptBatcher;
             kernelData.frame = &frame;
             kernelData.geometryCache = geometryCache;
@@ -383,7 +404,7 @@ namespace Selas
                 }
             #endif
 
-            FrameBuffer_Scale(&frame, (1.0f / kernelData.pathsPerPixel));
+            FrameBuffer_Scale(&frame, (1.0f / SamplesPerPixel_));
             FrameBuffer_Save(&frame, imageName);
             FrameBuffer_Shutdown(&frame);
 
