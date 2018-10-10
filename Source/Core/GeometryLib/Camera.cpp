@@ -14,6 +14,7 @@ namespace Selas
     //=============================================================================================================================
     void Serialize(CSerializer* serializer, CameraSettings& data)
     {
+        Serialize(serializer, data.name);
         Serialize(serializer, data.position);
         Serialize(serializer, data.fov);
         Serialize(serializer, data.lookAt);

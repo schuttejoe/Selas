@@ -20,7 +20,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1539143622ul;
+    const uint64 SceneResource::kDataVersion = 1539147471ul;
 
     struct SubsceneInstanceUserData
     {
@@ -62,7 +62,7 @@ namespace Selas
         Serialize(serializer, data.subsceneInstances);
         Serialize(serializer, data.lights);
         Serialize(serializer, data.lightSetRanges);
-        Serialize(serializer, data.camera);
+        Serialize(serializer, data.cameras);
     }
 
     //=============================================================================================================================
@@ -333,11 +333,11 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void SetupSceneCamera(const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera)
+    void SetupSceneCamera(const SceneResource* scene, uint index, uint width, uint height, RayCastCameraSettings& camera)
     {
         // -- if the scene has a camera set on it use that.
-        if(ValidCamera(scene->data->camera)) {
-            InitializeRayCastCamera(scene->data->camera, width, height, camera);
+        if(ValidCamera(scene->data->cameras[index])) {
+            InitializeRayCastCamera(scene->data->cameras[index], width, height, camera);
             return;
         }
 

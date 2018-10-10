@@ -53,6 +53,12 @@ namespace Selas
         }
 
         //=========================================================================================================================
+        const char* FindLastChar(const char* text, char searchChar)
+        {
+            return strrchr(text, searchChar);
+        }
+
+        //=========================================================================================================================
         int32 FindLastIndexOfAny(cpointer text, cpointer searchCharacters)
         {
             if(text == nullptr || searchCharacters == nullptr) {

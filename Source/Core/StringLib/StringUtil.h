@@ -16,6 +16,7 @@ namespace Selas
 
         char* FindChar(char* text, char searchChar);
         char* FindLastChar(char* text, char searchChar);
+        const char* FindLastChar(const char* text, char searchChar);
 
         cpointer FindSubString(cpointer text, char const* searchString);
         char* FindSubString(char* text, char const* searchString);

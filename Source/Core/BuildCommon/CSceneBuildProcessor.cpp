@@ -95,7 +95,6 @@ namespace Selas
 
         SceneResourceData scene;
         SubsceneResourceData subscene;
-        InvalidCameraSettings(&scene.camera);
 
         scene.backgroundIntensity = float4(sceneDesc.backgroundIntensity, 1.0f);
         scene.iblName = sceneDesc.iblName;

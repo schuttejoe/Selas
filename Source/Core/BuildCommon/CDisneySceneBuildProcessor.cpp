@@ -42,7 +42,7 @@ namespace Selas
     //=============================================================================================================================
     struct SceneFileData
     {
-        FilePathString cameraFile;
+        CArray<FilePathString> cameraFiles;
         FilePathString iblFile;
         CArray<LightSetDesc*> lightsets;
         CArray<ElementDesc> elements;
@@ -422,7 +422,13 @@ namespace Selas
             Json::ReadInt32(elementJson, "lightset", element.lightSetIndex, 0);
         }
 
-        Json::ReadFixedString(document, "camera", output.cameraFile);
+        if(document.HasMember("cameras")) {
+            for(const auto& cameraElement : document["cameras"].GetArray()) {
+                FilePathString& cameraFile = output.cameraFiles.Add();
+                cameraFile.Copy(cameraElement.GetString());
+            }
+        }
+
         Json::ReadFixedString(document, "ibl", output.iblFile);
 
         if(document.HasMember("lightsets")) {
@@ -565,6 +571,11 @@ namespace Selas
         FilePathString fullPath;
         AssetFileUtils::ContentFilePath(path, fullPath);
         ReturnError_(context->AddFileDependency(fullPath.Ascii()));
+        
+        cpointer lastSep = StringUtil::FindLastChar(path, PlatformIndependentPathSep_) + 1;
+
+        settings.name.Copy(lastSep);
+        StringUtil::RemoveExtension(settings.name.Ascii());
 
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(fullPath.Ascii(), document));
@@ -617,7 +628,10 @@ namespace Selas
         rootScene->backgroundIntensity = float4::One_;
         rootScene->iblName.Copy(sceneFile.iblFile.Ascii());
 
-        ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene->camera));
+        for(uint scan = 0, count = sceneFile.cameraFiles.Count(); scan < count; ++scan) {
+            CameraSettings& settings = rootScene->cameras.Add();
+            ReturnError_(ParseCameraFile(context, sceneFile.cameraFiles[scan].Ascii(), settings));
+        }
         ReturnError_(ParseLightSets(context, sceneFile, rootScene));
         
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {

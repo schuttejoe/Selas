@@ -5,6 +5,7 @@
 //=================================================================================================================================
 
 #include "GeometryLib/Ray.h"
+#include "StringLib/FixedString.h"
 #include "MathLib/FloatStructs.h"
 #include "MathLib/IntStructs.h"
 
@@ -15,6 +16,7 @@ namespace Selas
 
     struct CameraSettings
     {
+        FixedString128 name;
         float3 position;
         float  fov;
         float3 lookAt;

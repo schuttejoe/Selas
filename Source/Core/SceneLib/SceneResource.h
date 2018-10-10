@@ -55,8 +55,7 @@ namespace Selas
         CArray<Instance> subsceneInstances;
         CArray<SceneLight> lights;
         CArray<SceneLightSetRange> lightSetRanges;
-        
-        CameraSettings camera;
+        CArray<CameraSettings> cameras;
     };
 
     struct SceneLightSet
@@ -93,8 +92,7 @@ namespace Selas
     Error InitializeSceneResource(SceneResource* scene, TextureCache* cache, GeometryCache* geometryCache, RTCDevice rtcDevice);
     void ShutdownSceneResource(SceneResource* scene, TextureCache* textureCache);
 
-    void SetupSceneCamera
-    (const SceneResource* scene, uint width, uint height, RayCastCameraSettings& camera);
+    void SetupSceneCamera(const SceneResource* scene, uint index, uint width, uint height, RayCastCameraSettings& camera);
 
     void ModelDataFromRayIds(const SceneResource* scene, const int32 instIds[MaxInstanceLevelCount_], int32 geomId,
                             float4x4& localToWorld, ModelGeometryUserData*& modelData);

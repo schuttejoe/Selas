@@ -121,15 +121,18 @@ int main(int argc, char *argv[])
     Selas::uint width = 1024;
     Selas::uint height = 429;
 
-    RayCastCameraSettings camera;
-    SetupSceneCamera(&sceneResource, width, height, camera);
+    for(uint scan = 0, count = sceneResource.data->cameras.Count(); scan < count; ++scan) {
+        RayCastCameraSettings camera;
+        SetupSceneCamera(&sceneResource, scan, width, height, camera);
 
-    timer = SystemTime::Now();
-    //PathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "UnidirectionalPT");
-    DeferredPathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "DeferredPT");
-    //VCM::GenerateImage(&sceneResource, camera, "VCM");
-    elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
-    WriteDebugInfo_("Scene render time %fms", elapsedMs);
+        timer = SystemTime::Now();
+        //PathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera, "UnidirectionalPT");
+        DeferredPathTracer::GenerateImage(&geometryCache, &textureCache, &sceneResource, camera,
+                                          sceneResource.data->cameras[scan].name.Ascii());
+        //VCM::GenerateImage(&sceneResource, camera, "VCM");
+        elapsedMs = SystemTime::ElapsedMillisecondsF(timer);
+        WriteDebugInfo_("Scene render time %fms", elapsedMs);
+    }
 
     ShutdownSceneResource(&sceneResource, &textureCache);
     rtcReleaseDevice(rtcDevice);

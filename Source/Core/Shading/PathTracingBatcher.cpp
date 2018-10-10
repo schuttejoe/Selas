@@ -55,6 +55,22 @@ namespace Selas
     //=================================================================================================================================
     struct DeferredBatch
     {
+        DeferredBatch()
+            : fileHandle(INVALID_HANDLE_VALUE)
+            , mappingHandle(INVALID_HANDLE_VALUE)
+        {
+
+        }
+
+        ~DeferredBatch()
+        {
+            if(fileHandle != INVALID_HANDLE_VALUE) {
+                UnmapViewOfFile(rays);
+                CloseHandle(fileHandle);
+                CloseHandle(mappingHandle);
+            }
+        }
+
         volatile int64 batchHead;
         volatile int64 batchTail;
         int64 batchIndex;
@@ -67,6 +83,22 @@ namespace Selas
     //=================================================================================================================================
     struct OcclusionBatch
     {
+        OcclusionBatch()
+            : fileHandle(INVALID_HANDLE_VALUE)
+            , mappingHandle(INVALID_HANDLE_VALUE)
+        {
+
+        }
+
+        ~OcclusionBatch()
+        {
+            if(fileHandle != INVALID_HANDLE_VALUE) {
+                UnmapViewOfFile(rays);
+                CloseHandle(fileHandle);
+                CloseHandle(mappingHandle);
+            }
+        }
+
         volatile int64 batchHead;
         volatile int64 batchTail;
         int64 batchIndex;
@@ -78,8 +110,25 @@ namespace Selas
 
     struct HitBatch
     {
+        HitBatch()
+            : fileHandle(INVALID_HANDLE_VALUE)
+            , mappingHandle(INVALID_HANDLE_VALUE)
+        {
+
+        }
+
+        ~HitBatch()
+        {
+            if(fileHandle != INVALID_HANDLE_VALUE) {
+                UnmapViewOfFile(hits);
+                CloseHandle(fileHandle);
+                CloseHandle(mappingHandle);
+            }
+        }
+
         volatile int64 batchHead;
         volatile int64 batchTail;
+
         int64 batchIndex;
         HANDLE fileHandle;
         HANDLE mappingHandle;
@@ -249,6 +298,9 @@ namespace Selas
         CloseHandle(batch->fileHandle);
         CloseHandle(batch->mappingHandle);
 
+        batch->fileHandle = INVALID_HANDLE_VALUE;
+        batch->mappingHandle = INVALID_HANDLE_VALUE;
+
         readyDeferredBatches.Add(batch);
     }
 
@@ -317,6 +369,9 @@ namespace Selas
         CloseHandle(batch->fileHandle);
         CloseHandle(batch->mappingHandle);
 
+        batch->fileHandle = INVALID_HANDLE_VALUE;
+        batch->mappingHandle = INVALID_HANDLE_VALUE;
+
         readyOcclusionBatches.Add(batch);
     }
 
@@ -383,6 +438,9 @@ namespace Selas
         UnmapViewOfFile((void*)batch->hits);
         CloseHandle(batch->fileHandle);
         CloseHandle(batch->mappingHandle);
+
+        batch->fileHandle = INVALID_HANDLE_VALUE;
+        batch->mappingHandle = INVALID_HANDLE_VALUE;
 
         readyHitBatches.Add(batch);
     }
