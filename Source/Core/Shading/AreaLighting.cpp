@@ -141,7 +141,7 @@ namespace Selas
         if(areaMeasure > 0) {
             sample.direction = l;
             sample.distance = dist;
-            sample.radiance = light.radiance * areaMeasure;
+            sample.radiance = light.radiance * areaMeasure * Dot(normal, l);
             sample.pdfW = pdf * areaMeasure;
         }
         else {
@@ -353,17 +353,20 @@ namespace Selas
     void NextEventEstimation(GIIntegratorContext* context, uint lightSetIndex, const float3& position, const float3& normal,
                              LightDirectSample& sample)
     {
-        const SceneLightSet& lightSet = context->scene->data->lightsets[lightSetIndex];
-
-        uint lightCount = lightSet.lights.Count();
-        if(lightCount == 0) {
+        sample.radiance = float3::Zero_;
+        if(lightSetIndex > context->scene->lightSets.Count()) {
             return;
         }
 
-        float perLightProb = 1.0f / lightCount;
+        const SceneLightSet& lightSet = context->scene->lightSets[lightSetIndex];
+        if(lightSet.count == 0) {
+            return;
+        }
+
+        float perLightProb = 1.0f / lightSet.count;
 
         float p0 = context->sampler.UniformFloat();
-        uint lightIndex = (uint)(p0 * lightCount);
+        uint lightIndex = (uint)(p0 * lightSet.count);
         SampleRectangleLightSolidAngle(context, position, normal, lightSet.lights[lightIndex], sample);
         sample.pdfW *= perLightProb;
         sample.index = (uint32)lightIndex;
@@ -373,14 +376,16 @@ namespace Selas
     float LightingPdf(GIIntegratorContext* context, uint lightSetIndex, const LightDirectSample& light,
                       const float3& position, const float3& wi)
     {
-        const SceneLightSet& lightSet = context->scene->data->lightsets[lightSetIndex];
-
-        uint lightCount = lightSet.lights.Count();
-        if(lightCount == 0) {
+        if(lightSetIndex > context->scene->lightSets.Count()) {
             return 0.0f;
         }
 
-        float perLightProb = 1.0f / lightCount;
+        const SceneLightSet& lightSet = context->scene->lightSets[lightSetIndex];
+        if(lightSet.count == 0) {
+            return 0.0f;
+        }
+
+        float perLightProb = 1.0f / lightSet.count;
         return QuadLightSolidAnglePdf(lightSet.lights[light.index], position, wi) * perLightProb;
     }
 

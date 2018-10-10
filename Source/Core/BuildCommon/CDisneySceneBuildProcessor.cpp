@@ -293,7 +293,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ParseLightsFile(BuildProcessorContext* context, cpointer lightfile, SceneLightSet* lightset)
+    static Error ParseLightsFile(BuildProcessorContext* context, cpointer lightfile, CArray<SceneLight>& lights)
     {
         if(StringUtil::Length(lightfile) == 0) {
             return Success_;
@@ -307,7 +307,7 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
         uint lightCount = document.MemberCount();
-        lightset->lights.Reserve(lightset->lights.Count() + lightCount);
+        lights.Reserve(lights.Count() + lightCount);
 
         for(const auto& lightElementKV : document.GetObject()) {
             
@@ -332,7 +332,7 @@ namespace Selas
                 continue;
             }
 
-            SceneLight& light = lightset->lights.Add();
+            SceneLight& light = lights.Add();
 
             float4x4 matrix;
             Json::ReadMatrix4x4(lightElementKV.value, "translationMatrix", matrix);
@@ -352,15 +352,18 @@ namespace Selas
     //=============================================================================================================================
     static Error ParseLightSets(BuildProcessorContext* context, const SceneFileData& sceneFile, SceneResourceData* scene)
     {
-        scene->lightsets.Resize((sceneFile.lightsets.Count()));
+        scene->lightSetRanges.Resize((sceneFile.lightsets.Count()));
 
         for(uint setScan = 0, setCount = sceneFile.lightsets.Count(); setScan < setCount; ++setScan) {
-            scene->lightsets[setScan] = SceneLightSet();
 
+            scene->lightSetRanges[setScan].start = (uint32)scene->lights.Count();
+            
             for(uint fileScan = 0, fileCount = sceneFile.lightsets[setScan]->lightFiles.Count(); fileScan < fileCount; ++fileScan) {
                 cpointer filename = sceneFile.lightsets[setScan]->lightFiles[fileScan].Ascii();
-                ReturnError_(ParseLightsFile(context, filename, &scene->lightsets[setScan]));
-            }            
+                ReturnError_(ParseLightsFile(context, filename, scene->lights));
+            }
+
+            scene->lightSetRanges[setScan].count = (uint32)(scene->lights.Count() - scene->lightSetRanges[setScan].start);
         }
 
         return Success_;

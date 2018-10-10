@@ -39,9 +39,10 @@ namespace Selas
         float3 radiance;
     };
 
-    struct SceneLightSet
+    struct SceneLightSetRange
     {
-        CArray<SceneLight> lights;
+        uint32 start;
+        uint32 count;
     };
 
     //=============================================================================================================================
@@ -52,9 +53,16 @@ namespace Selas
         float4 backgroundIntensity;
         CArray<FilePathString> subsceneNames;
         CArray<Instance> subsceneInstances;
-        CArray<SceneLightSet> lightsets;
+        CArray<SceneLight> lights;
+        CArray<SceneLightSetRange> lightSetRanges;
         
         CameraSettings camera;
+    };
+
+    struct SceneLightSet
+    {
+        uint count;
+        SceneLight* lights;
     };
 
     //=============================================================================================================================
@@ -70,6 +78,7 @@ namespace Selas
         AxisAlignedBox aaBox;
         float4 boundingSphere;
 
+        CArray<SceneLightSet> lightSets;
         SubsceneInstanceUserData* subsceneInstanceUserDatas;
         SubsceneResource** subscenes;
         ImageBasedLightResource* iblResource;

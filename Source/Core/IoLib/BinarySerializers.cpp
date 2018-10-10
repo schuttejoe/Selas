@@ -65,7 +65,8 @@ namespace Selas
 
             Memory::Copy(memory + ptrOffset, data, size_);
             ptrOffset += size_;
-                
+            
+            // JSTODO - Uhhh... this is aligning the tail of the data o_O
             uint64 alignedSize = alignment == 0 ? 0 : ((size_ + alignment - 1) & ~(alignment - 1)) - size_;
             if(alignedSize > 0) {
                 Assert_(ptrOffset + alignedSize <= memorySize);

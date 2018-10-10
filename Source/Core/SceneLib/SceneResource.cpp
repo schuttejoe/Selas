@@ -20,7 +20,7 @@
 namespace Selas
 {
     cpointer SceneResource::kDataType = "SceneResource";
-    const uint64 SceneResource::kDataVersion = 1539129508ul;
+    const uint64 SceneResource::kDataVersion = 1539143622ul;
 
     struct SubsceneInstanceUserData
     {
@@ -46,9 +46,10 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static void Serialzie(CSerializer* serializer, SceneLightSet& lightset)
+    static void Serialzie(CSerializer* serializer, SceneLightSetRange& lightSetRange)
     {
-        Serialize(serializer, lightset.lights);
+        Serialize(serializer, lightSetRange.start);
+        Serialize(serializer, lightSetRange.count);
     }
 
     //=============================================================================================================================
@@ -59,7 +60,8 @@ namespace Selas
         Serialize(serializer, data.backgroundIntensity);
         Serialize(serializer, data.subsceneNames);
         Serialize(serializer, data.subsceneInstances);
-        Serialize(serializer, data.lightsets);
+        Serialize(serializer, data.lights);
+        Serialize(serializer, data.lightSetRanges);
         Serialize(serializer, data.camera);
     }
 
@@ -201,6 +203,18 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    static void CreateSceneLightSets(SceneResource* scene)
+    {
+        scene->lightSets.Resize(scene->data->lightSetRanges.Count());
+        for(uint scan = 0, count = scene->data->lightSetRanges.Count(); scan < count; ++scan) {
+            const SceneLightSetRange& range = scene->data->lightSetRanges[scan];
+
+            scene->lightSets[scan].lights = scene->data->lights.DataPointer() + range.start;
+            scene->lightSets[scan].count = range.count;
+        }
+    }
+
+    //=============================================================================================================================
     static void SetupSceneInstances(SceneResource* scene, RTCDevice rtcDevice, GeometryCache* geometryCache)
     {
         if(scene->data->subsceneInstances.Count() > 0) {
@@ -291,6 +305,7 @@ namespace Selas
         }
 
         CalculateSceneBoundingBox(scene);
+        CreateSceneLightSets(scene);
 
         scene->rtcScene = rtcNewScene(rtcDevice);
         SetupSceneInstances(scene, rtcDevice, geometryCache);
