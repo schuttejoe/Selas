@@ -5,6 +5,7 @@
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
 #include "IoLib/Serializer.h"
+#include "MathLib/CorrelatedMultiJitter.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/Sampler.h"
 
@@ -80,6 +81,21 @@ namespace Selas
         Ray result;
         result.origin      = p;
         result.direction   = d;
+
+        return result;
+    }
+
+    //=============================================================================================================================
+    Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, int32 x, int32 y, int32 s, int32 m, int32 n, int32 p)
+    {
+        float2 v = float2((float)x, (float)y) + CorrelatedMultiJitter(s, m, n, p);
+
+        float3 imagePlanePos = ImageToWorld(camera, v.x, v.y);
+        float3 d = Normalize(imagePlanePos - camera->position);
+
+        Ray result;
+        result.origin = imagePlanePos;
+        result.direction = d;
 
         return result;
     }

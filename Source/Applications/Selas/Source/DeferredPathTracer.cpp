@@ -35,7 +35,8 @@
 
 #define MaxBounceCount_         2048
 #define WorkerThreadCount_         7
-#define SamplesPerPixel_          16
+#define SamplesPerPixelX_          4
+#define SamplesPerPixelY_          4
 #define OutputLayers_              1
 
 namespace Selas
@@ -303,9 +304,13 @@ namespace Selas
                 uint y = index / width;
                 uint x = index - (y * width);
 
-                for(uint count = 0; count < SamplesPerPixel_; ++count) {
+                uint sampleCount = SamplesPerPixelX_ * SamplesPerPixelY_;
+
+                for(uint scan = 0; scan < sampleCount; ++scan) {
+
                     DeferredRay dr;
-                    dr.ray              = JitteredCameraRay(kernelData->camera, sampler, (float)x, (float)y);
+                    dr.ray              = JitteredCameraRay(kernelData->camera, (int32)x, (int32)y, (int32)scan,
+                                                            SamplesPerPixelX_, SamplesPerPixelY_, (int32)index);
                     dr.error            = 0.0f;
                     dr.index            = (uint32)(y * width + x);
                     dr.diracScatterOnly = 1;
@@ -403,7 +408,7 @@ namespace Selas
                 }
             #endif
 
-            FrameBuffer_Scale(&frame, (1.0f / SamplesPerPixel_));
+            FrameBuffer_Scale(&frame, (1.0f / (SamplesPerPixelX_ * SamplesPerPixelY_)));
             FrameBuffer_Save(&frame, imageName);
             FrameBuffer_Shutdown(&frame);
 
