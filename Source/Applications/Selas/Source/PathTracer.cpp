@@ -176,7 +176,7 @@ namespace Selas
 
                     // -- choose a light and sample the light source
                     LightDirectSample lightSample;
-                    NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
+                    NextEventEstimation(context, surface.lightSetIndex, hit.position, GeometricNormal(surface), lightSample);
 
                     if(Dot(lightSample.radiance, float3::One_) > 0) {
                         float forwardPdfW;
@@ -211,7 +211,8 @@ namespace Selas
                                 currentMedium = vacuum;
                         }
 
-                        float lightPdfW = LightingPdf(context, lightSample, surface.position, bsdfSample.wi);
+                        float lightPdfW = LightingPdf(context, surface.lightSetIndex, lightSample, surface.position,
+                                                      bsdfSample.wi);
                         float weight = 1.0f;// ImportanceSampling::BalanceHeuristic(1, bsdfSample.forwardPdfW, 1, lightPdfW);
 
                         throughput = weight * throughput * bsdfSample.reflectance;

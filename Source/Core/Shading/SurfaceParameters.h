@@ -44,6 +44,8 @@ namespace Selas
         // -- material layer info
         ShaderType shader;
         uint32 materialFlags;
+
+        uint32 lightSetIndex;
     };
 
     bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* hit, SurfaceParameters& surface);

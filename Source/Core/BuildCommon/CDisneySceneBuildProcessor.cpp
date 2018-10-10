@@ -28,13 +28,24 @@ namespace Selas
 {
     #define CurveModelNameSuffix_ "_generatedcurves"
 
+    struct ElementDesc
+    {
+        FilePathString file;
+        int32 lightSetIndex;
+    };
+
+    struct LightSetDesc
+    {
+        CArray<FilePathString> lightFiles;
+    };
+
     //=============================================================================================================================
     struct SceneFileData
     {
         FilePathString cameraFile;
         FilePathString iblFile;
-        FilePathString lightsFile;
-        CArray<FilePathString> elements;
+        CArray<LightSetDesc*> lightsets;
+        CArray<ElementDesc> elements;
     };
 
     //=============================================================================================================================
@@ -84,6 +95,12 @@ namespace Selas
         rapidjson::Document document;
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
+        uint modelCount = 0;
+        for(const auto& objFileKV : document.GetObject()) {
+            modelCount += objFileKV.value.GetObject().MemberCount();
+        }
+        subscene->modelInstances.Reserve(subscene->modelInstances.Count() + modelCount);
+
         for(const auto& objFileKV : document.GetObject()) {
             cpointer objFile = objFileKV.name.GetString();
 
@@ -94,7 +111,6 @@ namespace Selas
             uint meshIndex = subscene->modelNames.Add(instanceObjFile);
 
             const auto& element = objFileKV.value;
-            subscene->modelInstances.Reserve(subscene->modelInstances.Count() + element.GetObject().MemberCount());
             for(const auto& instanceKV : element.GetObject()) {
                 cpointer instanceName = instanceKV.name.GetString();
 
@@ -277,7 +293,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ParseLightsFile(BuildProcessorContext* context, cpointer lightfile, SceneResourceData* scene)
+    static Error ParseLightsFile(BuildProcessorContext* context, cpointer lightfile, SceneLightSet* lightset)
     {
         if(StringUtil::Length(lightfile) == 0) {
             return Success_;
@@ -291,7 +307,7 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(filepath.Ascii(), document));
 
         uint lightCount = document.MemberCount();
-        scene->lights.Reserve(lightCount);
+        lightset->lights.Reserve(lightset->lights.Count() + lightCount);
 
         for(const auto& lightElementKV : document.GetObject()) {
             
@@ -316,7 +332,7 @@ namespace Selas
                 continue;
             }
 
-            SceneLight& light = scene->lights.Add();
+            SceneLight& light = lightset->lights.Add();
 
             float4x4 matrix;
             Json::ReadMatrix4x4(lightElementKV.value, "translationMatrix", matrix);
@@ -328,6 +344,23 @@ namespace Selas
 
             light.radiance = radiance;
             light.type = QuadLight;
+        }
+
+        return Success_;
+    }
+
+    //=============================================================================================================================
+    static Error ParseLightSets(BuildProcessorContext* context, const SceneFileData& sceneFile, SceneResourceData* scene)
+    {
+        scene->lightsets.Resize((sceneFile.lightsets.Count()));
+
+        for(uint setScan = 0, setCount = sceneFile.lightsets.Count(); setScan < setCount; ++setScan) {
+            scene->lightsets[setScan] = SceneLightSet();
+
+            for(uint fileScan = 0, fileCount = sceneFile.lightsets[setScan]->lightFiles.Count(); fileScan < fileCount; ++fileScan) {
+                cpointer filename = sceneFile.lightsets[setScan]->lightFiles[fileScan].Ascii();
+                ReturnError_(ParseLightsFile(context, filename, &scene->lightsets[setScan]));
+            }            
         }
 
         return Success_;
@@ -379,25 +412,39 @@ namespace Selas
             return Error_("'elements' member not found in Disney scene '%s'", filepath.Ascii());
         }
 
-        for(const auto& element : document["elements"].GetArray()) {
-            FilePathString& str = output.elements.Add();
-            str.Copy(element.GetString());
+        for(const auto& elementJson : document["elements"].GetArray()) {
+            ElementDesc& element = output.elements.Add();
+
+            Json::ReadFixedString(elementJson, "element", element.file);
+            Json::ReadInt32(elementJson, "lightset", element.lightSetIndex, 0);
         }
 
         Json::ReadFixedString(document, "camera", output.cameraFile);
         Json::ReadFixedString(document, "ibl", output.iblFile);
-        Json::ReadFixedString(document, "lights", output.lightsFile);
+
+        if(document.HasMember("lightsets")) {
+            for(const auto& lightsetElement : document["lightsets"].GetArray()) {
+
+                LightSetDesc* desc = New_(LightSetDesc);
+                for(const auto& lightfiles : lightsetElement.GetArray()) {
+                    FilePathString& lightFile = desc->lightFiles.Add();
+                    lightFile.Copy(lightfiles.GetString());
+                }
+                output.lightsets.Add(desc);
+            }
+        }
 
         return Success_;
     }
 
     //=============================================================================================================================
     static Error AllocateSubscene(BuildProcessorContext* context, CArray<SubsceneResourceData*>& scenes,
-                                  cpointer name, const FilePathString& materialFile, const FixedString256& root,
-                                  SubsceneResourceData*& scene)
+                                  cpointer name, int32 lightSetIndex, const FilePathString& materialFile,
+                                  const FixedString256& root, SubsceneResourceData*& scene)
     {
         scene = New_(SubsceneResourceData);
         scene->name.Copy(name);
+        scene->lightSetIndex = lightSetIndex;
 
         ReturnError_(ImportDisneyMaterials(context, materialFile.Ascii(), root.Ascii(), scene));
 
@@ -407,7 +454,7 @@ namespace Selas
 
     //=============================================================================================================================
     static Error ParseElementFile(BuildProcessorContext* context, const FixedString256& root, const FilePathString& path,
-                                  SceneResourceData* rootScene, CArray<SubsceneResourceData*>& scenes)
+                                  int32 lightSetIndex, SceneResourceData* rootScene, CArray<SubsceneResourceData*>& scenes)
     {
         FilePathString elementFilePath;
         AssetFileUtils::ContentFilePath(path.Ascii(), elementFilePath);
@@ -424,7 +471,8 @@ namespace Selas
         FixedStringSprintf(geomSceneName, "%s_geometry", path.Ascii());
 
         SubsceneResourceData* elementGeometryScene;
-        ReturnError_(AllocateSubscene(context, scenes, geomSceneName.Ascii(), materialFile, root, elementGeometryScene));
+        ReturnError_(AllocateSubscene(context, scenes, geomSceneName.Ascii(), lightSetIndex, materialFile, root,
+                                      elementGeometryScene));
         uint geometrySceneIndex = rootScene->subsceneNames.Add(geomSceneName);
         
         Instance geometrySceneInstance;
@@ -441,7 +489,7 @@ namespace Selas
         uint primitivesSceneIndex = InvalidIndex64;
         if(document.HasMember("instancedPrimitiveJsonFiles")) {
             SubsceneResourceData* primitivesScene;
-            ReturnError_(AllocateSubscene(context, scenes, path.Ascii(), materialFile, root, primitivesScene));
+            ReturnError_(AllocateSubscene(context, scenes, path.Ascii(), lightSetIndex, materialFile, root, primitivesScene));
             primitivesSceneIndex = rootScene->subsceneNames.Add(primitivesScene->name);
 
             // -- read the instanced primitives section.
@@ -489,7 +537,8 @@ namespace Selas
                    && instancedCopyKV.value["instancedPrimitiveJsonFiles"].MemberCount() > 0) {
 
                     SubsceneResourceData* altScene;
-                    ReturnError_(AllocateSubscene(context, scenes, instancedCopyKV.name.GetString(), materialFile, root, altScene));
+                    ReturnError_(AllocateSubscene(context, scenes, instancedCopyKV.name.GetString(), lightSetIndex, materialFile,
+                                                  root, altScene));
                     sceneIndex = rootScene->subsceneNames.Add(altScene->name);
 
                     // -- read the instanced primitives section.
@@ -566,11 +615,13 @@ namespace Selas
         rootScene->iblName.Copy(sceneFile.iblFile.Ascii());
 
         ReturnError_(ParseCameraFile(context, sceneFile.cameraFile.Ascii(), rootScene->camera));
-        ReturnError_(ParseLightsFile(context, sceneFile.lightsFile.Ascii(), rootScene));
+        ReturnError_(ParseLightSets(context, sceneFile, rootScene));
         
         for(uint scan = 0, count = sceneFile.elements.Count(); scan < count; ++scan) {
-            const FilePathString& elementName = sceneFile.elements[scan];
-            ReturnError_(ParseElementFile(context, contentRoot, elementName, rootScene, allScenes));
+            const FilePathString& elementName = sceneFile.elements[scan].file;
+            int32 lightSetIndex = sceneFile.elements[scan].lightSetIndex;
+
+            ReturnError_(ParseElementFile(context, contentRoot, elementName, lightSetIndex, rootScene, allScenes));
         }
 
         for(uint scan = 0, count = allScenes.Count(); scan < count; ++scan) {
@@ -595,6 +646,10 @@ namespace Selas
         ReturnError_(context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion,
                                            rootScene->name.Ascii(), *rootScene));
         Delete_(rootScene);
+
+        for(uint scan = 0, count = sceneFile.lightsets.Count(); scan < count; ++scan) {
+            Delete_(sceneFile.lightsets[scan]);
+        }
 
         return Success_;
     }

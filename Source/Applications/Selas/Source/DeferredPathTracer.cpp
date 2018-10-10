@@ -35,7 +35,7 @@
 
 #define MaxBounceCount_         2048
 #define WorkerThreadCount_         7
-#define SamplesPerPixel_         256
+#define SamplesPerPixel_          16
 #define OutputLayers_              1
 
 namespace Selas
@@ -58,7 +58,6 @@ namespace Selas
         static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
                                      const HitParameters& hit)
         {
-            // SHADING
             SurfaceParameters surface;
             if(CalculateSurfaceParams(context, &hit, surface) == false) {
                 return;
@@ -66,7 +65,7 @@ namespace Selas
 
             // -- choose a light and sample the light source
             LightDirectSample lightSample;
-            NextEventEstimation(context, hit.position, GeometricNormal(surface), lightSample);
+            NextEventEstimation(context, surface.lightSetIndex, hit.position, GeometricNormal(surface), lightSample);
             if(Dot(lightSample.radiance, float3::One_) > 0) {
                 float forwardPdfW;
                 float reversePdfW;

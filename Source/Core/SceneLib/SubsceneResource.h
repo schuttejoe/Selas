@@ -40,9 +40,9 @@ namespace Selas
     struct SubsceneResourceData
     {
         FilePathString name;
+        uint64 lightSetIndex;
         CArray<FilePathString> modelNames;
         CArray<Instance> modelInstances;
-
         CArray<Hash32> sceneMaterialNames;
         CArray<MaterialResourceData> sceneMaterials;
     };

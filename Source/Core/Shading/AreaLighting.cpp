@@ -350,9 +350,12 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal, LightDirectSample& sample)
+    void NextEventEstimation(GIIntegratorContext* context, uint lightSetIndex, const float3& position, const float3& normal,
+                             LightDirectSample& sample)
     {
-        uint lightCount = context->scene->data->lights.Count();
+        const SceneLightSet& lightSet = context->scene->data->lightsets[lightSetIndex];
+
+        uint lightCount = lightSet.lights.Count();
         if(lightCount == 0) {
             return;
         }
@@ -361,21 +364,24 @@ namespace Selas
 
         float p0 = context->sampler.UniformFloat();
         uint lightIndex = (uint)(p0 * lightCount);
-        SampleRectangleLightSolidAngle(context, position, normal, context->scene->data->lights[lightIndex], sample);
+        SampleRectangleLightSolidAngle(context, position, normal, lightSet.lights[lightIndex], sample);
         sample.pdfW *= perLightProb;
         sample.index = (uint32)lightIndex;
     }
 
     //=============================================================================================================================
-    float LightingPdf(GIIntegratorContext* context, const LightDirectSample& light, const float3& position, const float3& wi)
+    float LightingPdf(GIIntegratorContext* context, uint lightSetIndex, const LightDirectSample& light,
+                      const float3& position, const float3& wi)
     {
-        uint lightCount = context->scene->data->lights.Count();
+        const SceneLightSet& lightSet = context->scene->data->lightsets[lightSetIndex];
+
+        uint lightCount = lightSet.lights.Count();
         if(lightCount == 0) {
             return 0.0f;
         }
 
         float perLightProb = 1.0f / lightCount;
-        return QuadLightSolidAnglePdf(context->scene->data->lights[light.index], position, wi) * perLightProb;
+        return QuadLightSolidAnglePdf(lightSet.lights[light.index], position, wi) * perLightProb;
     }
 
     //=============================================================================================================================

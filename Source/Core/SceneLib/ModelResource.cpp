@@ -332,7 +332,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error InitializeGeometryUserDatas(ModelResource* model, const CArray<Hash32>& sceneMaterialNames,
+    static Error InitializeGeometryUserDatas(ModelResource* model, uint lightSetIndex, const CArray<Hash32>& sceneMaterialNames,
                                              const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
     {
         ModelResourceData* modelData = model->data;
@@ -351,6 +351,7 @@ namespace Selas
                            | (modelData->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
 
             userData.material = material;
+            userData.lightSetIndex = (uint32)lightSetIndex;
             if(material->flags & eUsesPtex) {
                 FilePathString contentid;
                 FixedStringSprintf(contentid, "%s\\%s.ptx", material->baseColorTexture.Ascii(), meshData.name.Ascii());
@@ -379,6 +380,7 @@ namespace Selas
                                                                     model->data->curveModelName);
 
             userData.material = material;
+            userData.lightSetIndex = (uint32)lightSetIndex;
             userData.baseColorTextureHandle = TextureHandle();
         }
 
@@ -484,15 +486,16 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeModelResource(ModelResource* model, cpointer assetname, const CArray<Hash32>& sceneMaterialNames,
-                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
+    Error InitializeModelResource(ModelResource* model, cpointer assetname, uint64 lightSetIndex,
+                                  const CArray<Hash32>& sceneMaterialNames, const CArray<MaterialResourceData> sceneMaterials,
+                                  TextureCache* cache)
     {
         model->defaultMaterial = CreateDefaultMaterial();
         model->name.Copy(assetname);
         model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
         model->geometrySize = ModelGeometrySize(model);
 
-        ReturnError_(InitializeGeometryUserDatas(model, sceneMaterialNames, sceneMaterials, cache));
+        ReturnError_(InitializeGeometryUserDatas(model, lightSetIndex, sceneMaterialNames, sceneMaterials, cache));
         return Success_;
     }
 

@@ -57,9 +57,10 @@ namespace Selas
     void DirectIblLightSample(GIIntegratorContext* context, LightDirectSample& sample);
     float3 IblCalculateRadiance(GIIntegratorContext* context, float3 direction, float& directPdfA, float& emissionPdfW);
 
-    void NextEventEstimation(GIIntegratorContext* context, const float3& position, const float3& normal,
+    void NextEventEstimation(GIIntegratorContext* context, uint lightSetIndex, const float3& position, const float3& normal,
                              LightDirectSample& sample);
-    float LightingPdf(GIIntegratorContext* context, const LightDirectSample& light, const float3& position, const float3& wi);
+    float LightingPdf(GIIntegratorContext* context, uint lightSetIndex, const LightDirectSample& light,
+                      const float3& position, const float3& wi);
 
     void SampleBackground(GIIntegratorContext* context, LightDirectSample& sample);
     float BackgroundLightingPdf(GIIntegratorContext* context, float3 wi);

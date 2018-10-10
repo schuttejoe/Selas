@@ -230,6 +230,7 @@ namespace Selas
         surface.metallic           = Saturate(materialResource->scalarAttributeValues[eMetallic]);
         surface.scatterDistance    = materialResource->scalarAttributeValues[eScatterDistance];
         surface.ior                = materialResource->scalarAttributeValues[eIor];
+        surface.lightSetIndex      = modelData->lightSetIndex;
 
         surface.shader = materialResource->shader;
         surface.view = hit->view;

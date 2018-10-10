@@ -16,7 +16,7 @@
 namespace Selas
 {
     cpointer SubsceneResource::kDataType = "SubsceneResource";
-    const uint64 SubsceneResource::kDataVersion = 1538556969ul;
+    const uint64 SubsceneResource::kDataVersion = 1539129606ul;
 
     //=============================================================================================================================
     static uint64 EstimateSubsceneSize(SubsceneResource* subscene)
@@ -38,6 +38,7 @@ namespace Selas
     void Serialize(CSerializer* serializer, SubsceneResourceData& data)
     {
         Serialize(serializer, data.name);
+        Serialize(serializer, data.lightSetIndex);
         Serialize(serializer, data.modelNames);
         Serialize(serializer, data.modelInstances);
         Serialize(serializer, data.sceneMaterialNames);
@@ -123,6 +124,7 @@ namespace Selas
                 ReturnError_(ReadModelResource(subscene->data->modelNames[scan].Ascii(), subscene->models[scan]));
 
                 InitializeModelResource(subscene->models[scan], subscene->data->modelNames[scan].Ascii(),
+                                        subscene->data->lightSetIndex,
                                         subscene->data->sceneMaterialNames, subscene->data->sceneMaterials, cache);
             }
         }

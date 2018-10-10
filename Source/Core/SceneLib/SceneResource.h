@@ -39,6 +39,11 @@ namespace Selas
         float3 radiance;
     };
 
+    struct SceneLightSet
+    {
+        CArray<SceneLight> lights;
+    };
+
     //=============================================================================================================================
     struct SceneResourceData
     {
@@ -47,7 +52,7 @@ namespace Selas
         float4 backgroundIntensity;
         CArray<FilePathString> subsceneNames;
         CArray<Instance> subsceneInstances;
-        CArray<SceneLight> lights;
+        CArray<SceneLightSet> lightsets;
         
         CameraSettings camera;
     };

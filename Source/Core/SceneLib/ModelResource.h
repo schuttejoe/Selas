@@ -99,6 +99,7 @@ namespace Selas
         TextureHandle baseColorTextureHandle;
         RTCGeometry rtcGeometry;
         uint32 flags;
+        uint32 lightSetIndex;
     };
 
     struct CurveMetaData
@@ -196,7 +197,8 @@ namespace Selas
     Error LoadModelGeometry(ModelResource* model, RTCDevice rtcDevice);
     void UnloadModelGeometry(ModelResource* model);
 
-    Error InitializeModelResource(ModelResource* model, cpointer assetname, const CArray<Hash32>& sceneMaterialNames,
-                                  const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache);
+    Error InitializeModelResource(ModelResource* model, cpointer assetname, uint64 lightSetIndex,
+                                  const CArray<Hash32>& sceneMaterialNames, const CArray<MaterialResourceData> sceneMaterials,
+                                  TextureCache* cache);
     void ShutdownModelResource(ModelResource* model, TextureCache* cache);
 }
