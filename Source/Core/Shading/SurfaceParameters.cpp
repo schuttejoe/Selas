@@ -222,7 +222,7 @@ namespace Selas
         surface.clearcoat          = materialResource->scalarAttributeValues[eClearcoat];
         surface.clearcoatGloss     = materialResource->scalarAttributeValues[eClearcoatGloss];
         surface.specTrans          = Saturate(materialResource->scalarAttributeValues[eSpecTrans]);
-        surface.diffTrans          = Saturate(materialResource->scalarAttributeValues[eDiffuseTrans]);
+        surface.diffTrans          = materialResource->scalarAttributeValues[eDiffuseTrans] * 0.5f;
         surface.flatness           = materialResource->scalarAttributeValues[eFlatness];
         surface.anisotropic        = materialResource->scalarAttributeValues[eAnisotropic];
         surface.specularTint       = materialResource->scalarAttributeValues[eSpecularTint];

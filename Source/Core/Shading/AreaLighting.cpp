@@ -354,7 +354,7 @@ namespace Selas
                              LightDirectSample& sample)
     {
         sample.radiance = float3::Zero_;
-        if(lightSetIndex > context->scene->lightSets.Count()) {
+        if(lightSetIndex >= context->scene->lightSets.Count()) {
             return;
         }
 
@@ -376,7 +376,7 @@ namespace Selas
     float LightingPdf(GIIntegratorContext* context, uint lightSetIndex, const LightDirectSample& light,
                       const float3& position, const float3& wi)
     {
-        if(lightSetIndex > context->scene->lightSets.Count()) {
+        if(lightSetIndex >= context->scene->lightSets.Count()) {
             return 0.0f;
         }
 

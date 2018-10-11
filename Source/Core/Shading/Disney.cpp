@@ -66,9 +66,7 @@ namespace Selas
         // -- The color tint is never mentioned in the SIGGRAPH presentations as far as I recall but it was done in the BRDF
         // -- Explorer so I'll replicate that here.
         float luminance = Dot(float3(0.3f, 0.6f, 1.0f), baseColor);
-        float3 tint = (luminance > 0.0f) ? baseColor * (1.0f / luminance) : float3::One_;
-
-        return tint;
+        return (luminance > 0.0f) ? baseColor * (1.0f / luminance) : float3::One_;
     }
 
     //=============================================================================================================================
@@ -349,7 +347,6 @@ namespace Selas
                                              BsdfSample& sample)
     {
         float3 wo = MatrixMultiply(v, surface.worldToTangent);
-
         if(CosTheta(wo) == 0.0) {
             sample.forwardPdfW = 0.0f;
             sample.reversePdfW = 0.0f;
@@ -371,7 +368,7 @@ namespace Selas
 
         float dotVH = Dot(wo, wm);
         if(wm.y < 0.0f) {
-            dotVH = -1.0f;
+            dotVH = -dotVH;
         }
 
         float ni = wo.y > 0.0f ? 1.0f : surface.ior;
@@ -575,8 +572,8 @@ namespace Selas
 
             reflectance += diffuseWeight * (diffuse * surface.baseColor + sheen);
 
-            forwardPdf += pDiffuse * forwardDiffusePdfW * (1.0f - surface.diffTrans);
-            reversePdf += pDiffuse * reverseDiffusePdfW * (1.0f - surface.diffTrans);
+            forwardPdf += pDiffuse * forwardDiffusePdfW;
+            reversePdf += pDiffuse * reverseDiffusePdfW;
         }
 
         // -- transmission
@@ -596,7 +593,6 @@ namespace Selas
 
             float dotLH = Dot(wm, wi);
             float dotVH = Dot(wm, wo);
-
             forwardPdf += pSpecTrans * forwardTransmissivePdfW / (Square(dotLH + surface.relativeIOR * dotVH));
             reversePdf += pSpecTrans * reverseTransmissivePdfW / (Square(dotVH + surface.relativeIOR * dotLH));
         }
