@@ -40,7 +40,7 @@ typedef const char*        cpointer;
 
 #define Kb_ * 1024
 #define Mb_ * 1024 * 1024
-#define Gb_ * 1024 * 1024 * 1024
+#define Gb_ * 1024 * 1024 * 1024ull
 
 namespace Selas
 {

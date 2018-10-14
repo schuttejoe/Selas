@@ -18,7 +18,7 @@ namespace Selas
     private:
 
         void* spinlock;
-        uint64 loadedGeometrySize;
+        volatile uint64 loadedGeometrySize;
         uint64 loadedGeometryCapacity;
         std::chrono::high_resolution_clock::time_point startTime;
 

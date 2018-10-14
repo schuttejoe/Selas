@@ -5,6 +5,7 @@
 #include "GeometryLib/Camera.h"
 #include "GeometryLib/Ray.h"
 #include "IoLib/Serializer.h"
+#include "ContainersLib/Rect.h"
 #include "MathLib/CorrelatedMultiJitter.h"
 #include "MathLib/FloatFuncs.h"
 #include "MathLib/Sampler.h"
@@ -16,7 +17,7 @@ namespace Selas
     {
         Serialize(serializer, data.name);
         Serialize(serializer, data.position);
-        Serialize(serializer, data.fov);
+        Serialize(serializer, data.fovDegrees);
         Serialize(serializer, data.lookAt);
         Serialize(serializer, data.znear);
         Serialize(serializer, data.up);
@@ -26,47 +27,36 @@ namespace Selas
     //=============================================================================================================================
     void InvalidCameraSettings(CameraSettings* settings)
     {
-        settings->position = float3(0.0f, 0.0f, 0.0f);
-        settings->lookAt   = float3(0.0f, 0.0f, 0.0f);
-        settings->up       = float3(0.0f, 0.0f, 0.0f);
-        settings->fov      = 0.0f * Math::DegreesToRadians_;
-        settings->znear    = 0.0f;
-        settings->zfar     = 0.0f;
+        settings->position   = float3(0.0f, 0.0f, 0.0f);
+        settings->lookAt     = float3(0.0f, 0.0f, 0.0f);
+        settings->up         = float3(0.0f, 0.0f, 0.0f);
+        settings->fovDegrees = 0.0f;
+        settings->znear      = 0.0f;
+        settings->zfar       = 0.0f;
     }
 
     //=============================================================================================================================
     void DefaultCameraSettings(CameraSettings* settings)
     {
-        settings->position = float3(0.0f, 0.0f, 5.0f);
-        settings->lookAt   = float3(0.0f, 0.0f, 0.0f);
-        settings->up       = float3(0.0f, 1.0f, 0.0f);
-        settings->fov      = 35.0f * Math::DegreesToRadians_;
-        settings->znear    = 0.0001f;
-        settings->zfar     = 10000.0f;
+        settings->position   = float3(0.0f, 0.0f, 5.0f);
+        settings->lookAt     = float3(0.0f, 0.0f, 0.0f);
+        settings->up         = float3(0.0f, 1.0f, 0.0f);
+        settings->fovDegrees = 35.0f;
+        settings->znear      = 0.01f;
+        settings->zfar       = 10000.0f;
     }
 
     //=============================================================================================================================
     bool ValidCamera(const CameraSettings& settings)
     {
-        return settings.fov > 0 && settings.zfar > settings.znear;
+        return settings.fovDegrees > 0 && settings.zfar > settings.znear;
     }
 
     //=============================================================================================================================
-    int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world)
+    static float3 ImageToWorldDirection(const RayCastCameraSettings* __restrict camera, float x, float y)
     {
-        float4 clip = MatrixMultiplyFloat4(float4(world, 1.0f), camera->worldToClip);
-
-        int2 image;
-        image.x = (int32)Math::Floor(( clip.x / clip.w * 0.5f + 0.5f) * camera->viewportWidth  + 0.5f);
-        image.y = (int32)Math::Floor((-clip.y / clip.w * 0.5f + 0.5f) * camera->viewportHeight + 0.5f);
-        return image;
-    }
-
-    //=============================================================================================================================
-    float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y)
-    {
-        float4 un = MatrixMultiplyFloat4(float4(x, y, 0.0f, 1.0f), camera->imageToWorld);
-        return (1.0f / un.w) * float3(un.x, un.y, un.z);
+        float2 clip = float2(((x / camera->width) * 2.0f - 1.0f), 1.0f - 2.0f * y / camera->height);
+        return Normalize(camera->cameraZ - clip.x * camera->cameraX + clip.y * camera->cameraY);
     }
 
     //=============================================================================================================================
@@ -76,12 +66,9 @@ namespace Selas
         float vx = viewX + sampler->UniformFloat();
         float vy = viewY + sampler->UniformFloat();
 
-        float3 p  = ImageToWorld(camera, vx, vy);
-        float3 d  = Normalize(p  - camera->position);
-
         Ray result;
-        result.origin      = p;
-        result.direction   = d;
+        result.origin      = camera->position;
+        result.direction   = ImageToWorldDirection(camera, vx, vy);
 
         return result;
     }
@@ -91,12 +78,9 @@ namespace Selas
     {
         float2 v = float2((float)x, (float)y) + CorrelatedMultiJitter(s, m, n, p);
 
-        float3 imagePlanePos = ImageToWorld(camera, v.x, v.y);
-        float3 d = Normalize(imagePlanePos - camera->position);
-
         Ray result;
-        result.origin = imagePlanePos;
-        result.direction = d;
+        result.origin    = camera->position;
+        result.direction = ImageToWorldDirection(camera, v.x, v.y);
 
         return result;
     }
@@ -107,21 +91,18 @@ namespace Selas
         float widthf        = (float)width;
         float heightf       = (float)height;
         float aspect        = widthf / heightf;
-        float horizontalFov = settings.fov;
-
-        float4x4 worldToView = LookAtRh(settings.position, settings.up, settings.lookAt);
-        float4x4 viewToClip  = PerspectiveFovRhProjection(horizontalFov, aspect, settings.znear, settings.zfar);
-
-        float4x4 viewToWorld = MatrixInverse(worldToView);
-        float4x4 clipToView  = MatrixInverse(viewToClip);
-
-        float4x4 worldToClip = MatrixMultiply(worldToView, viewToClip);
-        float4x4 clipToWorld = MatrixMultiply(clipToView, viewToWorld);
-
-        float4x4 imageToClip = Matrix4x4::ScaleTranslate(2.0f / widthf, -2.0f / heightf, 0, -1, 1, 0);
+        float horizontalFov = settings.fovDegrees * Math::DegreesToRadians_;
+        float hLength       = Math::Tanf(horizontalFov * 0.5f);
+        float verticalFov   = 2 * Math::Atanf(hLength / aspect);
+        float vLength       = Math::Tanf(verticalFov * 0.5f);
+       
+        float3 cameraForward = Normalize(settings.lookAt - settings.position);
+        float3 cameraRight = Normalize(Cross(settings.up, cameraForward));
         
-        camera.imageToWorld              = MatrixMultiply(imageToClip, clipToWorld);
-        camera.worldToClip               = worldToClip;
+        camera.cameraX = hLength * cameraRight;
+        camera.cameraY = vLength * Cross(cameraForward, cameraRight);
+        camera.cameraZ = cameraForward;
+
         camera.forward                   = Normalize(settings.lookAt - settings.position);
         camera.viewportWidth             = widthf;
         camera.viewportHeight            = heightf;
@@ -131,5 +112,6 @@ namespace Selas
         camera.virtualImagePlaneDistance = widthf / (2.0f * Math::Tanf(horizontalFov));
         camera.width                     = width;
         camera.height                    = height;
+        camera.aspect                    = aspect;
     }
 }

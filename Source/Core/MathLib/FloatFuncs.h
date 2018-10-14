@@ -448,6 +448,8 @@ namespace Selas
     float3   MatrixMultiplyVector(const float3& vec, const float4x4& mat);
     float3   MatrixMultiplyPoint(const float3& vec, const float4x4& mat);
     float4   MatrixMultiplyFloat4(const float4& vec, const float4x4& mat);
+    
+    float4x4 operator*(const float4x4& lhs, const float4x4& rhs);
 
     float4x4 ScreenProjection(uint width, uint height);
     float4x4 ScreenProjection(float x, float y, uint width, uint height);

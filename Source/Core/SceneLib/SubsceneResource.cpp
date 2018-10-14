@@ -26,8 +26,8 @@ namespace Selas
             estimate += subscene->models[scan]->geometrySize;
         }
 
-        // Doubling our estimate to approximate the cost for embree's BVH data.
-        return estimate * 2;
+        // Increasing our estimate to approximate the cost for embree's BVH data.
+        return (uint)(estimate * 3.0f);
     }
 
     //=============================================================================================================================
@@ -123,7 +123,7 @@ namespace Selas
                 subscene->models[scan] = New_(ModelResource);
                 ReturnError_(ReadModelResource(subscene->data->modelNames[scan].Ascii(), subscene->models[scan]));
 
-                InitializeModelResource(subscene->models[scan], subscene->data->modelNames[scan].Ascii(),
+                InitializeModelResource(subscene->models[scan], subscene, subscene->data->modelNames[scan].Ascii(),
                                         subscene->data->lightSetIndex,
                                         subscene->data->sceneMaterialNames, subscene->data->sceneMaterials, cache);
             }

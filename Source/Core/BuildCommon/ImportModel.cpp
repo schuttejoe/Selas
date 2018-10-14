@@ -196,7 +196,7 @@ namespace Selas
             model->cameras[scan].position = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mPosition);
             model->cameras[scan].lookAt   = model->cameras[scan].position + AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mLookAt);
             model->cameras[scan].up       = AssImpVec3ToFloat3_(aiscene->mCameras[scan]->mUp);
-            model->cameras[scan].fov      = aiscene->mCameras[scan]->mHorizontalFOV;
+            model->cameras[scan].fovDegrees = aiscene->mCameras[scan]->mHorizontalFOV * Math::RadiansToDegrees_;
             model->cameras[scan].znear    = aiscene->mCameras[scan]->mClipPlaneNear;
             model->cameras[scan].zfar     = aiscene->mCameras[scan]->mClipPlaneFar;
         }
@@ -212,8 +212,7 @@ namespace Selas
         context->AddFileDependency(filepath.Ascii());
 
         Assimp::Importer importer;
-        const aiScene* aiscene = importer.ReadFile(filepath.Ascii(), aiProcess_GenNormals
-                                                                    | aiProcess_TransformUVCoords);
+        const aiScene* aiscene = importer.ReadFile(filepath.Ascii(), 0);
         if(!aiscene) {
             const char* errstr = importer.GetErrorString();
             return Error_("AssetImporter failed with error: %s", errstr);

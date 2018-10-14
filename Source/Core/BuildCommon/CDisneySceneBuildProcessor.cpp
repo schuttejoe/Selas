@@ -581,11 +581,10 @@ namespace Selas
         ReturnError_(Json::OpenJsonDocument(fullPath.Ascii(), document));
 
         Json::ReadFloat3(document, "eye", settings.position, float3(1.0f, 0.0f, 0.0f));
-        Json::ReadFloat(document, "fov", settings.fov, 70.0f);
+        Json::ReadFloat(document, "fov", settings.fovDegrees, 70.0f);
         Json::ReadFloat3(document, "look", settings.lookAt, float3::Zero_);
         Json::ReadFloat3(document, "up", settings.up, float3::YAxis_);
         
-        settings.fov *= Math::DegreesToRadians_;
         settings.znear = 0.1f;
         settings.zfar = 50000.0f;
 

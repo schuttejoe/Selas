@@ -36,8 +36,8 @@
 #include "pmmintrin.h"
 #include <stdio.h>
 
-#define TextureCacheSize_   4 * 1024 * 1024 * 1024ull
-#define GeometryCacheSize_ 18 * 1024 * 1024 * 1024ull
+#define TextureCacheSize_   3 Gb_
+#define GeometryCacheSize_ 28 Gb_
 
 using namespace Selas;
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json_geometry");
     geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json");
 
-    Selas::uint width = 1024;
+    Selas::uint width  = 1024;
     Selas::uint height = 429;
 
     for(uint scan = 0, count = sceneResource.data->cameras.Count(); scan < count; ++scan) {

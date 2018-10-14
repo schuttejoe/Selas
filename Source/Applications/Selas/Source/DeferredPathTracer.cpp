@@ -33,11 +33,13 @@
 #include "embree3/rtcore.h"
 #include "embree3/rtcore_ray.h"
 
-#define MaxBounceCount_         2048
-#define WorkerThreadCount_         7
-#define SamplesPerPixelX_          4
-#define SamplesPerPixelY_          4
-#define OutputLayers_              1
+#define RayBatchSize_         1 Mb_
+#define HitBatchSize_         512 Kb_
+
+#define WorkerThreadCount_    15
+#define SamplesPerPixelX_     2
+#define SamplesPerPixelY_     2
+#define OutputLayers_         1
 
 namespace Selas
 {
@@ -208,21 +210,22 @@ namespace Selas
                     }
 
                     HitParameters hit;
-                    hit.position.x = rayhit.ray.org_x[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_x[scan];
-                    hit.position.y = rayhit.ray.org_y[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_y[scan];
-                    hit.position.z = rayhit.ray.org_z[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_z[scan];
-                    hit.normal = float3(rayhit.hit.Ng_x[scan], rayhit.hit.Ng_y[scan], rayhit.hit.Ng_z[scan]);
-                    hit.view = -startRay[scan].ray.direction;
-                    hit.error = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)), Max(Math::Absf(hit.position.z), rayhit.ray.tfar[scan]));
-                    hit.baryCoords = { rayhit.hit.u[scan], rayhit.hit.v[scan] };
-                    hit.geomId = rayhit.hit.geomID[scan];
-                    hit.primId = rayhit.hit.primID[scan];
-                    hit.instId[0] = rayhit.hit.instID[0][scan];
-                    hit.instId[1] = rayhit.hit.instID[1][scan];
-                    hit.index = startRay[scan].index;
+                    hit.position.x       = rayhit.ray.org_x[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_x[scan];
+                    hit.position.y       = rayhit.ray.org_y[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_y[scan];
+                    hit.position.z       = rayhit.ray.org_z[scan] + rayhit.ray.tfar[scan] * rayhit.ray.dir_z[scan];
+                    hit.normal           = float3(rayhit.hit.Ng_x[scan], rayhit.hit.Ng_y[scan], rayhit.hit.Ng_z[scan]);
+                    hit.view             = -startRay[scan].ray.direction;
+                    hit.error            = kErr * Max(Max(Math::Absf(hit.position.x), Math::Absf(hit.position.y)),
+                                                      Max(Math::Absf(hit.position.z), rayhit.ray.tfar[scan]));
+                    hit.baryCoords       = { rayhit.hit.u[scan], rayhit.hit.v[scan] };
+                    hit.geomId           = rayhit.hit.geomID[scan];
+                    hit.primId           = rayhit.hit.primID[scan];
+                    hit.instId[0]        = rayhit.hit.instID[0][scan];
+                    hit.instId[1]        = rayhit.hit.instID[1][scan];
+                    hit.index            = startRay[scan].index;
                     hit.diracScatterOnly = startRay[scan].diracScatterOnly;
-                    hit.trackedBounces = startRay[scan].trackedBounces;
-                    hit.throughput = startRay[scan].throughput;
+                    hit.trackedBounces   = startRay[scan].trackedBounces;
+                    hit.throughput       = startRay[scan].throughput;
 
                     //ptBatcher->AddUnsortedHit(hit);
                     ShadeHitPosition(context, ptBatcher, hit);
@@ -376,7 +379,7 @@ namespace Selas
                            const RayCastCameraSettings& camera, cpointer imageName)
         {
             PathTracingBatcher ptBatcher;
-            ptBatcher.Initialize(camera.width * camera.height, 256 Kb_);
+            ptBatcher.Initialize(RayBatchSize_, HitBatchSize_);
 
             Framebuffer frame;
             FrameBuffer_Initialize(&frame, (uint32)camera.viewportWidth, (uint32)camera.viewportHeight, OutputLayers_);

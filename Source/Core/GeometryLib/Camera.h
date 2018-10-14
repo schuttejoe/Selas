@@ -18,7 +18,7 @@ namespace Selas
     {
         FixedString128 name;
         float3 position;
-        float  fov;
+        float  fovDegrees;
         float3 lookAt;
         float  znear;
         float3 up;
@@ -28,8 +28,10 @@ namespace Selas
     //=============================================================================================================================
     struct RayCastCameraSettings
     {
-        float4x4 imageToWorld;
-        float4x4 worldToClip;
+        float3 cameraX;
+        float3 cameraY;
+        float3 cameraZ;
+
         float3   position;
         float3   forward;
         float    viewportWidth;
@@ -38,6 +40,7 @@ namespace Selas
         float    zfar;
         uint     width;
         uint     height;
+        float    aspect;
 
         // -- the distance from the camera that you'd have to travel before the area of a single pixel is 1.
         float    virtualImagePlaneDistance;
@@ -49,9 +52,6 @@ namespace Selas
     void DefaultCameraSettings(CameraSettings* settings);
 
     bool ValidCamera(const CameraSettings& settings);
-
-    int2 WorldToImage(const RayCastCameraSettings* __restrict camera, float3 world);
-    float3 ImageToWorld(const RayCastCameraSettings* __restrict camera, float x, float y);
 
     Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, CSampler* sampler, float viewX, float viewY);
     Ray JitteredCameraRay(const RayCastCameraSettings* __restrict camera, int32 x, int32 y, int32 s, int32 m, int32 n, int32 p);

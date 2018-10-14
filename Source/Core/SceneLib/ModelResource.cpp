@@ -23,7 +23,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1538470348ul;
+    const uint64 ModelResource::kDataVersion = 1539464440ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -332,7 +332,8 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error InitializeGeometryUserDatas(ModelResource* model, uint lightSetIndex, const CArray<Hash32>& sceneMaterialNames,
+    static Error InitializeGeometryUserDatas(ModelResource* model, SubsceneResource* subscene, uint lightSetIndex,
+                                             const CArray<Hash32>& sceneMaterialNames,
                                              const CArray<MaterialResourceData> sceneMaterials, TextureCache* cache)
     {
         ModelResourceData* modelData = model->data;
@@ -351,6 +352,7 @@ namespace Selas
                            | (modelData->uvsSize > 0 ? EmbreeGeometryFlags::HasUvs : 0);
 
             userData.material = material;
+            userData.subscene = subscene;
             userData.lightSetIndex = (uint32)lightSetIndex;
             if(material->flags & eUsesPtex) {
                 FilePathString contentid;
@@ -380,6 +382,7 @@ namespace Selas
                                                                     model->data->curveModelName);
 
             userData.material = material;
+            userData.subscene = subscene;
             userData.lightSetIndex = (uint32)lightSetIndex;
             userData.baseColorTextureHandle = TextureHandle();
         }
@@ -486,7 +489,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    Error InitializeModelResource(ModelResource* model, cpointer assetname, uint64 lightSetIndex,
+    Error InitializeModelResource(ModelResource* model, SubsceneResource* subscene, cpointer assetname, uint64 lightSetIndex,
                                   const CArray<Hash32>& sceneMaterialNames, const CArray<MaterialResourceData> sceneMaterials,
                                   TextureCache* cache)
     {
@@ -495,7 +498,7 @@ namespace Selas
         model->userDatas.Reserve(model->data->meshes.Count() + model->data->curves.Count());
         model->geometrySize = ModelGeometrySize(model);
 
-        ReturnError_(InitializeGeometryUserDatas(model, lightSetIndex, sceneMaterialNames, sceneMaterials, cache));
+        ReturnError_(InitializeGeometryUserDatas(model, subscene, lightSetIndex, sceneMaterialNames, sceneMaterials, cache));
         return Success_;
     }
 

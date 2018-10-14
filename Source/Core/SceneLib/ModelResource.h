@@ -20,6 +20,7 @@ namespace Selas
 {
     #pragma warning(default : 4820)
 
+    struct SubsceneResource;
     struct TextureResource;
     struct HitParameters;
 
@@ -96,6 +97,7 @@ namespace Selas
     struct ModelGeometryUserData
     {
         const MaterialResourceData* material;
+        SubsceneResource* subscene;
         TextureHandle baseColorTextureHandle;
         RTCGeometry rtcGeometry;
         uint32 flags;
@@ -197,7 +199,7 @@ namespace Selas
     Error LoadModelGeometry(ModelResource* model, RTCDevice rtcDevice);
     void UnloadModelGeometry(ModelResource* model);
 
-    Error InitializeModelResource(ModelResource* model, cpointer assetname, uint64 lightSetIndex,
+    Error InitializeModelResource(ModelResource* model, SubsceneResource* subscene, cpointer assetname, uint64 lightSetIndex,
                                   const CArray<Hash32>& sceneMaterialNames, const CArray<MaterialResourceData> sceneMaterials,
                                   TextureCache* cache);
     void ShutdownModelResource(ModelResource* model, TextureCache* cache);

@@ -7,6 +7,7 @@
 
 #include "SceneLib/SceneResource.h"
 #include "SceneLib/ModelResource.h"
+#include "SceneLib/GeometryCache.h"
 #include "TextureLib/TextureFiltering.h"
 #include "TextureLib/TextureResource.h"
 #include "GeometryLib/Ray.h"
@@ -151,43 +152,46 @@ namespace Selas
         GeometryCache* geometryCache = context->geometryCache;
         const MaterialResourceData* materialResource = modelData->material;
 
-        // JSTODO - Repair all of this.
+        bool needsGeometry = modelData->flags & (HasNormals | HasTangents | HasUvs);
+        if(needsGeometry) {
+            context->geometryCache->EnsureSubsceneGeometryLoaded(modelData->subscene);
+        }
 
         Align_(16) float3 normal;
-        //if(modelData->flags & HasNormals) {
-        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        if(modelData->flags & HasNormals) {
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
 
-        //    normal = MatrixMultiplyVector(normal, localToWorld);
-        //}
-        //else {
+            normal = MatrixMultiplyVector(normal, localToWorld);
+        }
+        else {
             normal = MatrixMultiplyVector(hit->normal, localToWorld);
-        //}
+        }
 
         float3 n = Normalize(normal);
         float3 t, b;
 
-        //if(modelData->flags & HasTangents) {
-        //    Align_(16) float4 localTangent;
-        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
+        if(modelData->flags & HasTangents) {
+            Align_(16) float4 localTangent;
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
 
-        //    t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
-        //    b = Cross(n, t) * localTangent.w;
-        //}
-        //else {
+            t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
+            b = Cross(n, t) * localTangent.w;
+        }
+        else {
             MakeOrthogonalCoordinateSystem(n, &t, &b);
-        //}
+        }
 
         Align_(16) float2 uvs = float2(0.0f, 0.0f);
-        //if(modelData->flags & HasUvs) {
-        //    geometryCache->EnsureSubsceneGeometryLoaded(modelData->subscene);
+        if(modelData->flags & HasUvs) {
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        }
 
-        //    rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
-        //                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
-
-        //    geometryCache->FinishUsingSubceneGeometry(modelData->subscene);
-        //}
+        if(needsGeometry) {
+            context->geometryCache->FinishUsingSubceneGeometry(modelData->subscene);
+        }
 
         if(materialResource->flags & eUsesPtex) {
             PtexTexture* texture = textureCache->FetchPtex(modelData->baseColorTextureHandle);

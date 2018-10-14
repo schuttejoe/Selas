@@ -53,6 +53,19 @@ namespace Selas
     };
 
     //=================================================================================================================================
+    static FilePathString CreateBatchFilePath(int64 index)
+    {
+        FixedString128 root = Environment_Root();
+
+        char ps = StringUtil::PathSeperator();
+
+        FilePathString result;
+        FixedStringSprintf(result, "%s_Temp%cbatch_%lld.batch", root.Ascii(), ps, index);
+
+        return result;
+    }
+
+    //=================================================================================================================================
     struct DeferredBatch
     {
         DeferredBatch()
@@ -68,6 +81,9 @@ namespace Selas
                 UnmapViewOfFile(rays);
                 CloseHandle(fileHandle);
                 CloseHandle(mappingHandle);
+
+                FilePathString filepath = CreateBatchFilePath(batchIndex);
+                DeleteFileA(filepath.Ascii());
             }
         }
 
@@ -96,6 +112,9 @@ namespace Selas
                 UnmapViewOfFile(rays);
                 CloseHandle(fileHandle);
                 CloseHandle(mappingHandle);
+
+                FilePathString filepath = CreateBatchFilePath(batchIndex);
+                DeleteFileA(filepath.Ascii());
             }
         }
 
@@ -123,6 +142,9 @@ namespace Selas
                 UnmapViewOfFile(hits);
                 CloseHandle(fileHandle);
                 CloseHandle(mappingHandle);
+
+                FilePathString filepath = CreateBatchFilePath(batchIndex);
+                DeleteFileA(filepath.Ascii());
             }
         }
 
@@ -154,19 +176,6 @@ namespace Selas
         else {
             return dray.ray.direction.z > 0.0f ? PositiveZ : NegativeZ;
         }
-    }
-
-    //=================================================================================================================================
-    static FilePathString CreateBatchFilePath(int64 index)
-    {
-        FixedString128 root = Environment_Root();
-
-        char ps = StringUtil::PathSeperator();
-
-        FilePathString result;
-        FixedStringSprintf(result, "%s_Temp%cbatch_%lld.batch", root.Ascii(), ps, index);
-
-        return result;
     }
 
     //=================================================================================================================================

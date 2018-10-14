@@ -408,6 +408,12 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    float4x4 operator*(const float4x4& lhs, const float4x4& rhs)
+    {
+        return MatrixMultiply(lhs, rhs);
+    }
+
+    //=============================================================================================================================
     float4x4 ScreenProjection(uint width, uint height)
     {
         float half_width = 0.5f * width;
