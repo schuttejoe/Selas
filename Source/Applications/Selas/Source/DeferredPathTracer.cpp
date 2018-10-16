@@ -33,12 +33,12 @@
 #include "embree3/rtcore.h"
 #include "embree3/rtcore_ray.h"
 
-#define RayBatchSize_         1 Mb_
-#define HitBatchSize_         512 Kb_
+#define RayBatchSize_         4 Mb_
+#define HitBatchSize_         2 Mb_
 
-#define WorkerThreadCount_    15
-#define SamplesPerPixelX_     2
-#define SamplesPerPixelY_     2
+#define WorkerThreadCount_    9
+#define SamplesPerPixelX_     4
+#define SamplesPerPixelY_     4
 #define OutputLayers_         1
 
 namespace Selas
@@ -59,12 +59,9 @@ namespace Selas
 
         //=========================================================================================================================
         static void ShadeHitPosition(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
-                                     const HitParameters& hit)
+                                     const HitParameters& hit, const SurfaceParameters& surface)
         {
-            SurfaceParameters surface;
-            if(CalculateSurfaceParams(context, &hit, surface) == false) {
-                return;
-            }
+
 
             // -- choose a light and sample the light source
             LightDirectSample lightSample;
@@ -166,6 +163,7 @@ namespace Selas
 
                 RTCIntersectContext rtcContext;
                 rtcInitIntersectContext(&rtcContext);
+                rtcContext.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
 
                 Align_(64) int32 valid[BatchSize_];
 
@@ -227,8 +225,7 @@ namespace Selas
                     hit.trackedBounces   = startRay[scan].trackedBounces;
                     hit.throughput       = startRay[scan].throughput;
 
-                    //ptBatcher->AddUnsortedHit(hit);
-                    ShadeHitPosition(context, ptBatcher, hit);
+                    ptBatcher->AddUnsortedHit(hit);
                 }
             }
         }
@@ -246,6 +243,7 @@ namespace Selas
 
                 RTCIntersectContext rtcContext;
                 rtcInitIntersectContext(&rtcContext);
+                rtcContext.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
 
                 Align_(64) int32 valid[BatchSize_];
 
@@ -285,8 +283,65 @@ namespace Selas
         static void ShadeHitBatch(GIIntegratorContext* __restrict context, PathTracingBatcher* ptBatcher,
                                   HitParameters* hits, uint hitCount)
         {
+            float4x4 localToWorld;
+
+            ModelGeometryUserData* modelData = nullptr;
+            TextureHandle textureHandle;
+            PtexTexture* texture = nullptr;
+            Ptex::PtexFilter* filter = nullptr;
+
+            int32 geomId = RTC_INVALID_GEOMETRY_ID;
+            int32 instId[MaxInstanceLevelCount_];
+            for(uint scan = 0; scan < MaxInstanceLevelCount_; ++scan) {
+                instId[scan] = RTC_INVALID_GEOMETRY_ID;
+            }
+
+            Ptex::PtexFilter::Options opts(Ptex::PtexFilter::FilterType::f_bspline);
+
             for(uint scan = 0; scan < hitCount; ++scan) {
-                ShadeHitPosition(context, ptBatcher, hits[scan]);
+
+                const HitParameters& hit = hits[scan];
+
+                bool modelDataChanged = (geomId != hit.geomId);
+                for(uint scan = 0; !modelDataChanged && scan < MaxInstanceLevelCount_; ++scan) {
+                    modelDataChanged = (instId[scan] != hit.instId[scan]);
+                }
+
+                if(modelDataChanged) {
+                    ModelDataFromRayIds(context->scene, hit.instId, hit.geomId, localToWorld, modelData);
+                    geomId = hit.geomId;
+                    Memory::Copy(instId, hit.instId, sizeof(hit.instId));
+                }
+
+                if(modelData->baseColorTextureHandle != textureHandle) {
+                    if(texture != nullptr) {
+                        filter->release();
+                        texture->release();
+                    }
+
+                    if(modelData->baseColorTextureHandle.Valid()) {
+                        texture = context->textureCache->FetchPtex(modelData->baseColorTextureHandle);
+                        filter = Ptex::PtexFilter::getFilter(texture, opts);
+                    }
+                    else {
+                        texture = nullptr;
+                        filter = nullptr;
+                    }
+
+                    textureHandle = modelData->baseColorTextureHandle;
+                }
+
+                SurfaceParameters surface;
+                if(CalculateSurfaceParams(context, &hit, modelData, localToWorld, filter, surface) == false) {
+                    continue;
+                }
+
+                ShadeHitPosition(context, ptBatcher, hit, surface);
+            }
+
+            if(texture != nullptr) {
+                filter->release();
+                texture->release();
             }
         }
 

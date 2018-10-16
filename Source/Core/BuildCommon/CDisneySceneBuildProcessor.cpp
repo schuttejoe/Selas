@@ -120,7 +120,6 @@ namespace Selas
                 if(Json::ReadMatrix4x4(instanceKV.value, modelInstance.localToWorld) == false) {
                     return Error_("Failed to parse transform from instance '%s' in primfile '%s'", instanceName, filepath.Ascii());
                 }
-                modelInstance.worldToLocal = MatrixInverse(modelInstance.localToWorld);
                 
                 subscene->modelInstances.Add(modelInstance);
             }
@@ -252,7 +251,6 @@ namespace Selas
         Instance curveInstance;
         curveInstance.index = subscene->modelNames.Add(curveModelName);
         curveInstance.localToWorld = Matrix4x4::Identity();
-        curveInstance.worldToLocal = Matrix4x4::Identity();
         subscene->modelInstances.Add(curveInstance);
 
         return Success_;
@@ -509,7 +507,6 @@ namespace Selas
             // -- Each element file will have a transform for the 'root level' object file...
             Instance rootInstance;
             Json::ReadMatrix4x4(document["transformMatrix"], rootInstance.localToWorld);
-            rootInstance.worldToLocal = MatrixInverse(rootInstance.localToWorld);
             rootInstance.index = rootModelIndex;
             elementGeometryScene->modelInstances.Add(rootInstance);
 
@@ -527,7 +524,6 @@ namespace Selas
                 if(Json::ReadMatrix4x4(instancedCopyKV.value["transformMatrix"], copyInstance.localToWorld) == false) {
                     return Error_("Failed to read `transformMatrix` from instancedCopy '%s'", instancedCopyKV.name.GetString());
                 }
-                copyInstance.worldToLocal = MatrixInverse(copyInstance.localToWorld);
 
                 uint modelIndex = rootModelIndex;
                 if(instancedCopyKV.value.HasMember("geomObjFile")) {

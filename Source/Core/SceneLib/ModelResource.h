@@ -98,10 +98,10 @@ namespace Selas
     {
         const MaterialResourceData* material;
         SubsceneResource* subscene;
-        TextureHandle baseColorTextureHandle;
         RTCGeometry rtcGeometry;
-        uint32 flags;
-        uint32 lightSetIndex;
+        TextureHandle baseColorTextureHandle;
+        uint16 flags;
+        uint16 lightSetIndex;
     };
 
     struct CurveMetaData

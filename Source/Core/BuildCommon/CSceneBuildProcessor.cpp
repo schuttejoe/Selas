@@ -111,7 +111,6 @@ namespace Selas
         Instance& instance = scene.subsceneInstances.Add();
         instance.index = subSceneIndex;
         instance.localToWorld = Matrix4x4::Identity();
-        instance.worldToLocal = Matrix4x4::Identity();
 
         for(uint scan = 0, count = sceneDesc.modelInstances.Count(); scan < count; ++scan) {
             InstanceDescription& instanceDesc = sceneDesc.modelInstances[scan];
@@ -127,7 +126,6 @@ namespace Selas
             Instance& instance = subscene.modelInstances.Add();
             instance.index = modelindex;
             instance.localToWorld = instanceDesc.localToWorld;
-            instance.worldToLocal = instanceDesc.worldToLocal;
         }
 
         for(uint scan = 0, count = sceneDesc.sceneInstances.Count(); scan < count; ++scan) {
@@ -144,7 +142,6 @@ namespace Selas
             Instance& instance = scene.subsceneInstances.Add();
             instance.index = sceneIndex;
             instance.localToWorld = instanceDesc.localToWorld;
-            instance.worldToLocal = instanceDesc.worldToLocal;
         }
 
         context->CreateOutput(SceneResource::kDataType, SceneResource::kDataVersion, context->source.name.Ascii(), scene);

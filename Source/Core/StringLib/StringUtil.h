@@ -36,6 +36,7 @@ namespace Selas
         bool EndsWithIgnoreCase(cpointer lhs, cpointer rhs);
 
         void Copy(char* destString, int32 destMaxLength, char const* srcString);
+        void CopyLastN(char* destString, int32 destMaxLength, char const* srcString);
         void CopyN(char* destString, int32 destMaxLength, char const* srcString, int32 srcStringLength);
 
         void ReplaceAll(char* str, char charToReplace, char replacement);

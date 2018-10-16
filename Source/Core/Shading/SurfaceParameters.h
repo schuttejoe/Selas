@@ -49,6 +49,10 @@ namespace Selas
     };
 
     bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* hit, SurfaceParameters& surface);
+    bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* hit,
+                                ModelGeometryUserData* modelData, float4x4 localToWorld, Ptex::PtexFilter* filter,
+                                SurfaceParameters& surface);
+
     bool CalculatePassesAlphaTest(const ModelGeometryUserData* geomData, uint32 geomId, uint32 primitiveId, float2 baryCoords);
     float CalculateDisplacement(const ModelGeometryUserData* geomData, RTCGeometry rtcGeometry, uint32 primId, float2 barys);
 

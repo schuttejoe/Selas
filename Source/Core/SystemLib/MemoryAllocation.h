@@ -25,6 +25,7 @@ namespace Selas
 
     #define AllocArrayAligned_(Type_, Count_, Alignment_)  static_cast<Type_*>(Selas::SelasAlignedMalloc(Count_ * sizeof(Type_), Alignment_, __FUNCTION__, __FILE__, __LINE__))
     #define AllocAligned_(AllocSize_, Alignment_)          Selas::SelasAlignedMalloc(AllocSize_, Alignment_, __FUNCTION__, __FILE__, __LINE__)
+    #define AllocAlignedNamed_(AllocSize_, Alignment_, Name_) Selas::SelasAlignedMalloc(AllocSize_, Alignment_, Name_, __FILE__, __LINE__)
     #define FreeAligned_(Var_)                             Selas::SelasAlignedFree(Var_)
     #define SafeFreeAligned_(Var_)                         if(Var_) { Selas::SelasAlignedFree(Var_); Var_ = nullptr; }
 
@@ -33,6 +34,8 @@ namespace Selas
     extern void* SelasRealloc(void* address, uint size, const char* name, const char* file, int line);
     extern void  SelasAlignedFree(void* address);
     extern void  SelasFree(void* address);
+
+    extern void MemoryReport();
 
     //=============================================================================================================================
     template <typename Type_>

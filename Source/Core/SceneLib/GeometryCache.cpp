@@ -75,6 +75,14 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    void GeometryCache::PreloadAll()
+    {
+        for(uint scan = 0, count = subscenes.Count(); scan < count; ++scan) {
+            EnsureSubsceneGeometryLoaded(subscenes[scan]);
+        }
+    }
+
+    //=============================================================================================================================
     void GeometryCache::PreloadSubscene(cpointer name)
     {
         uint64 currentSize = loadedGeometrySize;

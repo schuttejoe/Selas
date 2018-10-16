@@ -36,7 +36,7 @@
 #include "pmmintrin.h"
 #include <stdio.h>
 
-#define TextureCacheSize_   3 Gb_
+#define TextureCacheSize_   8 Gb_
 #define GeometryCacheSize_ 28 Gb_
 
 using namespace Selas;
@@ -107,16 +107,7 @@ int main(int argc, char *argv[])
     WriteDebugInfo_("Scene load time %fms", elapsedMs);
 
     geometryCache.RegisterSubscenes(sceneResource.subscenes, sceneResource.data->subsceneNames.Count());
-
-    // -- preload these so they remain always loaded.
-    geometryCache.PreloadSubscene("Scenes~island~json~isMountainA~isMountainA.json_geometry");
-    geometryCache.PreloadSubscene("Scenes~island~json~isMountainA~isMountainA.json");
-    geometryCache.PreloadSubscene("Scenes~island~json~isMountainB~isMountainB.json_geometry");
-    geometryCache.PreloadSubscene("Scenes~island~json~isMountainB~isMountainB.json");
-    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodB~isIronwoodB.json_geometry");
-    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodB~isIronwoodB.json");
-    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json_geometry");
-    geometryCache.PreloadSubscene("Scenes~island~json~isIronwoodA1~isIronwoodA1.json");
+    geometryCache.PreloadAll();
 
     Selas::uint width  = 1024;
     Selas::uint height = 429;

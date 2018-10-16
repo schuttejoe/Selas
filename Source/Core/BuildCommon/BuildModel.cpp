@@ -121,9 +121,9 @@ namespace Selas
 
                 AppendAndOffsetIndices(mesh->triindices, vertexOffset, built->indices);
 
-                for(uint i = 0, faceCount = meshData.indexCount / 3; i < faceCount; ++i) {
-                    built->faceIndexCounts.Add(3);
-                }
+                //for(uint i = 0, faceCount = meshData.indexCount / 3; i < faceCount; ++i) {
+                //    built->faceIndexCounts.Add(3);
+                //}
 
                 indexOffset += meshData.indexCount;
             }
@@ -141,9 +141,9 @@ namespace Selas
 
                 AppendAndOffsetIndices(mesh->quadindices, vertexOffset, built->indices);
 
-                for(uint i = 0, faceCount = meshData.indexCount / 4; i < faceCount; ++i) {
-                    built->faceIndexCounts.Add(4);
-                }
+                //for(uint i = 0, faceCount = meshData.indexCount / 4; i < faceCount; ++i) {
+                //    built->faceIndexCounts.Add(4);
+                //}
 
                 indexOffset += meshData.indexCount;
             }

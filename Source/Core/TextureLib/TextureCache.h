@@ -25,7 +25,10 @@ namespace Selas
 
         bool Valid() { return hash != InvalidTextureHandle_;  }
         bool Invalid() { return hash == InvalidTextureHandle_; }
-
+        bool operator!=(const TextureHandle& rhs)
+        {
+            return hash != rhs.hash;
+        }
     private:
         friend class TextureCache;
         Hash32 hash;

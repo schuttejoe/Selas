@@ -48,7 +48,7 @@ namespace Selas
             *fileSize = _ftelli64(file);
             fseek(file, 0, SEEK_SET);
 
-            *fileData = AllocAligned_(*fileSize, 16);
+            *fileData = AllocAlignedNamed_(*fileSize, 16, filepath);
             if(*fileData == nullptr) {
                 return Error_("Failed to make allocation of size %u for file %s:", fileSize, filepath);
             }
@@ -74,7 +74,7 @@ namespace Selas
             uint64 fileSize = _ftelli64(file);
             fseek(file, 0, SEEK_SET);
 
-            *string = (char*)AllocAligned_(fileSize + 1, 16);
+            *string = (char*)AllocAlignedNamed_(fileSize + 1, 16, filepath);
             if(*string == nullptr) {
                 return Error_("Failed to make allocation of size %u for file %s:", fileSize + 1, filepath);
             }

@@ -6,6 +6,7 @@
 #include "StringLib/FixedString.h"
 #include "SystemLib/JsAssert.h"
 #include "SystemLib/CheckedCast.h"
+#include "SystemLib/MinMax.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,10 +187,24 @@ namespace Selas
         void Copy(char* destString, int32 destMaxLength, char const* sourceString)
         {
             #if IsWindows_
-            strcpy_s(destString, destMaxLength, sourceString);
+                strcpy_s(destString, destMaxLength, sourceString);
             #elif IsOsx_
                 strncpy(destString, sourceString, destMaxLength);
             #endif
+        }
+
+        //=========================================================================================================================
+        void CopyLastN(char* destString, int32 destMaxLength, char const* srcString)
+        {
+            int32 srcLen = Length(srcString) + 1;
+            int32 offset = Max<int32>(0, srcLen - destMaxLength);
+
+            Copy(destString, destMaxLength, srcString + offset);
+
+            if(offset > 0 && destMaxLength >= 2) {
+                destString[0] = '.';
+                destString[1] = '.';
+            }
         }
 
         //=========================================================================================================================

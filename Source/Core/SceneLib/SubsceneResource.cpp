@@ -16,7 +16,7 @@
 namespace Selas
 {
     cpointer SubsceneResource::kDataType = "SubsceneResource";
-    const uint64 SubsceneResource::kDataVersion = 1539129606ul;
+    const uint64 SubsceneResource::kDataVersion = 1539551841ul;
 
     //=============================================================================================================================
     static uint64 EstimateSubsceneSize(SubsceneResource* subscene)

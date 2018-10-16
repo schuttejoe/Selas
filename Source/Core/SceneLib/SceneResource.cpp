@@ -228,7 +228,7 @@ namespace Selas
                 RTCGeometry geom = rtcNewGeometry(rtcDevice, RTC_GEOMETRY_TYPE_USER);
 
                 scene->subsceneInstanceUserDatas[scan].geometryCache = geometryCache;
-                scene->subsceneInstanceUserDatas[scan].worldToLocal = instance.worldToLocal;
+                scene->subsceneInstanceUserDatas[scan].worldToLocal = MatrixInverse(instance.localToWorld);
                 scene->subsceneInstanceUserDatas[scan].subscene = scene->subscenes[sceneIdx];
                 scene->subsceneInstanceUserDatas[scan].instanceID = (uint32)scan;
 

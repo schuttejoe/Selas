@@ -9,6 +9,10 @@
 #include "SystemLib/BasicTypes.h"
 #include "SystemLib/Memory.h"
 #include "SystemLib/JsAssert.h"
+#include "SystemLib/Logging.h"
+
+#include "StringLib/StringUtil.h"
+#include "UtilityLib/QuickSort.h"
 
 #include <stdio.h>
 #include <map>
@@ -28,15 +32,27 @@ namespace Selas
 {
 
     #if EnableManualAllocationTracking_
+    #define AllocationNameCapacity_ 128
+
     struct Allocation
     {
         void*       address;
-        const char* name;
+        char        name[AllocationNameCapacity_];
         const char* file;
         int         line;
         uint64      index;
         uint64      size;
     };
+
+    static bool operator<(const Allocation& lhs, const Allocation& rhs)
+    {
+        return lhs.size < rhs.size;
+    }
+
+    static bool operator>(const Allocation& lhs, const Allocation& rhs)
+    {
+        return lhs.size > rhs.size;
+    }
 
     class CAllocationTracking
     {
@@ -57,6 +73,8 @@ namespace Selas
 
         void AddAllocation(void* address, uint64 allocationSize, const char* name, const char* file, int line);
         void RemoveAllocation(void* address);
+
+        void Report();
     };
 
     //=============================================================================================================================
@@ -122,7 +140,7 @@ namespace Selas
         allocSearch.insert(std::pair<void*, uint>(address, used));
 
         allocations[used].address = address;
-        allocations[used].name = name;
+        StringUtil::CopyLastN(allocations[used].name, AllocationNameCapacity_, name);
         allocations[used].file = file;
         allocations[used].line = line;
         allocations[used].index = index++;
@@ -166,18 +184,30 @@ namespace Selas
                 auto& modifiedObj = allocSearch.find(allocations[used - 1].address);
                 Assert_(modifiedObj != allocSearch.end());
 
-                allocations[index].address = allocations[used - 1].address;
-                allocations[index].name = allocations[used - 1].name;
-                allocations[index].file = allocations[used - 1].file;
-                allocations[index].line = allocations[used - 1].line;
-                allocations[index].index = allocations[used - 1].index;
-                allocations[index].size = allocations[used - 1].size;
-
+                Memory::Copy(&allocations[index], &allocations[used - 1], sizeof(Allocation));
                 modifiedObj->second = index;
             }
 
             --used;
         }
+
+        LeaveSpinLock(spinLock);
+    }
+
+    //=============================================================================================================================
+    void CAllocationTracking::Report()
+    {
+        EnterSpinLock(spinLock);
+
+        Allocation* allocCopy = (Allocation*)malloc(used * sizeof(Allocation));       
+        Memory::Copy(allocCopy, allocations, used * sizeof(Allocation));
+
+        QuickSort(allocCopy, used);
+
+        for(uint scan = 0; scan < used; ++scan) {
+            WriteDebugInfo_("%llu - %s", allocCopy[scan].size, allocCopy[scan].name);
+        }
+        free(allocCopy);
 
         LeaveSpinLock(spinLock);
     }
@@ -258,6 +288,14 @@ namespace Selas
         #endif
 
         free(address);
+    }
+
+    //=============================================================================================================================
+    void MemoryReport()
+    {
+        #if EnableManualAllocationTracking_
+            tracker.Report();
+        #endif
     }
 }
 

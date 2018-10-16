@@ -247,6 +247,101 @@ namespace Selas
     }
 
     //=============================================================================================================================
+    bool CalculateSurfaceParams(const GIIntegratorContext* context, const HitParameters* __restrict hit,
+                                ModelGeometryUserData* modelData, float4x4 localToWorld, Ptex::PtexFilter* filter,
+                                SurfaceParameters& surface)
+    {
+        TextureCache* textureCache = context->textureCache;
+        GeometryCache* geometryCache = context->geometryCache;
+        const MaterialResourceData* materialResource = modelData->material;
+
+        bool needsGeometry = modelData->flags & (HasNormals | HasTangents | HasUvs);
+        if(needsGeometry) {
+            context->geometryCache->EnsureSubsceneGeometryLoaded(modelData->subscene);
+        }
+
+        Align_(16) float3 normal;
+        if(modelData->flags & HasNormals) {
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+
+            normal = MatrixMultiplyVector(normal, localToWorld);
+        }
+        else {
+            normal = MatrixMultiplyVector(hit->normal, localToWorld);
+        }
+
+        float3 n = Normalize(normal);
+        float3 t, b;
+
+        if(modelData->flags & HasTangents) {
+            Align_(16) float4 localTangent;
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &localTangent.x, 4);
+
+            t = MatrixMultiplyVector(localTangent.XYZ(), localToWorld);
+            b = Cross(n, t) * localTangent.w;
+        }
+        else {
+            MakeOrthogonalCoordinateSystem(n, &t, &b);
+        }
+
+        Align_(16) float2 uvs = float2(0.0f, 0.0f);
+        if(modelData->flags & HasUvs) {
+            rtcInterpolate0(modelData->rtcGeometry, hit->primId, hit->baryCoords.x, hit->baryCoords.y,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, &uvs.x, 2);
+        }
+
+        if(needsGeometry) {
+            context->geometryCache->FinishUsingSubceneGeometry(modelData->subscene);
+        }
+
+        if(materialResource->flags & eUsesPtex) {
+            float3 sample;
+            filter->eval(&sample.x, 0, 3, hit->primId, hit->baryCoords.x, hit->baryCoords.y, 0, 0, 0, 0);
+            surface.baseColor = Pow(sample, 2.2f);
+        }
+        else {
+            const TextureResource* baseColorTexture = textureCache->FetchTexture(modelData->baseColorTextureHandle);
+            surface.baseColor = SampleTextureFloat3(baseColorTexture, uvs, true, materialResource->baseColor);
+            surface.baseColor = Pow(surface.baseColor, 2.2f);
+            textureCache->ReleaseTexture(modelData->baseColorTextureHandle);
+        }
+
+        // -- Calculate tangent space transforms
+        float3x3 tangentToWorld = MakeFloat3x3(t, n, b);
+
+        surface.worldToTangent     = MatrixTranspose(tangentToWorld);
+        surface.position           = hit->position;
+        surface.error              = hit->error;
+        surface.materialFlags      = materialResource->flags;
+        surface.transmittanceColor = materialResource->transmittanceColor;
+        surface.sheen              = materialResource->scalarAttributeValues[eSheen];
+        surface.sheenTint          = materialResource->scalarAttributeValues[eSheenTint];
+        surface.clearcoat          = materialResource->scalarAttributeValues[eClearcoat];
+        surface.clearcoatGloss     = materialResource->scalarAttributeValues[eClearcoatGloss];
+        surface.specTrans          = Saturate(materialResource->scalarAttributeValues[eSpecTrans]);
+        surface.diffTrans          = materialResource->scalarAttributeValues[eDiffuseTrans] * 0.5f;
+        surface.flatness           = materialResource->scalarAttributeValues[eFlatness];
+        surface.anisotropic        = materialResource->scalarAttributeValues[eAnisotropic];
+        surface.specularTint       = materialResource->scalarAttributeValues[eSpecularTint];
+        surface.roughness          = materialResource->scalarAttributeValues[eRoughness];
+        surface.metallic           = Saturate(materialResource->scalarAttributeValues[eMetallic]);
+        surface.scatterDistance    = materialResource->scalarAttributeValues[eScatterDistance];
+        surface.ior                = materialResource->scalarAttributeValues[eIor];
+        surface.lightSetIndex      = modelData->lightSetIndex;
+
+        surface.shader = materialResource->shader;
+        surface.view = hit->view;
+
+        // -- better way to handle this would be for the ray to know what IOR it is within
+        surface.relativeIOR = ((materialResource->flags & eTransparent) && Dot(hit->view, n) < 0.0f) 
+                            ? surface.ior : 1.0f / surface.ior;
+
+        return true;
+    }
+
+    //=============================================================================================================================
     bool CalculatePassesAlphaTest(const ModelGeometryUserData* geomData, uint32 geomId, uint32 primId, float2 baryCoords)
     {
         // JSTODO - Need access to the cache

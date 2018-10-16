@@ -23,7 +23,7 @@ namespace Selas
     cpointer ModelResource::kDataType = "ModelResource";
     cpointer ModelResource::kGeometryDataType = "ModelGeometryResource";
 
-    const uint64 ModelResource::kDataVersion = 1539464440ul;
+    const uint64 ModelResource::kDataVersion = 1539636447ul;
     const uint32 ModelResource::kGeometryDataAlignment = 16;
     static_assert(sizeof(ModelGeometryData) % ModelResource::kGeometryDataAlignment == 0, "SceneGeometryData must be aligned");
     static_assert(ModelResource::kGeometryDataAlignment % 4 == 0, "SceneGeometryData must be aligned");
@@ -248,7 +248,8 @@ namespace Selas
 
             const MaterialResourceData* material = userData.material;
 
-            bool hasDisplacement = material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_;
+            bool hasDisplacement = (modelData->faceIndexSize > 0) &&
+                                   (material->flags & MaterialFlags::eDisplacementEnabled && EnableDisplacement_);
             bool hasAlphaTesting = material->flags & MaterialFlags::eAlphaTested;
 
             uint32 indicesPerFace = meshData.indicesPerFace;
@@ -428,7 +429,7 @@ namespace Selas
     }
 
     //=============================================================================================================================
-    static Error ReadModelHeaderData(cpointer assetname, ModelResource* data)
+    Error ReadModelResource(cpointer assetname, ModelResource* model)
     {
         FilePathString filepath;
         AssetFileUtils::AssetFilePath(ModelResource::kDataType, ModelResource::kDataVersion, assetname, filepath);
@@ -437,15 +438,7 @@ namespace Selas
         uint64 fileSize = 0;
         ReturnError_(File::ReadWholeFile(filepath.Ascii(), &fileData, &fileSize));
 
-        AttachToBinary(data->data, (uint8*)fileData, fileSize);
-
-        return Success_;
-    }
-
-    //=============================================================================================================================
-    Error ReadModelResource(cpointer assetname, ModelResource* model)
-    {
-        ReturnError_(ReadModelHeaderData(assetname, model));
+        AttachToBinary(model->data, (uint8*)fileData, fileSize);
 
         return Success_;
     }
